@@ -10,5 +10,4 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(date)
 
-target_compile_options(date INTERFACE -Wno-deprecated-declarations)
 include_directories(${date_SOURCE_DIR}/include)

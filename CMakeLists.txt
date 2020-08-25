@@ -62,18 +62,19 @@ if (NW_HYPERGRAPH_SANITIZE)
 endif (NW_HYPERGRAPH_SANITIZE)
 
 option(NW_HYPERGRAPH_EXECUTION_POLICY "with(out) C++ parallel execution policy" ON)
-option(NW_GRAPH_EXECUTION_POLICY "with(out) C++ parallel execution policy" ON)
 option(NW_HYPERGRAPH_BUILD_BENCH "Determines whether to build performance benchmarks." ON)
 option(NW_HYPERGRAPH_USE_TBBMALLOC "Link to tbbmalloc" OFF)
+
+add_subdirectory(include)
 
 include(Date)
 include(Docopt)
 include(RangeV3)
-include(ExternalProject)
 
 # -----------------------------------------------------------------------------
 # Include External Projects
 # -----------------------------------------------------------------------------
+include(ExternalProject)
 ExternalProject_Add(
   NWut
 
@@ -86,8 +87,8 @@ ExternalProject_Add(
   INSTALL_COMMAND ""
 )
 ExternalProject_Get_property(NWut SOURCE_DIR)
-#message("Source dir of NWut = ${SOURCE_DIR}")
 set(NWUT_INCLUDE_DIR ${SOURCE_DIR}/include)
+message("Source dir of NWut = ${NWUT_INCLUDE_DIR}")
 include_directories(${NWUT_INCLUDE_DIR})
 
 ExternalProject_Add(
@@ -98,15 +99,20 @@ ExternalProject_Add(
   GIT_SHALLOW       ON
 
   BUILD_ALWAYS      OFF
-  BUILD_COMMAND     ${CMAKE_COMMAND} -E copy ${NWUT_INCLUDE_DIR}/util/timer.hpp ${SOURCE_DIR}/include/util/timer.hpp
+  BUILD_COMMAND     ${CMAKE_COMMAND} -E copy ${NWUT_INCLUDE_DIR}/util/timer.hpp <SOURCE_DIR>/include/util/timer.hpp
   CMAKE_ARGS        -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER} -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DEXECUTION_POLICY=True
   DEPENDS           NWut
   INSTALL_COMMAND   ""
 )
 ExternalProject_Get_property(NWgr SOURCE_DIR)
-message("Source dir of NWgr = ${SOURCE_DIR}")
 set(NWGR_INCLUDE_DIR ${SOURCE_DIR}/include)
+message("Source dir of NWgr = ${NWGR_INCLUDE_DIR}")
 include_directories(${NWGR_INCLUDE_DIR})
+
+
+if (NW_HYPERGRAPH_EXECUTION_POLICY)
+  add_compile_definitions(EXECUTION_POLICY)
+endif()
 
 if (NW_HYPERGRAPH_BUILD_BENCH)
   add_subdirectory(bench)

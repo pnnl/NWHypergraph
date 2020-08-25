@@ -1,5 +1,5 @@
 //
-// This file is part of the Graph Standard Library (aka BGL17 aka NWGraph)
+// This file is part of the Graph Standard Library (aka nw::graph aka NWGraph)
 // (c) 2020 Pacific Northwest National Laboratory
 //
 // Licensed under Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License
@@ -9,18 +9,18 @@
 //
 
 #include "Log.hpp"
-#include "algorithms/bfs.hpp"
+#include <algorithms/bfs.hpp>
+#include "mmio_hy.hpp"
 #include "common.hpp"
-#include "edge_list.hpp"
-#include "util/AtomicBitVector.hpp"
-#include "util/atomic.hpp"
-#include "util/intersection_size.hpp"
+#include <edge_list.hpp>
+#include <util/AtomicBitVector.hpp>
+#include <util/intersection_size.hpp>
 #include <docopt.h>
 
 using namespace nw::hypergraph::bench;
 
 static constexpr const char USAGE[] =
-    R"(hyperbfsrelabel.exe: BGL17 hypergraph breadth-first search benchmark driver.
+    R"(hyperbfsrelabel.exe: nw::graph hypergraph breadth-first search benchmark driver.
   Usage:
       hyperbfsrelabel.exe (-h | --help)
       hyperbfsrelabel.exe -f FILE... [-r NODE | -s FILE] [-a NUM] [-b NUM] [-B NUM] [-n NUM] [--seed NUM] [--version ID...] [--succession STR] [--relabel] [--clean] [--direction DIR]  [--log FILE] [--log-header] [-dvV] [THREADS]...
@@ -51,8 +51,8 @@ static constexpr const char USAGE[] =
 
 template<typename Graph>
 size_t BU_step(Graph& g, std::vector<vertex_id_t>& parent, 
-bgl17::AtomicBitVector<>& front, bgl17::AtomicBitVector<>& next) {
-  life_timer _(__func__);
+nw::graph::AtomicBitVector<>& front, nw::graph::AtomicBitVector<>& next) {
+  nw::util::life_timer _(__func__);
   size_t num = g.max() + 1;    // number of hypernodes/hyperedges
   size_t awake_count = 0;
   next.clear();
@@ -77,7 +77,7 @@ bgl17::AtomicBitVector<>& front, bgl17::AtomicBitVector<>& next) {
 template<typename Graph>
 size_t TD_step(Graph& g, std::vector<vertex_id_t>& parent,
 std::vector<vertex_id_t>& front, std::vector<vertex_id_t>& next) {
-  life_timer _(__func__);
+  nw::util::life_timer _(__func__);
   size_t scout_count = 0;
   std::for_each(front.begin(), front.end(), [&](auto& u) {
     std::for_each(g.begin()[u].begin(), g.begin()[u].end(), [&](auto&& x) {
@@ -92,13 +92,13 @@ std::vector<vertex_id_t>& front, std::vector<vertex_id_t>& next) {
   });
   return scout_count;
 }
-inline void queue_to_bitmap(std::vector<vertex_id_t>& queue, bgl17::AtomicBitVector<>& bitmap) {
+inline void queue_to_bitmap(std::vector<vertex_id_t>& queue, nw::graph::AtomicBitVector<>& bitmap) {
   std::for_each(std::execution::par_unseq, queue.begin(), queue.end(), [&](auto&& u) { 
     bitmap.atomic_set(u); 
   });
 }
-inline void bitmap_to_queue(bgl17::AtomicBitVector<>& bitmap, std::vector<vertex_id_t>& queue) {
-  tbb::parallel_for(bitmap.non_zeros(bgl17::pow2(15)), [&](auto&& range) {
+inline void bitmap_to_queue(nw::graph::AtomicBitVector<>& bitmap, std::vector<vertex_id_t>& queue) {
+  tbb::parallel_for(bitmap.non_zeros(nw::graph::pow2(15)), [&](auto&& range) {
     for (auto &&i = range.begin(), e = range.end(); i != e; ++i) {
       queue.push_back(*i);
     }
@@ -116,7 +116,7 @@ size_t numpairs, int alpha = 15, int beta = 18) {
   frontier.reserve(n);
   nextfrontier.reserve(n);
   frontier.push_back(source_hyperedge);
-  bgl17::AtomicBitVector front(n), cur(n);
+  nw::graph::AtomicBitVector front(n), cur(n);
   size_t edges_to_check = numpairs;
   size_t scout_count = g[source_hyperedge].size();
   while (!frontier.empty()) {
@@ -297,16 +297,8 @@ int main(int argc, char* argv[]) {
 
       // Run relabeling. This operates directly on the incoming edglist.
       if (args["--relabel"].asBool()) {
-        //relabel the column with smaller size
-        if (aos_a.max()[0] > aos_a.max()[1]) {
-          auto hypernodedegrees = aos_a.degrees<1>();
-          std::cout << "relabeling hypernodes..." << std::endl;
-          aos_a.relabel_by_degree_bipartite<1>(args["--direction"].asString(), hypernodedegrees);
-        }
-        else {
-          std::cout << "relabeling hyperedges..." << std::endl;
-          aos_a.relabel_by_degree_bipartite<0>(args["--direction"].asString(), hyperedgedegrees);
-        }
+        auto degrees = aos_a.degrees();
+        aos_a.relabel_by_degree<0>(args["--direction"].asString(), degrees);
       }
       // Clean up the edgelist to deal with the normal issues related to
       // undirectedness.

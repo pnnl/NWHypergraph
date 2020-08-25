@@ -10,18 +10,19 @@
 
 #include "Log.hpp"
 #include "common.hpp"
-#include "edge_list.hpp"
-#include "util/AtomicBitVector.hpp"
-#include "util/atomic.hpp"
-#include "util/intersection_size.hpp"
+#include "edge_list_hy.hpp"
+#include <edge_list.hpp>
+#include <util/AtomicBitVector.hpp>
+#include <util/intersection_size.hpp>
 #include <docopt.h>
+#include <tbb/iterators.h>
+#include <execution>
 
 using namespace nw::graph;
-using namespace nw::util;
 using namespace nw::hypergraph::bench;
 
 static constexpr const char USAGE[] =
-    R"(hyperbfs.exe: nw::graph hypergraph breadth-first search benchmark driver.
+    R"(hyperbfs.exe: hypergraph breadth-first search benchmark driver.
   Usage:
       hyperbfs.exe (-h | --help)
       hyperbfs.exe -f FILE... [-r NODE | -s FILE] [-a NUM] [-b NUM] [-B NUM] [-n NUM] [--seed NUM] [--version ID...] [--succession STR] [--relabel] [--clean] [--direction DIR]  [--log FILE] [--log-header] [-dvV] [THREADS]...
@@ -51,7 +52,7 @@ static constexpr const char USAGE[] =
 
 template<class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph(ExecutionPolicy&& exec, HyperEdge& e_nbs, HyperNode& n_nbs, size_t s = 1) {
-  life_timer _(__func__);
+  nw::util::life_timer _(__func__);
   //auto n_nbs = adjacency<0>(H);
   //auto e_nbs = adjacency<1>(H);
   edge_list<undirected> two_graph(0);
@@ -73,7 +74,7 @@ auto to_two_graph(ExecutionPolicy&& exec, HyperEdge& e_nbs, HyperNode& n_nbs, si
 
 template<class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graphv2(ExecutionPolicy&& exec, HyperEdge& e_nbs, HyperNode& n_nbs, std::vector<index_t>& hyperedgedegrees, size_t s = 1) {
-  life_timer _(__func__);
+  nw::util::life_timer _(__func__);
   //auto n_nbs = adjacency<0>(H);
   //auto e_nbs = adjacency<1>(H);
   edge_list<undirected> two_graph(0);
@@ -188,7 +189,7 @@ auto relabelHyperCC(ExecutionPolicy&& exec, HyperGraph& aos_a) {
 */
 template<typename GraphN, typename GraphE>
 auto hyperBFS_topdown_serial_v0(vertex_id_t source_hyperedge, GraphN& hypernodes, GraphE& hyperedges) {
-  life_timer _(__func__);
+  nw::util::life_timer _(__func__);
   size_t     num_hypernodes = hypernodes.max() + 1;    // number of hypernodes
   size_t     num_hyperedges = hyperedges.max() + 1;    // number of hyperedges
 
@@ -238,7 +239,7 @@ auto hyperBFS_topdown_serial_v0(vertex_id_t source_hyperedge, GraphN& hypernodes
 */
 template<typename GraphN, typename GraphE>
 auto hyperBFS_topdown_serial_v1(vertex_id_t source_hyperedge, GraphN& hypernodes, GraphE& hyperedges) {
-  life_timer _(__func__);
+  nw::util::life_timer _(__func__);
   size_t     num_hypernodes = hypernodes.max() + 1;    // number of hypernodes
   size_t     num_hyperedges = hyperedges.max() + 1;    // number of hyperedges
 
@@ -285,7 +286,7 @@ auto hyperBFS_topdown_serial_v1(vertex_id_t source_hyperedge, GraphN& hypernodes
 */
 template<typename GraphN, typename GraphE>
 auto hyperBFS_bottomup_serial_v0(vertex_id_t source_hyperedge, GraphN& hypernodes, GraphE& hyperedges) {
-  life_timer _(__func__);
+  nw::util::life_timer _(__func__);
   size_t     num_hypernodes = hypernodes.max() + 1;    // number of hypernodes
   size_t     num_hyperedges = hyperedges.max() + 1;    // number of hyperedges
 
@@ -321,12 +322,12 @@ auto hyperBFS_bottomup_serial_v0(vertex_id_t source_hyperedge, GraphN& hypernode
 template<typename Graph>
 size_t BU_step(Graph& g, std::vector<vertex_id_t>& parent, 
 nw::graph::AtomicBitVector<>& front, nw::graph::AtomicBitVector<>& next) {
-  life_timer _(__func__);
+  nw::util::life_timer _(__func__);
   size_t num = g.max() + 1;    // number of hypernodes/hyperedges
   size_t awake_count = 0;
   next.clear();
     //or use a parallel for loop
-  std::for_each(counting_iterator<vertex_id_t>(0), counting_iterator<vertex_id_t>(num), [&](auto u) {
+  std::for_each(tbb::counting_iterator<vertex_id_t>(0), tbb::counting_iterator<vertex_id_t>(num), [&](auto u) {
     if (std::numeric_limits<vertex_id_t>::max() == parent[u]) {
       std::for_each(g.begin()[u].begin(), g.begin()[u].end(), [&](auto&& x) {
         auto v = std::get<0>(x);
@@ -346,7 +347,7 @@ nw::graph::AtomicBitVector<>& front, nw::graph::AtomicBitVector<>& next) {
 template<typename Graph>
 size_t TD_step(Graph& g, std::vector<vertex_id_t>& parent,
 std::vector<vertex_id_t>& front, std::vector<vertex_id_t>& next) {
-  life_timer _(__func__);
+  nw::util::life_timer _(__func__);
   size_t scout_count = 0;
   std::for_each(front.begin(), front.end(), [&](auto& u) {
     std::for_each(g.begin()[u].begin(), g.begin()[u].end(), [&](auto&& x) {
@@ -385,7 +386,7 @@ template<typename Graph>
 std::vector<vertex_id_t> init_parent(Graph& g) {
   auto num = g.max() + 1;
   std::vector<vertex_id_t> parent(num);
-  std::for_each(counting_iterator<vertex_id_t>(0), counting_iterator<vertex_id_t>(num), [&](auto u) {
+  std::for_each(tbb::counting_iterator<vertex_id_t>(0), tbb::counting_iterator<vertex_id_t>(num), [&](auto u) {
     parent[u] = 0 != g[u].size() ? -g[u].size() : -1;
   });
   return parent;
@@ -396,7 +397,7 @@ std::vector<vertex_id_t> init_parent(Graph& g) {
 template<typename GraphN, typename GraphE>
 auto hyperBFS_hybrid_serial_v0(vertex_id_t source_hyperedge, GraphN& hypernodes, GraphE& hyperedges,
 size_t numpairs, int alpha = 15, int beta = 18) {
-  life_timer _(__func__);
+  nw::util::life_timer _(__func__);
   size_t     num_hypernodes = hypernodes.max() + 1;    // number of hypernodes
   size_t     num_hyperedges = hyperedges.max() + 1;    // number of hyperedges
 
@@ -451,7 +452,7 @@ size_t numpairs, int alpha = 15, int beta = 18) {
 template<typename GraphN, typename GraphE>
 auto hyperBFS_hybrid_serial_v1(vertex_id_t source_hyperedge, GraphN& hypernodes, GraphE& hyperedges,
 size_t numpairs, int alpha = 15, int beta = 18) {
-  life_timer _(__func__);
+  nw::util::life_timer _(__func__);
   size_t     num_hypernodes = hypernodes.max() + 1;    // number of hypernodes
   size_t     num_hyperedges = hyperedges.max() + 1;    // number of hyperedges
 
@@ -667,8 +668,8 @@ int main2(int argc, char* argv[]) {
     files.emplace_back(file);
   }
 
-  std::vector ids     = parse_ids(args["--version"].asStringList());
-  std::vector threads = parse_n_threads(args["THREADS"].asStringList());
+  std::vector<long> ids     = parse_ids(args["--version"].asStringList());
+  std::vector<long> threads = parse_n_threads(args["THREADS"].asStringList());
 
   Times<bool> times;
 
@@ -689,11 +690,13 @@ int main2(int argc, char* argv[]) {
         if (aos_a.max()[0] > aos_a.max()[1]) {
           std::vector<nw::graph::index_t> hypernodedegrees = aos_a.degrees<1>();
           std::cout << "relabeling hypernodes..." << std::endl;
-          aos_a.relabel_by_degree_bipartite<1>(args["--direction"].asString(), hypernodedegrees);
+                    //TODO NOT WORKING
+          nw::hypergraph::relabel_by_degree_bipartite<0>(aos_a, args["--direction"].asString(), hypernodedegrees);
         }
         else {
           std::cout << "relabeling hyperedges..." << std::endl;
-          aos_a.relabel_by_degree_bipartite<0>(args["--direction"].asString(), hyperedgedegrees);
+          //TODO NOT WORKING
+          nw::hypergraph::relabel_by_degree_bipartite<0>(aos_a, args["--direction"].asString(), hyperedgedegrees);
         }
       }
       // Clean up the edgelist to deal with the normal issues related to
@@ -705,8 +708,8 @@ int main2(int argc, char* argv[]) {
         aos_a.remove_self_loops();
       }
 
-      adjacency<0> hyperedges(aos_a);
-      adjacency<1> hypernodes(aos_a);
+      nw::graph::adjacency<0> hyperedges(aos_a);
+      nw::graph::adjacency<1> hypernodes(aos_a);
       if (verbose) {
         hypernodes.stream_stats();
         hyperedges.stream_stats();

@@ -1,5 +1,5 @@
 //
-// This file is part of the Graph Standard Library (aka BGL17 aka NWGraph)
+// This file is part of the Graph Standard Library (aka nw::graph aka NWGraph)
 // (c) 2020 Pacific Northwest National Laboratory
 //
 // Licensed under Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License
@@ -9,18 +9,19 @@
 //
 
 #include "Log.hpp"
-#include "algorithms/connected_component.hpp"
+#include <algorithms/connected_components.hpp>
 #include "common.hpp"
-#include "edge_list.hpp"
-#include "util/AtomicBitVector.hpp"
-#include "util/atomic.hpp"
-#include "util/intersection_size.hpp"
+#include <edge_list.hpp>
+#include "edge_list_hy.hpp"
+#include <util/AtomicBitVector.hpp>
+#include <util/atomic.hpp>
+#include <util/intersection_size.hpp>
 #include <docopt.h>
 
 using namespace nw::hypergraph::bench;
 
 static constexpr const char USAGE[] =
-    R"(bicc.exe: BGL17 hypergraph connected components benchmark driver.
+    R"(bicc.exe: nw::graph hypergraph connected components benchmark driver.
   Usage:
       bicc.exe (-h | --help)
       bicc.exe [-f FILE...] [--version ID...] [-n NUM] [--succession STR] [--relabel] [--clean] [--direction DIR] [-dvV] [--log FILE] [--log-header] [THREADS]...
@@ -44,7 +45,7 @@ static constexpr const char USAGE[] =
 
 template<class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph(ExecutionPolicy&& exec, HyperEdge& e_nbs, HyperNode& n_nbs, size_t s = 1) {
-  life_timer _(__func__);
+  nw::util::life_timer _(__func__);
   //auto n_nbs = adjacency<0>(H);
   //auto e_nbs = adjacency<1>(H);
   edge_list<undirected> two_graph(0);
@@ -53,7 +54,7 @@ auto to_two_graph(ExecutionPolicy&& exec, HyperEdge& e_nbs, HyperNode& n_nbs, si
   for (size_t i = 0; i < e_nbs.size(); ++i) {
     for (size_t j = i + 1; j < e_nbs.size(); ++j) {
       ++counter;
-      size_t count = bgl17::intersection_size(e_nbs[i], e_nbs[j]);    //       if intersection_size(n_nbs(i), n_nbs(j)) >= s
+      size_t count = nw::graph::intersection_size(e_nbs[i], e_nbs[j]);    //       if intersection_size(n_nbs(i), n_nbs(j)) >= s
       if (count >= s) {
         two_graph.push_back(i, j);    //         add (i,j) to new edge_list
       }
@@ -66,7 +67,7 @@ auto to_two_graph(ExecutionPolicy&& exec, HyperEdge& e_nbs, HyperNode& n_nbs, si
 
 template<class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graphv2(ExecutionPolicy&& exec, HyperEdge& e_nbs, HyperNode& n_nbs, std::vector<index_t>& hyperedgedegrees, size_t s = 1) {
-  life_timer _(__func__);
+  nw::util::life_timer _(__func__);
   //auto n_nbs = adjacency<0>(H);
   //auto e_nbs = adjacency<1>(H);
   edge_list<undirected> two_graph(0);
@@ -87,7 +88,7 @@ auto to_two_graphv2(ExecutionPolicy&& exec, HyperEdge& e_nbs, HyperNode& n_nbs, 
         if (hyperE > anotherhyperE) return;
         ++counter;
         //O(average degree of hyperedges)
-        size_t count = bgl17::intersection_size(e_nbs[hyperE], e_nbs[anotherhyperE]);    //       if intersection_size(n_nbs(i), n_nbs(j)) >= s
+        size_t count = nw::graph::intersection_size(e_nbs[hyperE], e_nbs[anotherhyperE]);    //       if intersection_size(n_nbs(i), n_nbs(j)) >= s
         if (count >= s) {
           two_graph.push_back(hyperE, anotherhyperE);    //         add (i,j) to new edge_list
         }
@@ -107,7 +108,7 @@ auto base_two(HyperGraph& H, size_t s = 1) {
 
 template<class ExecutionPolicy, class HyperNode, class SGraph, class STranspose>
 auto base_two(ExecutionPolicy&& exec, HyperNode& hypernodes, SGraph& s_adj, STranspose& s_tran_adj) {
-  auto E = ccv1(exec, s_adj);//Afforest(s_adj, s_trans_adj);                 // 3) run whatever on new_adjacency
+  auto E = ccv1(s_adj);//Afforest(s_adj, s_trans_adj);                 // 3) run whatever on new_adjacency
   auto nhypernodes = hypernodes.max() + 1;
   std::vector<vertex_id_t> N(nhypernodes);
   //for each hypernode, find N[i]
@@ -160,7 +161,7 @@ auto relabelHyperCC(ExecutionPolicy&& exec, HyperGraph& aos_a) {
   //s_adj.stream_indices();
 
   auto labeling   = //Afforest(s_adj, s_trans_adj); 
-  ccv1(exec, s_adj);//
+  ccv1(s_adj);//
 
   auto n_nbs = aos_a.max()[1] + 1;
   auto e_nbs = aos_a.max()[0] + 1;
@@ -181,7 +182,7 @@ auto relabelHyperCC(ExecutionPolicy&& exec, HyperGraph& aos_a) {
 */
 template<typename Execution, typename Graph>
 auto baseline(Execution exec, Graph& aos_a) {
-  life_timer _(__func__);
+  nw::util::life_timer _(__func__);
 
   size_t num_hyperedges = aos_a.max()[0] + 1;    // number of hyperedges
   size_t num_hypernodes = aos_a.max()[1] + 1;    // number of hypernodes
@@ -237,7 +238,7 @@ auto baseline(Execution exec, Graph& aos_a) {
 
 template<typename Execution, typename Graph, typename GraphN, typename GraphE>
 auto svCC(Execution exec, Graph& aos_a, GraphN& cn, GraphE& ce) {
-  life_timer _(__func__);
+  nw::util::life_timer _(__func__);
 
   size_t num_hyperedges = ce.max() + 1;    // number of hyperedges
   size_t num_hypernodes = cn.max() + 1;    // number of hypernodes
@@ -315,15 +316,15 @@ auto svCC(Execution exec, Graph& aos_a, GraphN& cn, GraphE& ce) {
 
 template<typename GraphN, typename GraphE>
 auto lpCC(GraphN& hypernodes, GraphE& hyperedges) {
-  life_timer _(__func__);
+  nw::util::life_timer _(__func__);
   size_t     num_hypernodes = hypernodes.max() + 1;    // number of hypernodes
   size_t     num_hyperedges = hyperedges.max() + 1;    // number of hyperedges
 
   std::vector<vertex_id_t> E(num_hyperedges);
   std::vector<vertex_id_t> N(num_hypernodes, std::numeric_limits<vertex_id_t>::max());
 
-  bgl17::AtomicBitVector   visitedN(num_hypernodes);
-  bgl17::AtomicBitVector   visitedE(num_hyperedges);
+  nw::graph::AtomicBitVector   visitedN(num_hypernodes);
+  nw::graph::AtomicBitVector   visitedE(num_hyperedges);
   std::vector<vertex_id_t> frontierN, frontierE(num_hyperedges);
   frontierN.reserve(num_hypernodes);
   //initial node frontier includes every node
@@ -340,7 +341,7 @@ auto lpCC(GraphN& hypernodes, GraphE& hyperedges) {
         auto hyperN = std::get<0>(x);
         auto labelN = N[hyperN];
         if (labelE < labelN) {
-          bgl17::writeMin(N[hyperN], labelE);
+          writeMin(N[hyperN], labelE);
           if (visitedN.atomic_get(hyperN) == 0 && visitedN.atomic_set(hyperN) == 0) frontierN.push_back(hyperN);
         }
       });
@@ -356,7 +357,7 @@ auto lpCC(GraphN& hypernodes, GraphE& hyperedges) {
         auto hyperE = std::get<0>(x);
         auto labelE = E[hyperE];
         if (labelN < labelE) {
-          bgl17::writeMin(E[hyperE], labelN);
+          writeMin(E[hyperE], labelN);
           if (visitedE.atomic_get(hyperE) == 0 && visitedE.atomic_set(hyperE) == 0) {
             frontierE.push_back(hyperE);
           }
@@ -374,7 +375,7 @@ auto lpCC(GraphN& hypernodes, GraphE& hyperedges) {
 inline bool updateAtomic(std::vector<vertex_id_t>& dest, std::vector<vertex_id_t>& source, std::vector<vertex_id_t>& prevDest,
                          vertex_id_t d, vertex_id_t s) {    //atomic Update
   auto origID = dest[d];
-  return (bgl17::writeMin(dest[d], source[s]) && origID == prevDest[d]);
+  return (writeMin(dest[d], source[s]) && origID == prevDest[d]);
 }
 // Verifies CC result by performing a BFS from a vertex in each component
 // - Asserts search does not reach a vertex with a different component label
@@ -382,7 +383,7 @@ inline bool updateAtomic(std::vector<vertex_id_t>& dest, std::vector<vertex_id_t
 // - Asserts every vertex is visited (degree-0 vertex should have own label)
 template<typename Execution, typename GraphN, typename GraphE>
 auto bfsCC(Execution exec, GraphN& hypernodes, GraphE& hyperedges) {
-  life_timer _(__func__);
+  nw::util::life_timer _(__func__);
   size_t     num_hypernodes = hypernodes.max() + 1;    // number of hypernodes
   size_t     num_hyperedges = hyperedges.max() + 1;    // number of hyperedges
 
@@ -391,8 +392,8 @@ auto bfsCC(Execution exec, GraphN& hypernodes, GraphE& hyperedges) {
   std::vector<vertex_id_t> prevE(num_hyperedges);
   std::vector<vertex_id_t> prevN(num_hypernodes);
 
-  bgl17::AtomicBitVector   visitedN(num_hypernodes);
-  bgl17::AtomicBitVector   visitedE(num_hyperedges);
+  nw::graph::AtomicBitVector   visitedN(num_hypernodes);
+  nw::graph::AtomicBitVector   visitedE(num_hyperedges);
   std::vector<vertex_id_t> frontierN, frontierE(num_hyperedges);
   frontierN.reserve(num_hypernodes);
   //frontierE.resize(num_hyperedges);
@@ -426,7 +427,7 @@ auto bfsCC(Execution exec, GraphN& hypernodes, GraphE& hyperedges) {
           N[hyperN] = labelE;
           auto old  = N[hyperN];
           while (old == N[hyperN]) {
-            auto s = bgl17::cas(N[hyperN], old, labelE);
+            auto s = nw::graph::cas(N[hyperN], old, labelE);
             if (s) {
               if (visitedN.atomic_get(hyperN) == 0) {
                 // visitedN.atomic_set(hyperN);
@@ -443,7 +444,7 @@ auto bfsCC(Execution exec, GraphN& hypernodes, GraphE& hyperedges) {
         /*
           if (N[hyperN] == E[hyperE]) return;
           else if (E[hyperE] < N[hyperN]) {
-            bgl17::writeMin(N[hyperN], E[hyperE]);
+            writeMin(N[hyperN], E[hyperE]);
             if (visitedN.atomic_get(hyperN) == 0 && visitedN.atomic_set(hyperN) == 0) {
               frontierN.push_back(hyperN);
             }
@@ -468,7 +469,7 @@ auto bfsCC(Execution exec, GraphN& hypernodes, GraphE& hyperedges) {
         auto labelE = E[hyperE];
         if (labelN < labelE) {
           updateAtomic(E, N, prevE, hyperE, hyperN);
-          //while (bgl17::writeMin(E[hyperE], labelN) && prevE[hyperN] == labelE);
+          //while (writeMin(E[hyperE], labelN) && prevE[hyperN] == labelE);
           if (visitedE.atomic_get(hyperE) == 0 && visitedE.atomic_set(hyperE) == 0) {
             frontierE.push_back(hyperE);
           }
@@ -476,7 +477,7 @@ auto bfsCC(Execution exec, GraphN& hypernodes, GraphE& hyperedges) {
         /*
           if (E[hyperE] == N[hyperN]) return;
           else if (N[hyperN] < E[hyperE]) {
-            bgl17::writeMin(E[hyperE], N[hyperN]);
+            writeMin(E[hyperE], N[hyperN]);
             if (visitedE.atomic_get(hyperE) == 0 && visitedE.atomic_set(hyperE) == 0) {
               frontierE.push_back(hyperE);
             }
@@ -508,15 +509,15 @@ auto bfsCC(Execution exec, GraphN& hypernodes, GraphE& hyperedges) {
 
 template<typename Execution, typename GraphN, typename GraphE>
 auto lpCC(Execution exec, GraphN& hypernodes, GraphE& hyperedges) {
-  life_timer _(__func__);
+  nw::util::life_timer _(__func__);
   size_t     num_hypernodes = hypernodes.max() + 1;    // number of hypernodes
   size_t     num_hyperedges = hyperedges.max() + 1;    // number of hyperedges
 
   std::vector<vertex_id_t> E(num_hyperedges);
   std::vector<vertex_id_t> N(num_hypernodes, std::numeric_limits<vertex_id_t>::max());
 
-  bgl17::AtomicBitVector   visitedN(num_hypernodes);
-  bgl17::AtomicBitVector   visitedE(num_hyperedges);
+  nw::graph::AtomicBitVector   visitedN(num_hypernodes);
+  nw::graph::AtomicBitVector   visitedE(num_hyperedges);
   std::vector<vertex_id_t> frontierN, frontierE(num_hyperedges);
   frontierN.reserve(num_hypernodes);
   //initial node frontier includes every node
@@ -539,7 +540,7 @@ auto lpCC(Execution exec, GraphN& hypernodes, GraphE& hyperedges) {
         auto hyperN = std::get<0>(x);
         auto labelN = N[hyperN];
         if (labelE < labelN) {
-          bgl17::writeMin(N[hyperN], labelE);
+          writeMin(N[hyperN], labelE);
           if (visitedN.atomic_get(hyperN) == 0 && visitedN.atomic_set(hyperN) == 0) frontierN.push_back(hyperN);
         }
       });
@@ -555,7 +556,7 @@ auto lpCC(Execution exec, GraphN& hypernodes, GraphE& hyperedges) {
         auto hyperE = std::get<0>(x);
         auto labelE = E[hyperE];
         if (labelN < labelE) {
-          bgl17::writeMin(E[hyperE], labelN);
+          writeMin(E[hyperE], labelN);
           if (visitedE.atomic_get(hyperE) == 0 && visitedE.atomic_set(hyperE) == 0) {
             frontierE.push_back(hyperE);
           }
@@ -571,15 +572,15 @@ auto lpCC(Execution exec, GraphN& hypernodes, GraphE& hyperedges) {
 
 template<typename Execution, typename GraphN, typename GraphE>
 auto lpaNoFrontierCC(Execution exec, GraphN& hypernodes, GraphE& hyperedges) {
-  life_timer _(__func__);
+  nw::util::life_timer _(__func__);
   size_t     num_hypernodes = hypernodes.max() + 1;    // number of hypernodes
   size_t     num_hyperedges = hyperedges.max() + 1;    // number of hyperedges
 
   std::vector<vertex_id_t> E(num_hyperedges);
   std::vector<vertex_id_t> N(num_hypernodes, std::numeric_limits<vertex_id_t>::max());
 
-  bgl17::AtomicBitVector visitedN(num_hypernodes);
-  bgl17::AtomicBitVector visitedE(num_hyperedges);
+  nw::graph::AtomicBitVector visitedN(num_hypernodes);
+  nw::graph::AtomicBitVector visitedE(num_hyperedges);
   //std::vector<vertex_id_t> frontierN, frontierE(num_hyperedges);
   //frontierN.reserve(num_hypernodes);
   //frontierE.resize(num_hyperedges);
@@ -618,8 +619,8 @@ auto lpaNoFrontierCC(Execution exec, GraphN& hypernodes, GraphE& hyperedges) {
             return;
           } else if (labelE < labelN) {
             //updateAtomic(N, E, prevN, hyperN, hyperE);
-            bgl17::writeMin(N[hyperN], labelE);
-            //while (bgl17::writeMin(N[hyperN], labelE) && prevN[hyperN] == labelN);
+            writeMin(N[hyperN], labelE);
+            //while (writeMin(N[hyperN], labelE) && prevN[hyperN] == labelN);
             if (!visitedN.atomic_get(hyperN)) {
               visitedN.atomic_set(hyperN);
               change = true;
@@ -630,7 +631,7 @@ auto lpaNoFrontierCC(Execution exec, GraphN& hypernodes, GraphE& hyperedges) {
             //hypernodes to frontierN
             //safe to write without atomic action
             E[hyperE] = labelN;
-            //bgl17::writeMin(E[hyperE], labelN);
+            //writeMin(E[hyperE], labelN);
             labelE = labelN;
             visitedE.atomic_set(hyperE);
             /*
@@ -663,9 +664,9 @@ auto lpaNoFrontierCC(Execution exec, GraphN& hypernodes, GraphE& hyperedges) {
             visitedE.atomic_set(hyperE);
             return;
           } else if (labelN < labelE) {
-            bgl17::writeMin(E[hyperE], labelN);
+            writeMin(E[hyperE], labelN);
             //updateAtomic(E, N, prevE, hyperE, hyperN);
-            //while (bgl17::writeMin(N[hyperN], labelE) && prevN[hyperN] == labelN);
+            //while (writeMin(N[hyperN], labelE) && prevN[hyperN] == labelN);
             if (!visitedE.atomic_get(hyperE)) {
               visitedE.atomic_set(hyperE);
               change = true;
@@ -673,7 +674,7 @@ auto lpaNoFrontierCC(Execution exec, GraphN& hypernodes, GraphE& hyperedges) {
             }
           } else {
             N[hyperE] = labelE;
-            //bgl17::writeMin(N[hyperN], labelE);
+            //writeMin(N[hyperN], labelE);
             labelN = labelE;
             /*
             std::for_each(nodes[hyperN].begin(), nodes[hyperN].end(), [&](auto&& y) {
@@ -731,11 +732,13 @@ int main(int argc, char* argv[]) {
         if (aos_a.max()[0] > aos_a.max()[1]) {
           auto hypernodedegrees = aos_a.degrees<1>();
           std::cout << "relabeling hypernodes..." << std::endl;
-          aos_a.relabel_by_degree_bipartite<1>(args["--direction"].asString(), hypernodedegrees);
+          //TODO NOT WORKING
+          nw::hypergraph::relabel_by_degree_bipartite<1>(aos_a, args["--direction"].asString(), hypernodedegrees);
         }
         else {
           std::cout << "relabeling hyperedges..." << std::endl;
-          aos_a.relabel_by_degree_bipartite<0>(args["--direction"].asString(), hyperedgedegrees);
+          //TODO NOT WORKING
+          nw::hypergraph::relabel_by_degree_bipartite<1>(aos_a, args["--direction"].asString(), hyperedgedegrees);
         }
       }
       // Clean up the edgelist to deal with the normal issues related to

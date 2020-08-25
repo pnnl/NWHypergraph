@@ -1,14 +1,14 @@
 #pragma once
 
-#include "edge_list.hpp"
-#include "edge_range.hpp"
-#include "mmio.hpp"
-#include "util/timer.hpp"
-#include "util/traits.hpp"
-
-#if defined (EXECUTION_POLICY)
+#include <edge_list.hpp>
+#include <edge_range.hpp>
+#include <mmio.hpp>
+#include <util/timer.hpp>
+#include <util/traits.hpp>
+#include <util/atomic.hpp>
 #include <tbb/global_control.h>
-#endif
+#include <tbb/parallel_for.h>
+
 #include <iomanip>
 #include <map>
 #include <random>
@@ -103,9 +103,8 @@ nw::graph::adjacency<Adj, Attributes...> build_adjacency(nw::graph::edge_list<Di
 template <class Graph>
 auto build_degrees(Graph&& graph)
 {
-  using Id = typename nw::graph::vertex_id<std::decay_t<Graph>>;
   nw::util::life_timer _("degrees");
-  std::vector<Id> degrees(graph.size());
+  std::vector<nw::graph::vertex_id_t> degrees(graph.size());
   tbb::parallel_for(edge_range(graph), [&](auto&& edges) {
     for (auto&& [i, j] : edges) {
       __atomic_fetch_add(&degrees[j], 1, __ATOMIC_ACQ_REL);
@@ -117,9 +116,9 @@ auto build_degrees(Graph&& graph)
 template <class Graph>
 auto build_random_sources(Graph&& graph, size_t n, long seed)
 {
-  using Id = typename nw::graph::vertex_id<std::decay_t<Graph>>;
+  using Id = typename nw::graph::vertex_id<std::decay_t<Graph>>::type;
 
-  auto sources = std::vector<Id>(n);
+  auto sources = std::vector<nw::graph::vertex_id_t>(n);
   auto degrees = build_degrees(graph);
   auto     gen = std::mt19937(seed);
   auto     dis = std::uniform_int_distribution<Id>(0, graph.max());
@@ -137,7 +136,7 @@ auto build_random_sources(Graph&& graph, size_t n, long seed)
 template <class Graph>
 auto load_sources_from_file(Graph&&, std::string file, size_t n = 0)
 {
-  using Id = typename nw::graph::vertex_id<std::decay_t<Graph>>;
+  using Id = typename nw::graph::vertex_id<std::decay_t<Graph>>::type;
   std::vector sources = read_mm_vector<Id>(file);
   if (n && sources.size() != n) {
     std::cerr << file << " contains " << sources.size() << " sources, however options require " << n << "\n";
@@ -249,5 +248,16 @@ class Times
     }, minmax(times));
   }
 };
+
+template<class T>
+inline bool writeMin(T& old, T& next) {
+  T    prev;
+  bool success;
+  do
+    prev = old;
+  while (prev > next && !(success = nw::graph::cas(old, prev, next)));
+  return success;
+}
+
 }
 }
