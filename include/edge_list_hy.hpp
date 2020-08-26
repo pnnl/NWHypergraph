@@ -9,7 +9,7 @@
 //
 
 #pragma once
-#include "edge_list.hpp"
+#include <edge_list.hpp>
 
 namespace nw {
 namespace hypergraph {
@@ -31,6 +31,7 @@ void relabel_by_degree_bipartite(nw::graph::edge_list<nw::graph::directed>& aos_
       }
     });
 
+  //TODO unfinished
 /*
     //std::for_each(std::execution::par_unseq, base::begin(), base::end(),[&](auto&& x) {
     //    std::get<idx>(x) = iperm[std::get<idx>(x)];

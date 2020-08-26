@@ -5,7 +5,7 @@
 #include <mmio.hpp>
 #include <util/timer.hpp>
 #include <util/traits.hpp>
-#include <util/atomic.hpp>
+
 #include <tbb/global_control.h>
 #include <tbb/parallel_for.h>
 
@@ -249,15 +249,7 @@ class Times
   }
 };
 
-template<class T>
-inline bool writeMin(T& old, T& next) {
-  T    prev;
-  bool success;
-  do
-    prev = old;
-  while (prev > next && !(success = nw::graph::cas(old, prev, next)));
-  return success;
-}
+
 
 }
 }

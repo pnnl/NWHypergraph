@@ -23,6 +23,11 @@ target_sources(NW_HYPERGRAPH
   INTERFACE
   edge_list_hy.hpp
   mmio_hy.hpp
+  s_overlap.hpp
+  algorithms/hyper_connected_components.hpp
+  algorithms/hyper_breadth_first_search.hpp
+  algorithms/s_connected_components.hpp
+  algorithms/s_breadth_first_search.hpp
   )
 
 target_include_directories(NW_HYPERGRAPH INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})

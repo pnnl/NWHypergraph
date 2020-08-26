@@ -28,14 +28,14 @@ target_link_libraries(bench INTERFACE NW_HYPERGRAPH docopt date::date std::files
 # -----------------------------------------------------------------------------
 # NW_HYPERGRAPH driver to verify that we're correctly generating source lists.
 # -----------------------------------------------------------------------------
-add_executable(hyperbfs.exe hyperbfs.cpp)
-target_link_libraries(hyperbfs.exe bench)
+add_executable(hybfs.exe hyperbfs.cpp)
+target_link_libraries(hybfs.exe bench)
 
-add_executable(hyperbfsrelabel.exe hyperbfsrelabel.cpp)
-target_link_libraries(hyperbfsrelabel.exe bench)
+add_executable(hybfsrelabel.exe hyperbfsrelabel.cpp)
+target_link_libraries(hybfsrelabel.exe bench)
 
-add_executable(hypercc.exe hypercc.cpp)
-target_link_libraries(hypercc.exe bench)
+add_executable(hycc.exe hypercc.cpp)
+target_link_libraries(hycc.exe bench)
 
-add_executable(hyperccrelabel.exe hyperccrelabel.cpp)
-target_link_libraries(hyperccrelabel.exe bench)
+add_executable(hyccrelabel.exe hyperccrelabel.cpp)
+target_link_libraries(hyccrelabel.exe bench)
