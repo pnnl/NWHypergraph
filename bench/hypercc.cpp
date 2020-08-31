@@ -25,7 +25,7 @@ static constexpr const char USAGE[] =
     R"(hycc.exe: hypergraph connected components benchmark driver.
   Usage:
       hycc.exe (-h | --help)
-      hycc.exe [-f FILE...] [--version ID...] [-n NUM] [--succession STR] [--relabel] [--clean] [--direction DIR] [-dvV] [--log FILE] [--log-header] [THREADS]...
+      hycc.exe [-f FILE...] [--version ID...] [-n NUM] [--succession STR] [--relabel] [--clean] [--direction DIR] [-dvV] [--log FILE] [--log-header] [--overlap NUM] [THREADS]...
 
   Options:
       -h, --help            show this screen
@@ -38,6 +38,7 @@ static constexpr const char USAGE[] =
       --succession STR      successor/predecessor [default: successor]
       --log FILE            log times to a file
       --log-header          add a header to the log file
+      --overlap NUM         s overlap [default: 1]
       -d, --debug           run in debug mode
       -v, --verify          verify results
       -V, --verbose         run in verbose mode
@@ -53,6 +54,8 @@ int main(int argc, char* argv[]) {
   bool verbose = args["--verbose"].asBool();
   bool debug   = args["--debug"].asBool();
   long trials  = args["-n"].asLong() ?: 1;
+
+  size_t s_overlap = args["--overlap"].asLong();
 
   std::vector ids     = parse_ids(args["--version"].asStringList());
   std::vector threads = parse_n_threads(args["THREADS"].asStringList());
@@ -109,24 +112,18 @@ int main(int argc, char* argv[]) {
       return std::tuple(aos_a, hyperedges, hypernodes, hyperedgedegrees);
     };
 
-    auto&& graphs     = reader(file, verbose);
-    auto&& aos_a      = std::get<0>(graphs);
-    auto&& hyperedges = std::get<1>(graphs);
-    auto&& hypernodes = std::get<2>(graphs);
-    auto&& hyperedgedegrees = std::get<3>(graphs);
+    // auto&& graphs     = reader(file, verbose);
+    // auto&& aos_a      = std::get<0>(graphs);
+    // auto&& hyperedges = std::get<1>(graphs);
+    // auto&& hypernodes = std::get<2>(graphs);
+    // auto&& hyperedgedegrees = std::get<3>(graphs);
 
-    edge_list<undirected> s_over;
-    edge_list<undirected> s_over1 = to_two_graph<undirected>(std::execution::seq, hyperedges, hypernodes);
-    if (std::find(ids.begin(), ids.end(), 6) != ids.end())
-    s_over = to_two_graphv2<undirected>(std::execution::seq, hyperedges, hypernodes, hyperedgedegrees);    // 1) find 2-graph corresponding to s-overlapped hyper edges
-    //s_over. template lexical_sort_by<0>();
-    //s_over.uniq();
-    //s_over.remove_self_loops();
+    auto&&[ aos_a, hyperedges, hypernodes, hyperedgedegrees ] = reader(file, verbose);
 
-  //s_over.stream_edges();
 
-    nw::graph::adjacency<0> s_adj  = build_adjacency<0>(s_over);        // 2) convert new edge_list to new_adjacency
-    nw::graph::adjacency<1> s_trans_adj = build_adjacency<1>(s_over);
+    auto line_graph = to_two_graphv2<undirected>(std::execution::seq, hyperedges, hypernodes, hyperedgedegrees, s_overlap);
+    nw::graph::adjacency<0> s_adj  = build_adjacency<0>(line_graph);
+    nw::graph::adjacency<1> s_trans_adj = build_adjacency<1>(line_graph);
 
     if (debug) {
       hypernodes.stream_indices();
