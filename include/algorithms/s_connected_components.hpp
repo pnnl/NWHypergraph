@@ -15,9 +15,9 @@
 namespace nw {
 namespace hypergraph {
 
-template<class ExecutionPolicy, class HyperNode, class SGraph, class STranspose>
-auto base_two(ExecutionPolicy&& ep, HyperNode& hypernodes, SGraph& s_adj, STranspose& s_tran_adj) {
-  auto E = ccv1(s_adj);//Afforest(s_adj, s_trans_adj);                 // 3) run whatever on new_adjacency
+template<class ExecutionPolicy, class HyperNode, class SGraph>
+auto base_two(ExecutionPolicy&& ep, HyperNode& hypernodes, SGraph& s_adj) {
+  auto E = ccv1(s_adj);
   auto nhypernodes = hypernodes.max() + 1;
   std::vector<vertex_id_t> N(nhypernodes);
   //for each hypernode, find N[i]
