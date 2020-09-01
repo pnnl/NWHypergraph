@@ -119,11 +119,8 @@ int main(int argc, char* argv[]) {
     // auto&& hyperedgedegrees = std::get<3>(graphs);
 
     auto&&[ aos_a, hyperedges, hypernodes, hyperedgedegrees ] = reader(file, verbose);
-
-
     auto line_graph = to_two_graphv2<undirected>(std::execution::seq, hyperedges, hypernodes, hyperedgedegrees, s_overlap);
-    nw::graph::adjacency<0> s_adj  = build_adjacency<0>(line_graph);
-    nw::graph::adjacency<1> s_trans_adj = build_adjacency<1>(line_graph);
+    nw::graph::adjacency<0> s_adj(line_graph);
 
     if (debug) {
       hypernodes.stream_indices();
@@ -185,7 +182,7 @@ int main(int argc, char* argv[]) {
               record([&] { return lpCC(std::execution::par_unseq, hypernodes, hyperedges); });
               break;
             case 6:
-              record([&] { return base_two(std::execution::seq, hypernodes, s_adj, s_trans_adj); });
+              record([&] { return base_two(std::execution::seq, hypernodes, s_adj); });
               break;
             case 7:
               record([&] { return relabelHyperCC(std::execution::seq, aos_a); });
