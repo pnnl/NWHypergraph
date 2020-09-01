@@ -16,7 +16,7 @@ namespace nw {
 namespace hypergraph {
 
 template<class ExecutionPolicy, class HyperNode, class SGraph, class STranspose>
-auto base_two(ExecutionPolicy&& exec, HyperNode& hypernodes, SGraph& s_adj, STranspose& s_tran_adj) {
+auto base_two(ExecutionPolicy&& ep, HyperNode& hypernodes, SGraph& s_adj, STranspose& s_tran_adj) {
   auto E = ccv1(s_adj);//Afforest(s_adj, s_trans_adj);                 // 3) run whatever on new_adjacency
   auto nhypernodes = hypernodes.max() + 1;
   std::vector<vertex_id_t> N(nhypernodes);
@@ -30,7 +30,7 @@ auto base_two(ExecutionPolicy&& exec, HyperNode& hypernodes, SGraph& s_adj, STra
 }
 
 template<class ExecutionPolicy, class HyperGraph>
-auto to_relabel_graph(ExecutionPolicy&& exec, HyperGraph& aos_a) {
+auto to_relabel_graph(ExecutionPolicy&& ep, HyperGraph& aos_a) {
 
   auto n_nbs = aos_a.max()[1] + 1;
   auto e_nbs = aos_a.max()[0] + 1;
@@ -57,8 +57,8 @@ auto to_relabel_graph(ExecutionPolicy&& exec, HyperGraph& aos_a) {
 }
 
 template<class ExecutionPolicy, class HyperGraph>
-auto relabelHyperCC(ExecutionPolicy&& exec, HyperGraph& aos_a) {
-  auto relabel_g = to_relabel_graph(exec, aos_a);    // 1) find 2-graph corresponding to s-overlapped hyper edges
+auto relabelHyperCC(ExecutionPolicy&& ep, HyperGraph& aos_a) {
+  auto relabel_g = to_relabel_graph(ep, aos_a);    // 1) find 2-graph corresponding to s-overlapped hyper edges
   //relabel_g. template lexical_sort_by<0>();
   //relabel_g.uniq();
   //relabel_g.remove_self_loops();
