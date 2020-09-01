@@ -71,49 +71,13 @@ include(Date)
 include(Docopt)
 include(RangeV3)
 
-# -----------------------------------------------------------------------------
-# Include External Projects
-# -----------------------------------------------------------------------------
-include(ExternalProject)
-ExternalProject_Add(
-  NWut
 
-  GIT_REPOSITORY    "git@github.com:NWmath/NWut.git"
-  GIT_TAG           master
-  GIT_SHALLOW       ON
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../NWut/include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../NWgr/include)
 
-  BUILD_ALWAYS      OFF
-  CMAKE_ARGS        -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
-  INSTALL_COMMAND ""
-)
-ExternalProject_Get_property(NWut SOURCE_DIR)
-set(NWUT_INCLUDE_DIR ${SOURCE_DIR}/include)
-message("Source dir of NWut = ${NWUT_INCLUDE_DIR}")
-include_directories(${NWUT_INCLUDE_DIR})
-
-ExternalProject_Add(
-  NWgr
-
-  GIT_REPOSITORY    "git@github.com:NWmath/NWgr.git"
-  GIT_TAG           master
-  GIT_SHALLOW       ON
-
-  BUILD_ALWAYS      OFF
-  BUILD_COMMAND     ${CMAKE_COMMAND} -E copy ${NWUT_INCLUDE_DIR}/util/timer.hpp <SOURCE_DIR>/include/util/timer.hpp
-  CMAKE_ARGS        -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER} -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DEXECUTION_POLICY=True
-  DEPENDS           NWut
-  INSTALL_COMMAND   ""
-)
-ExternalProject_Get_property(NWgr SOURCE_DIR)
-set(NWGR_INCLUDE_DIR ${SOURCE_DIR}/include)
-message("Source dir of NWgr = ${NWGR_INCLUDE_DIR}")
-include_directories(${NWGR_INCLUDE_DIR})
-
-
-if (NW_HYPERGRAPH_EXECUTION_POLICY)
-  add_compile_definitions(EXECUTION_POLICY)
-endif()
 
 if (NW_HYPERGRAPH_BUILD_BENCH)
   add_subdirectory(bench)
 endif()
+
+
