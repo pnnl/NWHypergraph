@@ -16,11 +16,9 @@ namespace nw {
 namespace hypergraph {
 
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
-auto to_two_graph(ExecutionPolicy&& exec, HyperEdge& e_nbs, HyperNode& n_nbs, size_t s = 1) {
+auto to_two_graph(ExecutionPolicy&& ep, HyperEdge& e_nbs, HyperNode& n_nbs, size_t s = 1) {
   nw::util::life_timer _(__func__);
-  //auto n_nbs = adjacency<0>(H);
-  //auto e_nbs = adjacency<1>(H);
-  edge_list<edge_directedness> two_graph(0);
+  nw::graph::edge_list<edge_directedness> two_graph(0);
   two_graph.open_for_push_back();
   auto counter = 0;
   for (size_t i = 0; i < e_nbs.size(); ++i) {
@@ -38,11 +36,9 @@ auto to_two_graph(ExecutionPolicy&& exec, HyperEdge& e_nbs, HyperNode& n_nbs, si
 }
 
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
-auto to_two_graphv2(ExecutionPolicy&& exec, HyperEdge& e_nbs, HyperNode& n_nbs, std::vector<index_t>& hyperedgedegrees, size_t s = 1) {
+auto to_two_graphv2(ExecutionPolicy&& ep, HyperEdge& e_nbs, HyperNode& n_nbs, std::vector<index_t>& hyperedgedegrees, size_t s = 1) {
   nw::util::life_timer _(__func__);
-  //auto n_nbs = adjacency<0>(H);
-  //auto e_nbs = adjacency<1>(H);
-  edge_list<edge_directedness> two_graph(0);
+  nw::graph::edge_list<edge_directedness> two_graph(0);
   two_graph.open_for_push_back();
 
   auto edges = e_nbs.begin();

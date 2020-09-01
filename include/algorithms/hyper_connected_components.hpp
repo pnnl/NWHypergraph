@@ -27,8 +27,8 @@ inline bool writeMin(T& old, T& next) {
 /*
 * baseline has been verified with the Python version
 */
-template<typename Execution, typename Graph>
-auto baseline(Execution exec, Graph& aos_a) {
+template<class eputionPolicy, typename Graph>
+auto baseline(eputionPolicy&& ep, Graph& aos_a) {
   nw::util::life_timer _(__func__);
 
   size_t num_hyperedges = aos_a.max()[0] + 1;    // number of hyperedges
@@ -37,7 +37,7 @@ auto baseline(Execution exec, Graph& aos_a) {
   std::vector<vertex_id_t> N(num_hypernodes, std::numeric_limits<vertex_id_t>::max());
   std::vector<vertex_id_t> E(num_hyperedges, std::numeric_limits<vertex_id_t>::max());
 
-  std::for_each(aos_a.begin(), aos_a.end(), [&](auto&& elt) {
+  std::for_each(ep, aos_a.begin(), aos_a.end(), [&](auto&& elt) {
     auto&& [edge, node] = elt;
     if (E[edge] == std::numeric_limits<vertex_id_t>::max()) E[edge] = edge;
     if (E[edge] == N[node]) return;
@@ -45,12 +45,12 @@ auto baseline(Execution exec, Graph& aos_a) {
       N[node] = E[edge];
     } else if (N[node] > E[edge]) {
       auto temp = N[node];
-      std::replace(exec, N.begin(), N.end(), temp, E[edge]);
-      std::replace(exec, E.begin(), E.end(), temp, E[edge]);
+      std::replace(ep, N.begin(), N.end(), temp, E[edge]);
+      std::replace(ep, E.begin(), E.end(), temp, E[edge]);
     } else if (N[node] < E[edge]) {
       auto temp = E[edge];
-      std::replace(exec, N.begin(), N.end(), temp, N[node]);
-      std::replace(exec, E.begin(), E.end(), temp, N[node]);
+      std::replace(ep, N.begin(), N.end(), temp, N[node]);
+      std::replace(ep, E.begin(), E.end(), temp, N[node]);
     }
   });
   // for each u in adjacency
@@ -83,8 +83,8 @@ auto baseline(Execution exec, Graph& aos_a) {
   return std::tuple(N, E);
 }
 
-template<typename Execution, typename Graph, typename GraphN, typename GraphE>
-auto svCC(Execution exec, Graph& aos_a, GraphN& cn, GraphE& ce) {
+template<class ExecutionPolicy, typename Graph, typename GraphN, typename GraphE>
+auto svCC(ExecutionPolicy&& ep, Graph& aos_a, GraphN& cn, GraphE& ce) {
   nw::util::life_timer _(__func__);
 
   size_t num_hyperedges = ce.max() + 1;    // number of hyperedges
@@ -227,8 +227,8 @@ inline bool updateAtomic(std::vector<vertex_id_t>& dest, std::vector<vertex_id_t
 // - Asserts search does not reach a vertex with a different component label
 // - If the graph is directed, it performs the search as if it was undirected
 // - Asserts every vertex is visited (degree-0 vertex should have own label)
-template<typename Execution, typename GraphN, typename GraphE>
-auto bfsCC(Execution exec, GraphN& hypernodes, GraphE& hyperedges) {
+template<class ExecutionPolicy, typename GraphN, typename GraphE>
+auto bfsCC(ExecutionPolicy&& ep, GraphN& hypernodes, GraphE& hyperedges) {
   nw::util::life_timer _(__func__);
   size_t     num_hypernodes = hypernodes.max() + 1;    // number of hypernodes
   size_t     num_hyperedges = hyperedges.max() + 1;    // number of hyperedges
@@ -250,7 +250,7 @@ auto bfsCC(Execution exec, GraphN& hypernodes, GraphE& hyperedges) {
   /*
   //or use a parallel for loop
   for (vertex_id_t i = 0; i < num_hyperedges; ++i) {
-  //std::for_each(exec, std::begin(0), std::end(num_hypernodes), [&](auto i) {
+  //std::for_each(ep, std::begin(0), std::end(num_hypernodes), [&](auto i) {
     frontierE[i] = i;
     E[i] = i;
   }
@@ -300,7 +300,7 @@ auto bfsCC(Execution exec, GraphN& hypernodes, GraphE& hyperedges) {
     });
     //reset bitmap for N
     visitedN.clear();
-    std::for_each(exec, frontierE.begin(), frontierE.end(), [&](auto& i) {
+    std::for_each(ep, frontierE.begin(), frontierE.end(), [&](auto& i) {
       //all neighbors of hyperedges are hypernode
       prevE[i] = E[i];
     });
@@ -333,7 +333,7 @@ auto bfsCC(Execution exec, GraphN& hypernodes, GraphE& hyperedges) {
     });
     //reset bitmap for E
 
-    std::for_each(exec, frontierN.begin(), frontierN.end(), [&](auto& i) {
+    std::for_each(ep, frontierN.begin(), frontierN.end(), [&](auto& i) {
       //all neighbors of hyperedges are hypernode
       prevN[i] = N[i];
     });
@@ -353,8 +353,8 @@ auto bfsCC(Execution exec, GraphN& hypernodes, GraphE& hyperedges) {
 }
 
 
-template<typename Execution, typename GraphN, typename GraphE>
-auto lpCC(Execution exec, GraphN& hypernodes, GraphE& hyperedges) {
+template<class ExecutionPolicy, typename GraphN, typename GraphE>
+auto lpCC(ExecutionPolicy&& ep, GraphN& hypernodes, GraphE& hyperedges) {
   nw::util::life_timer _(__func__);
   size_t     num_hypernodes = hypernodes.max() + 1;    // number of hypernodes
   size_t     num_hyperedges = hyperedges.max() + 1;    // number of hyperedges
@@ -371,7 +371,7 @@ auto lpCC(Execution exec, GraphN& hypernodes, GraphE& hyperedges) {
   //std::iota(E.begin(), E.end(), 0);
   
   //or use a parallel for loop
-  std::for_each(exec, counting_iterator<vertex_id_t>(0), counting_iterator<vertex_id_t>(num_hyperedges), [&](auto i) {
+  std::for_each(ep, counting_iterator<vertex_id_t>(0), counting_iterator<vertex_id_t>(num_hyperedges), [&](auto i) {
     frontierE[i] = i;
     E[i] = i;
   });
@@ -416,8 +416,8 @@ auto lpCC(Execution exec, GraphN& hypernodes, GraphE& hyperedges) {
   return std::tuple{N, E};
 }
 
-template<typename Execution, typename GraphN, typename GraphE>
-auto lpaNoFrontierCC(Execution exec, GraphN& hypernodes, GraphE& hyperedges) {
+template<class ExecutionPolicy, typename GraphN, typename GraphE>
+auto lpaNoFrontierCC(ExecutionPolicy&& ep, GraphN& hypernodes, GraphE& hyperedges) {
   nw::util::life_timer _(__func__);
   size_t     num_hypernodes = hypernodes.max() + 1;    // number of hypernodes
   size_t     num_hyperedges = hyperedges.max() + 1;    // number of hyperedges
@@ -437,7 +437,7 @@ auto lpaNoFrontierCC(Execution exec, GraphN& hypernodes, GraphE& hyperedges) {
   /*
   //or use a parallel for loop
   for (vertex_id_t i = 0; i < num_hyperedges; ++i) {
-  //std::for_each(exec, std::begin(0), std::end(num_hypernodes), [&](auto i) {
+  //std::for_each(ep, std::begin(0), std::end(num_hypernodes), [&](auto i) {
     frontierE[i] = i;
     E[i] = i;
   }
@@ -448,7 +448,7 @@ auto lpaNoFrontierCC(Execution exec, GraphN& hypernodes, GraphE& hyperedges) {
   auto change = true;
   //while (false == (frontierE.empty() && frontierN.empty())) {
   while (false == change) {
-    //std::for_each(exec, frontierE.begin(), frontierE.end(), [&](auto& hyperE) {
+    //std::for_each(ep, frontierE.begin(), frontierE.end(), [&](auto& hyperE) {
 
     for (vertex_id_t hyperE = 0; hyperE < num_hyperedges; ++hyperE) {
       //find each active hyperedge
@@ -456,7 +456,7 @@ auto lpaNoFrontierCC(Execution exec, GraphN& hypernodes, GraphE& hyperedges) {
         //push every hypernode's label to all neighbors of hyperedges
         auto labelE = E[hyperE];
         visitedE.atomic_set(hyperE);
-        std::for_each(exec, edges[hyperE].begin(), edges[hyperE].end(), [&](auto&& x) {
+        std::for_each(ep, edges[hyperE].begin(), edges[hyperE].end(), [&](auto&& x) {
           auto hyperN = std::get<0>(x);
           auto labelN = N[hyperN];
           if (labelE == labelN) {
@@ -498,7 +498,7 @@ auto lpaNoFrontierCC(Execution exec, GraphN& hypernodes, GraphE& hyperedges) {
     //frontierE.clear();
     for (vertex_id_t hyperN = 0; hyperN < num_hypernodes; ++hyperN) {
       if (visitedN.atomic_get(hyperN)) {
-        //std::for_each(exec, frontierN.begin(), frontierN.end(), [&](auto& hyperN) {
+        //std::for_each(ep, frontierN.begin(), frontierN.end(), [&](auto& hyperN) {
         //all neighbors of hypernodes are hyperedges
         auto labelN = N[hyperN];
 
