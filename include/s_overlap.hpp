@@ -20,7 +20,7 @@ auto to_two_graph(ExecutionPolicy&& ep, HyperEdge& e_nbs, HyperNode& n_nbs, size
   nw::util::life_timer _(__func__);
   nw::graph::edge_list<edge_directedness> two_graph(0);
   two_graph.open_for_push_back();
-  auto counter = 0;
+  uint64_t counter = 0;
   for (size_t i = 0; i < e_nbs.size(); ++i) {
     for (size_t j = i + 1; j < e_nbs.size(); ++j) {
       ++counter;
@@ -43,7 +43,7 @@ auto to_two_graphv2(ExecutionPolicy&& ep, HyperEdge& e_nbs, HyperNode& n_nbs, st
 
   auto edges = e_nbs.begin();
   auto nodes = n_nbs.begin();
-  auto counter = 0;
+  uint64_t counter = 0;
   //O(n*average degree of hyperedges*average degree of hypernodes*average degree of hyperedges)
   for (size_t i = 0; i < e_nbs.size(); ++i) { //O(n)
     auto hyperE = i;
