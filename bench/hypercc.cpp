@@ -119,12 +119,17 @@ int main(int argc, char* argv[]) {
     // auto&& hyperedgedegrees = std::get<3>(graphs);
 
     auto&&[ aos_a, hyperedges, hypernodes, hyperedgedegrees ] = reader(file, verbose);
-    nw::graph::adjacency<0> s_adj;
-    if (ids.end() != std::find(ids.begin(), ids.end(), 6)) {
-      //create line graph only when needed by the algorithm
-      auto line_graph = to_two_graphv2<undirected>(std::execution::seq, hyperedges, hypernodes, hyperedgedegrees, s_overlap);
-      s_adj = build_adjacency<0>(line_graph);
-    }
+    auto twograph_reader = [&](adjacency<0>& edges, adjacency<1>& nodes, std::vector<nw::graph::index_t>& edgedegrees, size_t s = 1) {
+      if (ids.end() != std::find(ids.begin(), ids.end(), 6)) {
+        nw::util::life_timer _(__func__);
+        //create line graph only when needed by the algorithm
+        return to_two_graphv2<undirected>(std::execution::par_unseq, hyperedges, hypernodes, hyperedgedegrees, s_overlap);
+      }
+      return nw::graph::edge_list<undirected>(0);
+    };
+    auto linegraph = twograph_reader(hyperedges, hypernodes, hyperedgedegrees, s_overlap);
+    nw::graph::adjacency<0> s_adj(linegraph);
+
 
     if (debug) {
       hypernodes.stream_indices();
