@@ -121,7 +121,6 @@ int main(int argc, char* argv[]) {
     auto&&[ aos_a, hyperedges, hypernodes, hyperedgedegrees ] = reader(file, verbose);
     auto twograph_reader = [&](adjacency<0>& edges, adjacency<1>& nodes, std::vector<nw::graph::index_t>& edgedegrees, size_t s = 1) {
       if (ids.end() != std::find(ids.begin(), ids.end(), 6)) {
-        nw::util::life_timer _(__func__);
         //create line graph only when needed by the algorithm
         return to_two_graphv2<undirected>(std::execution::par_unseq, hyperedges, hypernodes, hyperedgedegrees, s_overlap);
       }
