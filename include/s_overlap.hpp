@@ -20,7 +20,7 @@ auto to_two_graph(ExecutionPolicy&& ep, HyperEdge& e_nbs, HyperNode& n_nbs, size
   nw::util::life_timer _(__func__);
   nw::graph::edge_list<edge_directedness> two_graph(0);
   two_graph.open_for_push_back();
-  uint64_t counter = 0;
+  size_t counter = 0;
   for (size_t i = 0; i < e_nbs.size(); ++i) {
     for (size_t j = i + 1; j < e_nbs.size(); ++j) {
       ++counter;
@@ -43,26 +43,38 @@ auto to_two_graphv2(ExecutionPolicy&& ep, HyperEdge& e_nbs, HyperNode& n_nbs, st
 
   auto edges = e_nbs.begin();
   auto nodes = n_nbs.begin();
-  uint64_t counter = 0;
-  //O(n*average degree of hyperedges*average degree of hypernodes*average degree of hyperedges)
-  for (size_t i = 0; i < e_nbs.size(); ++i) { //O(n)
-    auto hyperE = i;
-    if (hyperedgedegrees[hyperE] < s) continue;
-    std::for_each(edges[hyperE].begin(), edges[hyperE].end(), [&](auto&& x) { //O(average degree of hyperedges)
-      auto hyperN = std::get<0>(x);
-      std::for_each(nodes[hyperN].begin(), nodes[hyperN].end(), [&](auto&& y) { //O(average degree of hypernodes)
-        //so we check compid of each hyperedge
-        auto anotherhyperE = std::get<0>(y);
-        if (hyperE > anotherhyperE) return;
-        ++counter;
-        //O(average degree of hyperedges)
-        size_t count = nw::graph::intersection_size(e_nbs[hyperE], e_nbs[anotherhyperE]);    //       if intersection_size(n_nbs(i), n_nbs(j)) >= s
-        if (count >= s) {
-          two_graph.push_back(hyperE, anotherhyperE);    //         add (i,j) to new edge_list
-        }
+  size_t counter = 0;
+  if (1 == s) {
+    for (size_t hyperE = 0; hyperE < e_nbs.size(); ++hyperE) { //O(n)
+      std::for_each(edges[hyperE].begin(), edges[hyperE].end(), [&](auto &&x) { //O(average degree of hyperedges)
+        auto hyperN = std::get<0>(x);
+        std::for_each(nodes[hyperN].begin(), nodes[hyperN].end(), [&](auto &&y) { //O(average degree of hypernodes)
+          //so we check compid of each hyperedge
+          two_graph.push_back(hyperE, std::get<0>(y)); //         add (i,j) to new edge_list
+        });
       });
-    });
+    }
   }
+  else {
+    //O(n*average degree of hyperedges*average degree of hypernodes*average degree of hyperedges)
+    for (size_t hyperE = 0; hyperE < e_nbs.size(); ++hyperE) { //O(n)
+      if (hyperedgedegrees[hyperE] < s)
+        continue;
+      std::for_each(edges[hyperE].begin(), edges[hyperE].end(), [&](auto &&x) { //O(average degree of hyperedges)
+        auto hyperN = std::get<0>(x);
+        std::for_each(nodes[hyperN].begin(), nodes[hyperN].end(), [&](auto &&y) { //O(average degree of hypernodes)
+          //so we check compid of each hyperedge
+          auto anotherhyperE = std::get<0>(y);
+          if (hyperE > anotherhyperE) return;
+          ++counter;
+          //O(average degree of hyperedges)
+          size_t count = nw::graph::intersection_size(e_nbs[hyperE], e_nbs[anotherhyperE]); //       if intersection_size(n_nbs(i), n_nbs(j)) >= s
+          if (count >= s)
+            two_graph.push_back(hyperE, anotherhyperE); //         add (i,j) to new edge_list
+        });
+      });
+    }
+  }//else
   std::cout << counter << " intersections performed" << std::endl;
 
   two_graph.close_for_push_back();
