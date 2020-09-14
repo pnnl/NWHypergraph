@@ -9,6 +9,7 @@
 //
 
 #include "Log.hpp"
+#include <unordered_set>
 #include <algorithms/connected_components.hpp>
 #include "common.hpp"
 #include "mmio_hy.hpp"
@@ -127,10 +128,7 @@ int main(int argc, char* argv[]) {
       return std::tuple(aos_a, g, g_t);
     };
     size_t num_realedges, num_realnodes;
-    auto&& graphs     = reader(file, verbose, num_realedges, num_realnodes);
-    auto&& aos_a      = std::get<0>(graphs);
-    auto&& g = std::get<1>(graphs);
-    auto&& g_t = std::get<2>(graphs);
+    auto&& [aos_a, g, g_t]     = reader(file, verbose, num_realedges, num_realnodes);
 
     for (auto&& thread : threads) {
       auto _ = set_n_threads(thread);
@@ -140,23 +138,26 @@ int main(int argc, char* argv[]) {
         }
 
         auto verifier = [&](auto&& result) {
-          //TODO
+          //TODO This returns the subgraph of each component.
+          //Does not work for s overlap
+          auto&& [N, E] = result;
           if (verbose) {
             //print_top_n(graph, comp);
-          }
-          std::map<vertex_id_t, edge_list<>> comps;
-          auto N = std::get<0>(result);
-          std::for_each(aos_a.begin(), aos_a.end(), [&](auto&& elt) {
-            auto&& [edge, node] = elt;
-            vertex_id_t key     = N[node];
-            comps[key].push_back(elt);
-          });
+            std::map<vertex_id_t, edge_list<>> comps;
+            std::for_each(aos_a.begin(), aos_a.end(), [&](auto&& elt) {
+              auto&& [edge, node] = elt;
+              vertex_id_t key     = E[edge];
+              comps[key].push_back(elt);
+            });
 
-          for (auto&& j : comps) {
-            auto& [k, v] = j;
-            v.close_for_push_back();
+            for (auto&& j : comps) {
+              auto& [k, v] = j;
+              v.close_for_push_back();
+            }
+            std::cout << comps.size() << " subgraphs and" << std::endl;
           }
-          std::cout << comps.size() << " components found" << std::endl;
+          std::unordered_set<vertex_id_t> uni_comps(E.begin(), E.end());
+          std::cout << uni_comps.size() << " components found" << std::endl;
 
           if (verify) {
             std::cerr << " v" << id << " failed verification for " << file << " using " << thread << " threads\n";

@@ -18,12 +18,18 @@ namespace hypergraph {
 template<class T>
 inline bool writeMin(T& old, T& next) {
   T    prev;
-  bool success;
+  bool success = false;
   do
     prev = old;
   while (prev > next && !(success = nw::graph::cas(old, prev, next)));
   return success;
 }
+
+template <typename T>
+inline bool compare_and_swap(T& x, T old_val, T new_val) {
+  return __sync_bool_compare_and_swap(&x, *(&old_val), *(&new_val));
+}
+
 /*
 * baseline has been verified with the Python version
 */
@@ -218,6 +224,66 @@ auto lpCC(GraphN& hypernodes, GraphE& hyperedges) {
 
   return std::tuple{N, E};
 }
+
+template<typename GraphN, typename GraphE>
+auto lpCCv2(GraphN& hypernodes, GraphE& hyperedges) {
+  nw::util::life_timer _(__func__);
+  size_t     num_hypernodes = hypernodes.max() + 1;    // number of hypernodes
+  size_t     num_hyperedges = hyperedges.max() + 1;    // number of hyperedges
+
+  std::vector<vertex_id_t> E(num_hyperedges, std::numeric_limits<vertex_id_t>::max());
+  std::vector<vertex_id_t> N(num_hypernodes);
+
+  nw::graph::AtomicBitVector   visitedN(num_hypernodes);
+  nw::graph::AtomicBitVector   visitedE(num_hyperedges);
+  std::vector<vertex_id_t> frontierN(num_hypernodes), frontierE;
+  frontierE.reserve(num_hyperedges);
+  //initial node frontier includes every node
+  std::iota(frontierN.begin(), frontierN.end(), 0);
+  std::iota(N.begin(), N.end(), 0);
+
+  auto nodes = hypernodes.begin();
+  auto edges = hyperedges.begin();
+  while (false == (frontierN.empty() && frontierE.empty())) {
+    std::for_each(frontierN.begin(), frontierN.end(), [&](auto& hyperN) {
+      //all neighbors of hypernodes are hyperedges
+      auto labelN = N[hyperN];
+      std::for_each(nodes[hyperN].begin(), nodes[hyperN].end(), [&](auto&& x) {
+        //so we check compid of each hyperedge
+        auto hyperE = std::get<0>(x);
+        auto labelE = E[hyperE];
+        if (labelN < labelE) {
+          writeMin(E[hyperE], labelN);
+          if (visitedE.atomic_get(hyperE) == 0 && visitedE.atomic_set(hyperE) == 0) {
+            frontierE.push_back(hyperE);
+          }
+        }
+      });
+    });
+    //reset bitmap for E
+    visitedE.clear();
+    frontierN.clear();
+    std::for_each(frontierE.begin(), frontierE.end(), [&](auto& hyperE) {
+      //all neighbors of hyperedges are hypernode
+      auto labelE = E[hyperE];
+      std::for_each(edges[hyperE].begin(), edges[hyperE].end(), [&](auto&& x) {
+        auto hyperN = std::get<0>(x);
+        auto labelN = N[hyperN];
+        if (labelE < labelN) {
+          writeMin(N[hyperN], labelE);
+          if (visitedN.atomic_get(hyperN) == 0 && visitedN.atomic_set(hyperN) == 0) 
+            frontierN.push_back(hyperN);
+        }
+      });
+    });
+    //reset bitmap for N
+    visitedN.clear();
+    frontierE.clear();
+  }    //while
+
+  return std::tuple{N, E};
+}
+
 inline bool updateAtomic(std::vector<vertex_id_t>& dest, std::vector<vertex_id_t>& source, std::vector<vertex_id_t>& prevDest,
                          vertex_id_t d, vertex_id_t s) {    //atomic Update
   auto origID = dest[d];
@@ -352,60 +418,81 @@ auto bfsCC(ExecutionPolicy&& ep, GraphN& hypernodes, GraphE& hyperedges) {
   return std::tuple{N, E};
 }
 
+template <typename T>
+bool hook(T u, T v, std::vector<T>& compu, std::vector<T>& compv) {
+  T p1 = compu[u];
+  T p2 = compv[v];
+  T high, low;
+  bool success = false;
+  while (p1 != p2) {
+    if (p1 > p2) {
+      high = p1;
+      low = p2;
+      volatile T p_high = compu[high];
+      if (p_high == low || (success = compare_and_swap(compu[high], high, low))) break;
+      p1 = compu[high];
+      p2 = compv[low];
+    }
+    else {
+      high = p2;
+      low = p1;
+      volatile T p_high = compv[high];
+      if (p_high == low || (success = compare_and_swap(compv[high], high, low))) break;
+      p1 = compu[low];
+      p2 = compv[high];
+    }
+  }    // while
+  return success;
+}
 
 template<class ExecutionPolicy, typename GraphN, typename GraphE>
-auto lpCC(ExecutionPolicy&& ep, GraphN& hypernodes, GraphE& hyperedges) {
+auto lpCC_parallel(ExecutionPolicy&& ep, GraphN& hypernodes, GraphE& hyperedges) {
   nw::util::life_timer _(__func__);
   size_t     num_hypernodes = hypernodes.max() + 1;    // number of hypernodes
   size_t     num_hyperedges = hyperedges.max() + 1;    // number of hyperedges
 
   std::vector<vertex_id_t> E(num_hyperedges);
-  std::vector<vertex_id_t> N(num_hypernodes, std::numeric_limits<vertex_id_t>::max());
+  std::vector<vertex_id_t> N(num_hypernodes);
 
   nw::graph::AtomicBitVector   visitedN(num_hypernodes);
   nw::graph::AtomicBitVector   visitedE(num_hyperedges);
-  std::vector<vertex_id_t> frontierN, frontierE(num_hyperedges);
+  tbb::concurrent_vector<vertex_id_t> frontierN, frontierE(num_hyperedges);
   frontierN.reserve(num_hypernodes);
-  //initial node frontier includes every node
-  //std::iota(frontierE.begin(), frontierE.end(), 0);
-  //std::iota(E.begin(), E.end(), 0);
-  
+  //initial edge frontier includes every node
   //or use a parallel for loop
   std::for_each(ep, counting_iterator<vertex_id_t>(0), counting_iterator<vertex_id_t>(num_hyperedges), [&](auto i) {
     frontierE[i] = i;
     E[i] = i;
   });
+  std::for_each(ep, counting_iterator<vertex_id_t>(0), counting_iterator<vertex_id_t>(num_hypernodes), [&](auto i) {
+    N[i] = std::numeric_limits<vertex_id_t>::max();
+  });
   
   auto nodes = hypernodes.begin();
   auto edges = hyperedges.begin();
   while (false == (frontierE.empty() && frontierN.empty())) {
-    std::for_each(frontierE.begin(), frontierE.end(), [&](auto& hyperE) {
+    std::for_each(ep, frontierE.begin(), frontierE.end(), [&](auto hyperE) {
       //all neighbors of hyperedges are hypernode
-      auto labelE = E[hyperE];
+      vertex_id_t labelE = E[hyperE];
       std::for_each(edges[hyperE].begin(), edges[hyperE].end(), [&](auto&& x) {
         auto hyperN = std::get<0>(x);
-        auto labelN = N[hyperN];
-        if (labelE < labelN) {
-          writeMin(N[hyperN], labelE);
-          if (visitedN.atomic_get(hyperN) == 0 && visitedN.atomic_set(hyperN) == 0) frontierN.push_back(hyperN);
+        if (writeMin(N[hyperN], E[hyperE])) {
+          if (visitedN.atomic_get(hyperN) == 0 && visitedN.atomic_set(hyperN) == 0) 
+            frontierN.push_back(hyperN);
         }
       });
     });
     //reset bitmap for N
     visitedN.clear();
     frontierE.clear();
-    std::for_each(frontierN.begin(), frontierN.end(), [&](auto& hyperN) {
-      //all neighbors of hypernodes are hyperedges
-      auto labelN = N[hyperN];
+    std::for_each(ep, frontierN.begin(), frontierN.end(), [&](auto hyperN) {
+      vertex_id_t labelN = N[hyperN];
       std::for_each(nodes[hyperN].begin(), nodes[hyperN].end(), [&](auto&& x) {
         //so we check compid of each hyperedge
         auto hyperE = std::get<0>(x);
-        auto labelE = E[hyperE];
-        if (labelN < labelE) {
-          writeMin(E[hyperE], labelN);
-          if (visitedE.atomic_get(hyperE) == 0 && visitedE.atomic_set(hyperE) == 0) {
-            frontierE.push_back(hyperE);
-          }
+        if (writeMin(E[hyperE], N[hyperN])) {
+            if (visitedE.atomic_get(hyperE) == 0 && visitedE.atomic_set(hyperE) == 0) 
+              frontierE.push_back(hyperE);
         }
       });
     });
@@ -423,122 +510,60 @@ auto lpaNoFrontierCC(ExecutionPolicy&& ep, GraphN& hypernodes, GraphE& hyperedge
   size_t     num_hyperedges = hyperedges.max() + 1;    // number of hyperedges
 
   std::vector<vertex_id_t> E(num_hyperedges);
-  std::vector<vertex_id_t> N(num_hypernodes, std::numeric_limits<vertex_id_t>::max());
+  std::vector<vertex_id_t> N(num_hypernodes);
 
-  nw::graph::AtomicBitVector visitedN(num_hypernodes);
-  nw::graph::AtomicBitVector visitedE(num_hyperedges);
-  //std::vector<vertex_id_t> frontierN, frontierE(num_hyperedges);
-  //frontierN.reserve(num_hypernodes);
-  //frontierE.resize(num_hyperedges);
-  //initial node frontier includes every node
-  //std::iota(frontierE.begin(), frontierE.end(), 0);
-  std::iota(E.begin(), E.end(), 0);
-  std::iota(N.begin(), N.end(), 0);
-  /*
-  //or use a parallel for loop
-  for (vertex_id_t i = 0; i < num_hyperedges; ++i) {
-  //std::for_each(ep, std::begin(0), std::end(num_hypernodes), [&](auto i) {
-    frontierE[i] = i;
+
+  nw::graph::AtomicBitVector activeN(num_hypernodes);
+  nw::graph::AtomicBitVector activeE(num_hyperedges);
+  std::for_each(ep, counting_iterator<vertex_id_t>(0), counting_iterator<vertex_id_t>(num_hyperedges), [&](auto i) {
     E[i] = i;
-  }
-  //);
-  */
+    activeE.atomic_set(i);
+  });
+  std::for_each(ep, counting_iterator<vertex_id_t>(0), counting_iterator<vertex_id_t>(num_hypernodes), [&](auto i) {
+    N[i] = std::numeric_limits<vertex_id_t>::max();
+    activeN.atomic_set(i);
+  });
+
   auto nodes  = hypernodes.begin();
   auto edges  = hyperedges.begin();
   auto change = true;
-  //while (false == (frontierE.empty() && frontierN.empty())) {
-  while (false == change) {
-    //std::for_each(ep, frontierE.begin(), frontierE.end(), [&](auto& hyperE) {
-
-    for (vertex_id_t hyperE = 0; hyperE < num_hyperedges; ++hyperE) {
-      //find each active hyperedge
-      if (visitedE.atomic_get(hyperE)) {
-        //push every hypernode's label to all neighbors of hyperedges
+  while (change) {
+    change = false;
+    tbb::parallel_for(activeE.non_zeros(num_hyperedges), [&](auto&& range) {
+      for (auto&& i = range.begin(), e = range.end(); i != e; ++i) {
+        auto hyperE = *i;
         auto labelE = E[hyperE];
-        visitedE.atomic_set(hyperE);
-        std::for_each(ep, edges[hyperE].begin(), edges[hyperE].end(), [&](auto&& x) {
+        std::for_each(edges[hyperE].begin(), edges[hyperE].end(), [&](auto&& x) {
           auto hyperN = std::get<0>(x);
           auto labelN = N[hyperN];
-          if (labelE == labelN) {
-            //set to unactive
-            visitedN.atomic_set(hyperN);
-            return;
-          } else if (labelE < labelN) {
-            //updateAtomic(N, E, prevN, hyperN, hyperE);
+          if (labelE < labelN) {
             writeMin(N[hyperN], labelE);
-            //while (writeMin(N[hyperN], labelE) && prevN[hyperN] == labelN);
-            if (!visitedN.atomic_get(hyperN)) {
-              visitedN.atomic_set(hyperN);
-              change = true;
-              //frontierN.push_back(hyperN);
-            }
-          } else {
-            //once we found all the previous update are all false, we append all the false-modified
-            //hypernodes to frontierN
-            //safe to write without atomic action
-            E[hyperE] = labelN;
-            //writeMin(E[hyperE], labelN);
-            labelE = labelN;
-            visitedE.atomic_set(hyperE);
-            /*
-            std::for_each(edges[hyperE].begin(), edges[hyperE].end(), [&](auto&& y) {
-              auto hyperfalseN = std::get<0>(y);
-              if (!visitedN.atomic_get(hyperfalseN)){
-                visitedN.atomic_set(hyperfalseN);
-                frontierN.push_back(hyperfalseN);
-              }
-            });
-            */
+            change = true;
           }
+          else
+            activeN.atomic_set(hyperN);
         });
       }
-    }
-    //reset bitmap for N
-    //visitedN.clear();
-    //frontierE.clear();
-    for (vertex_id_t hyperN = 0; hyperN < num_hypernodes; ++hyperN) {
-      if (visitedN.atomic_get(hyperN)) {
-        //std::for_each(ep, frontierN.begin(), frontierN.end(), [&](auto& hyperN) {
-        //all neighbors of hypernodes are hyperedges
+    });
+    tbb::parallel_for(activeN.non_zeros(num_hypernodes), [&](auto&& range) {
+      for (auto&& i = range.begin(), e = range.end(); i != e; ++i) {
+        auto hyperN = *i;
         auto labelN = N[hyperN];
-
         std::for_each(nodes[hyperN].begin(), nodes[hyperN].end(), [&](auto&& x) {
           //so we check compid of each hyperedge
           auto hyperE = std::get<0>(x);
           auto labelE = E[hyperE];
-          if (labelN == E[hyperE]) {
-            visitedE.atomic_set(hyperE);
-            return;
-          } else if (labelN < labelE) {
+          if (labelN < labelE) {
             writeMin(E[hyperE], labelN);
-            //updateAtomic(E, N, prevE, hyperE, hyperN);
-            //while (writeMin(N[hyperN], labelE) && prevN[hyperN] == labelN);
-            if (!visitedE.atomic_get(hyperE)) {
-              visitedE.atomic_set(hyperE);
-              change = true;
-              //frontierE.push_back(hyperE);
-            }
+            change = true;
           } else {
-            N[hyperE] = labelE;
-            //writeMin(N[hyperN], labelE);
-            labelN = labelE;
-            /*
-            std::for_each(nodes[hyperN].begin(), nodes[hyperN].end(), [&](auto&& y) {
-              auto hyperfalseE = std::get<0>(y);
-              if (!visitedE.atomic_get(hyperfalseE)){
-                visitedE.atomic_set(hyperfalseE);
-                frontierE.push_back(hyperfalseE);
-              }
-            });
-            */
+              activeE.atomic_set(hyperE);
           }
         });
       }
-    }
-    //reset bitmap for E
-    //visitedE.clear();
-    //frontierN.clear();
+    });
   }    //while
+
   return std::tuple{N, E};
 }
 

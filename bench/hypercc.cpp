@@ -8,6 +8,7 @@
 // Author: Xu Tony Liu
 //
 
+#include <unordered_set>
 #include <docopt.h>
 #include <edge_list.hpp>
 #include "Log.hpp"
@@ -112,19 +113,17 @@ int main(int argc, char* argv[]) {
       return std::tuple(aos_a, hyperedges, hypernodes, hyperedgedegrees);
     };
 
-    // auto&& graphs     = reader(file, verbose);
-    // auto&& aos_a      = std::get<0>(graphs);
-    // auto&& hyperedges = std::get<1>(graphs);
-    // auto&& hypernodes = std::get<2>(graphs);
-    // auto&& hyperedgedegrees = std::get<3>(graphs);
-
     auto&&[ aos_a, hyperedges, hypernodes, hyperedgedegrees ] = reader(file, verbose);
     auto twograph_reader = [&](adjacency<0>& edges, adjacency<1>& nodes, std::vector<nw::graph::index_t>& edgedegrees, size_t s = 1) {
       nw::util::life_timer _("build adj line graph");
       if (ids.end() != std::find(ids.begin(), ids.end(), 6)) {
         //create line graph only when needed by the algorithm
-        auto&& linegraph =  to_two_graphv2<undirected>(std::execution::par_unseq, hyperedges, hypernodes, hyperedgedegrees, s_overlap);
+        nw::graph::edge_list<undirected>&& linegraph =  to_two_graphv5<undirected>(std::execution::par_unseq, hyperedges, hypernodes, hyperedgedegrees, s_overlap);
+        //return empty adjacency to avoid a bug in adjacency
+        //where when an empty edge list is passed in, an adjacency still have two elements
+        if (0 == linegraph.size()) return nw::graph::adjacency<0>(0);
         nw::graph::adjacency<0> s_adj(linegraph);
+        std::cout << "line:" << linegraph.size() << " adjacency: " << s_adj.size() << std::endl;
         return s_adj;
       }
       return nw::graph::adjacency<0>(0);
@@ -144,23 +143,26 @@ int main(int argc, char* argv[]) {
         }
 
         auto verifier = [&](auto&& result) {
-          //TODO
+          //TODO This returns the subgraph of each component.
+          //Does not work for s overlap
+          auto&& [N, E] = result;
           if (verbose) {
             //print_top_n(graph, comp);
-          }
-          std::map<vertex_id_t, edge_list<>> comps;
-          auto N = std::get<0>(result);
-          std::for_each(aos_a.begin(), aos_a.end(), [&](auto&& elt) {
-            auto&& [edge, node] = elt;
-            vertex_id_t key     = N[node];
-            comps[key].push_back(elt);
-          });
+            std::map<vertex_id_t, edge_list<>> comps;
+            std::for_each(aos_a.begin(), aos_a.end(), [&](auto&& elt) {
+              auto&& [edge, node] = elt;
+              vertex_id_t key     = E[edge];
+              comps[key].push_back(elt);
+            });
 
-          for (auto&& j : comps) {
-            auto& [k, v] = j;
-            v.close_for_push_back();
+            for (auto&& j : comps) {
+              auto& [k, v] = j;
+              v.close_for_push_back();
+            }
+            std::cout << comps.size() << " subgraphs and" << std::endl;
           }
-          std::cout << comps.size() << " components found" << std::endl;
+          std::unordered_set<vertex_id_t> uni_comps(E.begin(), E.end());
+          std::cout << uni_comps.size() << " components found" << std::endl;
 
           if (verify) {
             std::cerr << " v" << id << " failed verification for " << file << " using " << thread << " threads\n";
@@ -182,21 +184,24 @@ int main(int argc, char* argv[]) {
               record([&] { return lpCC(hypernodes, hyperedges); });
               break;
             case 3:
-              record([&] { return svCC(std::execution::seq, aos_a, hypernodes, hyperedges); });
+              record([&] { return lpaNoFrontierCC(std::execution::par_unseq, hypernodes, hyperedges); });
               break;
             case 4:
               record([&] { return bfsCC(std::execution::par_unseq, hypernodes, hyperedges); });
               break;
             case 5:
-              record([&] { return lpCC(std::execution::par_unseq, hypernodes, hyperedges); });
+              record([&] { return lpCC_parallel(std::execution::par_unseq, hypernodes, hyperedges); });
               break;
             case 6:
               record([&] { return base_two(std::execution::seq, hypernodes, s_adj); });
               break;
             case 7:
-              record([&] { return relabelHyperCC(std::execution::seq, aos_a); });
+              record([&] { return lpCCv2(hypernodes, hyperedges); });
               break;
             case 8:
+              record([&] { return relabelHyperCC(std::execution::seq, aos_a); });
+              break;
+            case 9:
               record([&] { return relabelHyperCC(std::execution::par_unseq, aos_a); });
               break;
             default:

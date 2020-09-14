@@ -141,13 +141,13 @@ int main(int argc, char* argv[]) {
     }
 
     edge_list<directed> s_over;
-    edge_list<directed> s_over1 = nw::hypergraph::to_two_graph<directed>(std::execution::seq, hyperedges, hypernodes);
-    if (std::find(ids.begin(), ids.end(), 6) != ids.end())
+    nw::graph::adjacency<0> s_adj;
+    nw::graph::adjacency<1> s_trans_adj;   
+    if (std::find(ids.begin(), ids.end(), 4) != ids.end()) {
       s_over = nw::hypergraph::to_two_graphv2<directed>(std::execution::seq, hyperedges, hypernodes, hyperedgedegrees);    // 1) find 2-graph corresponding to s-overlapped hyper edges
-
-
-    nw::graph::adjacency<0> s_adj  = build_adjacency<0>(s_over);        // 2) convert new edge_list to new_adjacency
-    nw::graph::adjacency<1> s_trans_adj = build_adjacency<1>(s_over);
+      s_adj  = build_adjacency<0>(s_over);        // 2) convert new edge_list to new_adjacency
+      s_trans_adj = build_adjacency<1>(s_over);
+    }
 
     if (debug) {
       hypernodes.stream_indices();

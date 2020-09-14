@@ -18,6 +18,10 @@ namespace hypergraph {
 template<class ExecutionPolicy, class HyperNode, class SGraph>
 auto base_two(ExecutionPolicy&& ep, HyperNode& hypernodes, SGraph& s_adj) {
   auto E = ccv1(s_adj);
+  //nw::graph::adjacency<1> s_adj_trans(0);
+  //auto E = Afforest(s_adj, s_adj_trans);
+  //if no component found, then return an empty pair
+  if (E.empty()) return std::tuple(E, E);
   auto nhypernodes = hypernodes.max() + 1;
   std::vector<vertex_id_t> N(nhypernodes);
   //for each hypernode, find N[i]
