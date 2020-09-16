@@ -184,10 +184,10 @@ int main(int argc, char* argv[]) {
               record([&] { return lpCC(hypernodes, hyperedges); });
               break;
             case 3:
-              record([&] { return lpaNoFrontierCC(std::execution::par_unseq, hypernodes, hyperedges); });
+              record([&] { return lpCCv2(hypernodes, hyperedges); });
               break;
             case 4:
-              record([&] { return bfsCC(std::execution::par_unseq, hypernodes, hyperedges); });
+              record([&] { return lpaNoFrontierCC(std::execution::par_unseq, hypernodes, hyperedges); });
               break;
             case 5:
               record([&] { return lpCC_parallel(std::execution::par_unseq, hypernodes, hyperedges); });
@@ -196,7 +196,7 @@ int main(int argc, char* argv[]) {
               record([&] { return base_two(std::execution::seq, hypernodes, s_adj); });
               break;
             case 7:
-              record([&] { return lpCCv2(hypernodes, hyperedges); });
+
               break;
             case 8:
               record([&] { return relabelHyperCC(std::execution::seq, aos_a); });

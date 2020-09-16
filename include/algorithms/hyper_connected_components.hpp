@@ -289,134 +289,7 @@ inline bool updateAtomic(std::vector<vertex_id_t>& dest, std::vector<vertex_id_t
   auto origID = dest[d];
   return (writeMin(dest[d], source[s]) && origID == prevDest[d]);
 }
-// Verifies CC result by performing a BFS from a vertex in each component
-// - Asserts search does not reach a vertex with a different component label
-// - If the graph is directed, it performs the search as if it was undirected
-// - Asserts every vertex is visited (degree-0 vertex should have own label)
-template<class ExecutionPolicy, typename GraphN, typename GraphE>
-auto bfsCC(ExecutionPolicy&& ep, GraphN& hypernodes, GraphE& hyperedges) {
-  nw::util::life_timer _(__func__);
-  size_t     num_hypernodes = hypernodes.max() + 1;    // number of hypernodes
-  size_t     num_hyperedges = hyperedges.max() + 1;    // number of hyperedges
 
-  std::vector<vertex_id_t> E(num_hyperedges);
-  std::vector<vertex_id_t> N(num_hypernodes, std::numeric_limits<vertex_id_t>::max());
-  std::vector<vertex_id_t> prevE(num_hyperedges);
-  std::vector<vertex_id_t> prevN(num_hypernodes);
-
-  nw::graph::AtomicBitVector   visitedN(num_hypernodes);
-  nw::graph::AtomicBitVector   visitedE(num_hyperedges);
-  std::vector<vertex_id_t> frontierN, frontierE(num_hyperedges);
-  frontierN.reserve(num_hypernodes);
-  //frontierE.resize(num_hyperedges);
-  //initial node frontier includes every node
-  std::iota(frontierE.begin(), frontierE.end(), 0);
-  std::iota(E.begin(), E.end(), 0);
-
-  /*
-  //or use a parallel for loop
-  for (vertex_id_t i = 0; i < num_hyperedges; ++i) {
-  //std::for_each(ep, std::begin(0), std::end(num_hypernodes), [&](auto i) {
-    frontierE[i] = i;
-    E[i] = i;
-  }
-  //);
-  */
-
-  std::vector<size_t> feworkload, fnworkload;
-
-  while (false == (frontierE.empty() && frontierN.empty())) {
-    feworkload.push_back(frontierE.size());
-
-    std::for_each(frontierE.begin(), frontierE.end(), [&](auto& hyperE) {
-      //all neighbors of hyperedges are hypernode
-      auto labelE = E[hyperE];
-      std::for_each(hyperedges[hyperE].begin(), hyperedges[hyperE].end(), [&](auto&& x) {
-        auto hyperN = std::get<0>(x);
-        auto labelN = N[hyperN];
-        if (labelE < labelN) {
-          //updateAtomic(N, E, prevN, hyperN, hyperE);
-          N[hyperN] = labelE;
-          auto old  = N[hyperN];
-          while (old == N[hyperN]) {
-            auto s = nw::graph::cas(N[hyperN], old, labelE);
-            if (s) {
-              if (visitedN.atomic_get(hyperN) == 0) {
-                // visitedN.atomic_set(hyperN);
-                frontierN.push_back(hyperN);
-              }
-              break;
-            }
-            old = N[hyperN];
-            if (N[hyperN] < labelE) {
-              break;
-            }
-          }
-        }
-        /*
-          if (N[hyperN] == E[hyperE]) return;
-          else if (E[hyperE] < N[hyperN]) {
-            writeMin(N[hyperN], E[hyperE]);
-            if (visitedN.atomic_get(hyperN) == 0 && visitedN.atomic_set(hyperN) == 0) {
-              frontierN.push_back(hyperN);
-            }
-          }
-*/
-      });
-    });
-    //reset bitmap for N
-    visitedN.clear();
-    std::for_each(ep, frontierE.begin(), frontierE.end(), [&](auto& i) {
-      //all neighbors of hyperedges are hypernode
-      prevE[i] = E[i];
-    });
-    frontierE.clear();
-    fnworkload.push_back(frontierN.size());
-    std::for_each(frontierN.begin(), frontierN.end(), [&](auto& hyperN) {
-      //all neighbors of hypernodes are hyperedges
-      auto labelN = N[hyperN];
-      std::for_each(hypernodes[hyperN].begin(), hypernodes[hyperN].end(), [&](auto&& x) {
-        //so we check compid of each hyperedge
-        auto hyperE = std::get<0>(x);
-        auto labelE = E[hyperE];
-        if (labelN < labelE) {
-          updateAtomic(E, N, prevE, hyperE, hyperN);
-          //while (writeMin(E[hyperE], labelN) && prevE[hyperN] == labelE);
-          if (visitedE.atomic_get(hyperE) == 0 && visitedE.atomic_set(hyperE) == 0) {
-            frontierE.push_back(hyperE);
-          }
-        }
-        /*
-          if (E[hyperE] == N[hyperN]) return;
-          else if (N[hyperN] < E[hyperE]) {
-            writeMin(E[hyperE], N[hyperN]);
-            if (visitedE.atomic_get(hyperE) == 0 && visitedE.atomic_set(hyperE) == 0) {
-              frontierE.push_back(hyperE);
-            }
-          }
-          */
-      });
-    });
-    //reset bitmap for E
-
-    std::for_each(ep, frontierN.begin(), frontierN.end(), [&](auto& i) {
-      //all neighbors of hyperedges are hypernode
-      prevN[i] = N[i];
-    });
-    visitedE.clear();
-    frontierN.clear();
-  }    //while
-
-  std::cout << "feworkload:";
-  for (auto i : feworkload)
-    std::cout << i << " ";
-  std::cout << std::endl;
-  std::cout << "fnworkload:";
-  for (auto i : fnworkload)
-    std::cout << i << " ";
-  std::cout << std::endl;
-  return std::tuple{N, E};
-}
 
 template <typename T>
 bool hook(T u, T v, std::vector<T>& compu, std::vector<T>& compv) {
@@ -473,7 +346,6 @@ auto lpCC_parallel(ExecutionPolicy&& ep, GraphN& hypernodes, GraphE& hyperedges)
   while (false == (frontierE.empty() && frontierN.empty())) {
     std::for_each(ep, frontierE.begin(), frontierE.end(), [&](auto hyperE) {
       //all neighbors of hyperedges are hypernode
-      vertex_id_t labelE = E[hyperE];
       std::for_each(edges[hyperE].begin(), edges[hyperE].end(), [&](auto&& x) {
         auto hyperN = std::get<0>(x);
         if (writeMin(N[hyperN], E[hyperE])) {
@@ -486,7 +358,6 @@ auto lpCC_parallel(ExecutionPolicy&& ep, GraphN& hypernodes, GraphE& hyperedges)
     visitedN.clear();
     frontierE.clear();
     std::for_each(ep, frontierN.begin(), frontierN.end(), [&](auto hyperN) {
-      vertex_id_t labelN = N[hyperN];
       std::for_each(nodes[hyperN].begin(), nodes[hyperN].end(), [&](auto&& x) {
         //so we check compid of each hyperedge
         auto hyperE = std::get<0>(x);
