@@ -348,9 +348,11 @@ auto lpCC_parallel(ExecutionPolicy&& ep, GraphN& hypernodes, GraphE& hyperedges)
       //all neighbors of hyperedges are hypernode
       std::for_each(edges[hyperE].begin(), edges[hyperE].end(), [&](auto&& x) {
         auto hyperN = std::get<0>(x);
-        if (writeMin(N[hyperN], E[hyperE])) {
-          if (visitedN.atomic_get(hyperN) == 0 && visitedN.atomic_set(hyperN) == 0) 
-            frontierN.push_back(hyperN);
+        if (E[hyperE] < N[hyperN]){ 
+          if (writeMin(N[hyperN], E[hyperE])) {
+            if (visitedN.atomic_get(hyperN) == 0 && visitedN.atomic_set(hyperN) == 0) 
+              frontierN.push_back(hyperN);
+          }
         }
       });
     });
@@ -361,9 +363,11 @@ auto lpCC_parallel(ExecutionPolicy&& ep, GraphN& hypernodes, GraphE& hyperedges)
       std::for_each(nodes[hyperN].begin(), nodes[hyperN].end(), [&](auto&& x) {
         //so we check compid of each hyperedge
         auto hyperE = std::get<0>(x);
-        if (writeMin(E[hyperE], N[hyperN])) {
+        if (N[hyperN] < E[hyperE]) {
+          if (writeMin(E[hyperE], N[hyperN])) {
             if (visitedE.atomic_get(hyperE) == 0 && visitedE.atomic_set(hyperE) == 0) 
               frontierE.push_back(hyperE);
+          }
         }
       });
     });
