@@ -319,7 +319,7 @@ bool hook(T u, T v, std::vector<T>& compu, std::vector<T>& compv) {
 }
 
 template<class ExecutionPolicy, typename GraphN, typename GraphE>
-auto lpCC_parallel(ExecutionPolicy&& ep, GraphN& hypernodes, GraphE& hyperedges) {
+auto lpCC_parallelv1(ExecutionPolicy&& ep, GraphN& hypernodes, GraphE& hyperedges) {
   nw::util::life_timer _(__func__);
   size_t     num_hypernodes = hypernodes.max() + 1;    // number of hypernodes
   size_t     num_hyperedges = hyperedges.max() + 1;    // number of hyperedges
@@ -377,6 +377,92 @@ auto lpCC_parallel(ExecutionPolicy&& ep, GraphN& hypernodes, GraphE& hyperedges)
   }    //while
   return std::tuple{N, E};
 }
+
+
+template<class ExecutionPolicy, typename GraphN, typename GraphE>
+auto lpCC_parallelv2(ExecutionPolicy&& ep, GraphN& hypernodes, GraphE& hyperedges, int num_bins = 32) {
+  nw::util::life_timer _(__func__);
+  size_t     num_hypernodes = hypernodes.max() + 1;    // number of hypernodes
+  size_t     num_hyperedges = hyperedges.max() + 1;    // number of hyperedges
+
+  std::vector<vertex_id_t> E(num_hyperedges);
+  std::vector<vertex_id_t> N(num_hypernodes);
+
+  nw::graph::AtomicBitVector   visitedN(num_hypernodes);
+  nw::graph::AtomicBitVector   visitedE(num_hyperedges);
+  std::vector<vertex_id_t> frontierN, frontierE(num_hyperedges);
+  frontierN.reserve(num_hypernodes);
+  //initial edge frontier includes every node
+  //or use a parallel for loop
+  std::for_each(ep, counting_iterator<vertex_id_t>(0), counting_iterator<vertex_id_t>(num_hyperedges), [&](auto i) {
+    frontierE[i] = i;
+    E[i] = i;
+  });
+  std::for_each(ep, counting_iterator<vertex_id_t>(0), counting_iterator<vertex_id_t>(num_hypernodes), [&](auto i) {
+    N[i] = std::numeric_limits<vertex_id_t>::max();
+  });
+  
+  auto nodes = hypernodes.begin();
+  auto edges = hyperedges.begin();
+  std::vector<vertex_id_t> frontier[num_bins];
+  while (false == (frontierE.empty() && frontierN.empty())) {
+
+    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0ul, frontierE.size()), [&](tbb::blocked_range<vertex_id_t>& r) {
+      int worker_index = tbb::task_arena::current_thread_index();
+      for (auto i = r.begin(), e = r.end(); i < e; ++i) {
+        vertex_id_t hyperE = frontierE[i];
+        vertex_id_t labelE = E[hyperE];
+        //all neighbors of hyperedges are hypernode
+        std::for_each(edges[hyperE].begin(), edges[hyperE].end(), [&](auto &&x) {
+          auto hyperN = std::get<0>(x);
+          if (labelE < N[hyperN]) {
+            if (writeMin(N[hyperN], labelE)) {
+              if (visitedN.atomic_get(hyperN) == 0 && visitedN.atomic_set(hyperN) == 0)
+                frontier[worker_index].push_back(hyperN);
+            }
+          }
+        });
+      } //for
+    }, tbb::auto_partitioner());
+    for (int i = 0; i < num_bins; ++i) {
+      frontierN.insert(frontierN.end(), frontier[i].begin(), frontier[i].end());
+      frontier[i].clear();
+    }
+    //std::sort(frontierN.begin(), frontierN.end());
+    //std::unique(frontierN.begin(), frontierN.end());
+    //reset bitmap for N
+    visitedN.clear();
+    frontierE.clear();
+    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0ul, frontierN.size()), [&](tbb::blocked_range<vertex_id_t>& r) {
+      int worker_index = tbb::task_arena::current_thread_index();
+      for (auto i = r.begin(), e = r.end(); i < e; ++i) {
+        vertex_id_t hyperN = frontierN[i];
+        vertex_id_t labelN = N[hyperN];
+        std::for_each(nodes[hyperN].begin(), nodes[hyperN].end(), [&](auto &&x) {
+          //so we check compid of each hyperedge
+          auto hyperE = std::get<0>(x);
+          if (labelN < E[hyperE]) {
+            if (writeMin(E[hyperE], labelN)) {
+              if (visitedE.atomic_get(hyperE) == 0 && visitedE.atomic_set(hyperE) == 0)
+                frontier[worker_index].push_back(hyperE);
+            }
+          }
+        });
+      } //for
+    }, tbb::auto_partitioner());
+    for (int i = 0; i < num_bins; ++i) {
+      frontierE.insert(frontierE.end(), frontier[i].begin(), frontier[i].end());
+      frontier[i].clear();
+    }
+    //std::sort(frontierE.begin(), frontierE.end());
+    //std::unique(frontierE.begin(), frontierE.end());
+    //reset bitmap for E
+    visitedE.clear();
+    frontierN.clear();
+  }    //while
+  return std::tuple{N, E};
+}
+
 
 template<class ExecutionPolicy, typename GraphN, typename GraphE>
 auto lpaNoFrontierCC(ExecutionPolicy&& ep, GraphN& hypernodes, GraphE& hyperedges) {

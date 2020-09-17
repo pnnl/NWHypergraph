@@ -190,7 +190,7 @@ int main(int argc, char* argv[]) {
               record([&] { return lpaNoFrontierCC(std::execution::par_unseq, hypernodes, hyperedges); });
               break;
             case 5:
-              record([&] { return lpCC_parallel(std::execution::par_unseq, hypernodes, hyperedges); });
+              record([&] { return lpCC_parallelv2(std::execution::par_unseq, hypernodes, hyperedges); });
               break;
             case 6:
               record([&] { return base_two(std::execution::seq, hypernodes, s_adj); });
