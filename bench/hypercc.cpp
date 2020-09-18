@@ -118,7 +118,7 @@ int main(int argc, char* argv[]) {
       nw::util::life_timer _("build adj line graph");
       if (ids.end() != std::find(ids.begin(), ids.end(), 6)) {
         //create line graph only when needed by the algorithm
-        nw::graph::edge_list<undirected>&& linegraph =  to_two_graphv5<undirected>(std::execution::par_unseq, hyperedges, hypernodes, hyperedgedegrees, s_overlap);
+        nw::graph::edge_list<undirected>&& linegraph =  to_two_graphv6<undirected>(std::execution::par_unseq, hyperedges, hypernodes, hyperedgedegrees, s_overlap);
         //return empty adjacency to avoid a bug in adjacency
         //where when an empty edge list is passed in, an adjacency still have two elements
         if (0 == linegraph.size()) return nw::graph::adjacency<0>(0);
