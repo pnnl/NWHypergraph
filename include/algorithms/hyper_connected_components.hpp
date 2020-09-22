@@ -405,58 +405,54 @@ auto lpCC_parallelv2(ExecutionPolicy&& ep, GraphN& hypernodes, GraphE& hyperedge
   auto nodes = hypernodes.begin();
   auto edges = hyperedges.begin();
   std::vector<vertex_id_t> frontier[num_bins];
-  while (false == (frontierE.empty() && frontierN.empty())) {
-
-    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0ul, frontierE.size()), [&](tbb::blocked_range<vertex_id_t>& r) {
+  auto propagate = [&](auto& g, auto& cur, auto& bitmap, auto& curlabels, auto& nextlabels) {
+    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0ul, cur.size()), [&](tbb::blocked_range<vertex_id_t>& r) {
       int worker_index = tbb::task_arena::current_thread_index();
       for (auto i = r.begin(), e = r.end(); i < e; ++i) {
-        vertex_id_t hyperE = frontierE[i];
-        vertex_id_t labelE = E[hyperE];
-        //all neighbors of hyperedges are hypernode
-        std::for_each(edges[hyperE].begin(), edges[hyperE].end(), [&](auto &&x) {
-          auto hyperN = std::get<0>(x);
-          if (labelE < N[hyperN]) {
-            if (writeMin(N[hyperN], labelE)) {
-              if (visitedN.atomic_get(hyperN) == 0 && visitedN.atomic_set(hyperN) == 0)
-                frontier[worker_index].push_back(hyperN);
+        vertex_id_t x = cur[i];
+        vertex_id_t labelx = curlabels[x];
+        //all neighbors of hyperedges are hypernode, vice versa
+        std::for_each(g[x].begin(), g[x].end(), [&](auto &&j) {
+          auto y = std::get<0>(j);
+          if (labelx < nextlabels[y]) {
+            if (writeMin(nextlabels[y], labelx)) {
+              if (bitmap.atomic_get(y) == 0 && bitmap.atomic_set(y) == 0)
+                frontier[worker_index].push_back(y);
             }
           }
         });
       } //for
     }, tbb::auto_partitioner());
+  };
+
+  std::vector<size_t> size_array(num_bins);
+  auto curtonext = [&](auto& next) {
+    size_t size = 0;
     for (int i = 0; i < num_bins; ++i) {
-      frontierN.insert(frontierN.end(), frontier[i].begin(), frontier[i].end());
-      frontier[i].clear();
+      //calculate the size of each thread-local frontier
+      size_array[i] = size;
+      //accumulate the total size of all thread-local frontiers
+      size += frontier[i].size();
     }
-    //std::sort(frontierN.begin(), frontierN.end());
-    //std::unique(frontierN.begin(), frontierN.end());
+    //resize next frontier
+    next.resize(size); 
+    std::for_each(ep, tbb::counting_iterator(0), tbb::counting_iterator(num_bins), [&](auto i) {
+      //copy each thread-local frontier to next frontier based on their size offset
+      auto begin = std::next(next.begin(), size_array[i]);
+      std::copy(ep, frontier[i].begin(), frontier[i].end(), begin);
+      frontier[i].clear();
+    });
+  };
+  while (false == (frontierE.empty() && frontierN.empty())) {
+    //propagate on hyperedges
+    propagate(edges, frontierE, visitedN, E, N);
+    curtonext(frontierN);
     //reset bitmap for N
     visitedN.clear();
     frontierE.clear();
-    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0ul, frontierN.size()), [&](tbb::blocked_range<vertex_id_t>& r) {
-      int worker_index = tbb::task_arena::current_thread_index();
-      for (auto i = r.begin(), e = r.end(); i < e; ++i) {
-        vertex_id_t hyperN = frontierN[i];
-        vertex_id_t labelN = N[hyperN];
-        std::for_each(nodes[hyperN].begin(), nodes[hyperN].end(), [&](auto &&x) {
-          //so we check compid of each hyperedge
-          auto hyperE = std::get<0>(x);
-          if (labelN < E[hyperE]) {
-            if (writeMin(E[hyperE], labelN)) {
-              if (visitedE.atomic_get(hyperE) == 0 && visitedE.atomic_set(hyperE) == 0)
-                frontier[worker_index].push_back(hyperE);
-            }
-          }
-        });
-      } //for
-    }, tbb::auto_partitioner());
-    for (int i = 0; i < num_bins; ++i) {
-      frontierE.insert(frontierE.end(), frontier[i].begin(), frontier[i].end());
-      frontier[i].clear();
-    }
-    //std::sort(frontierE.begin(), frontierE.end());
-    //std::unique(frontierE.begin(), frontierE.end());
-    //reset bitmap for E
+    //propagate on hypernodes
+    propagate(nodes, frontierN, visitedE, N, E);
+    curtonext(frontierE);
     visitedE.clear();
     frontierN.clear();
   }    //while
