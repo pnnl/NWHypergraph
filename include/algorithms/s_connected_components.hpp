@@ -17,22 +17,25 @@ namespace hypergraph {
 
 template<class ExecutionPolicy, class HyperNode, class SGraph>
 auto base_two(ExecutionPolicy&& ep, HyperNode& hypernodes, SGraph& s_adj) {
-  auto E = ccv1(s_adj);
-  //nw::graph::adjacency<1> s_adj_trans(0);
-  //auto E = Afforest(s_adj, s_adj_trans);
+  //auto E = ccv1(s_adj);
+  nw::graph::adjacency<1> s_adj_trans(0);
+  auto E = Afforest(s_adj, s_adj_trans);
   //if no component found, then return an empty pair
   if (E.empty()) return std::tuple(E, E);
-  auto nhypernodes = hypernodes.max() + 1;
+  size_t nhypernodes = hypernodes.max() + 1;
   std::vector<vertex_id_t> N(nhypernodes);
   //for each hypernode, find N[i]
-  for (size_t hyperN = 0; hyperN < nhypernodes; ++hyperN) {
-    //get the id of the first neighbor (hyperedge) of hypernode hyperN
+  std::for_each(ep, counting_iterator(0ul), counting_iterator(nhypernodes), [&](auto hyperN) {
     auto hyperE = std::get<0>(*hypernodes[hyperN].begin());
     N[hyperN] = E[hyperE];
-  }
+  });
   return std::tuple(N, E);
 }
 
+/*
+* Inefficient version of relabeling
+* Copy the original graph while relabeling hyperedges or hypernodes
+*/
 template<class ExecutionPolicy, class HyperGraph>
 auto to_relabel_graph(ExecutionPolicy&& ep, HyperGraph& aos_a) {
 

@@ -194,7 +194,7 @@ int main(int argc, char* argv[]) {
               record([&] { return lpCC_parallelv2(std::execution::par_unseq, hypernodes, hyperedges); });
               break;
             case 6:
-              record([&] { return base_two(std::execution::seq, hypernodes, s_adj); });
+              record([&] { return base_two(std::execution::par_unseq, hypernodes, s_adj); });
               break;
             case 7:
 
