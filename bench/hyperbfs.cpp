@@ -29,7 +29,7 @@ static constexpr const char USAGE[] =
     R"(hyperbfs.exe: hypergraph breadth-first search benchmark driver.
   Usage:
       hyperbfs.exe (-h | --help)
-      hyperbfs.exe [-f FILE...] [-r NODE | -s FILE] [-a NUM] [-b NUM] [-B NUM] [-n NUM] [--seed NUM] [--version ID...] [--succession STR] [--relabel] [--clean] [--direction DIR] [-dvV] [--log FILE] [--log-header] [THREADS]...
+      hyperbfs.exe [-f FILE...] [-r NODE | -s FILE] [-a NUM] [-b NUM] [-B NUM] [-n NUM] [--seed NUM] [--version ID...] [--succession STR] [--relabel] [--clean] [--direction DIR] [-dvV] [--log FILE] [--log-header] [--overlap NUM] [THREADS]...
 
   Options:
       -h, --help            show this screen
@@ -48,6 +48,7 @@ static constexpr const char USAGE[] =
       --succession STR      successor/predecessor [default: successor]
       --log FILE            log times to a file
       --log-header          add a header to the log file
+      --overlap NUM         s overlap [default: 1]
       -d, --debug           run in debug mode
       -v, --verify          verify results
       -V, --verbose         run in verbose mode
@@ -62,10 +63,10 @@ int main(int argc, char* argv[]) {
   bool verbose = args["--verbose"].asBool();
   bool debug   = args["--debug"].asBool();
   long trials  = args["-n"].asLong() ?: 1;
-  long iterations = args["-i"].asLong() ?: 1;
   long alpha      = args["-a"].asLong() ?: 15;
   long beta       = args["-b"].asLong() ?: 18;
   long num_bins   = args["-B"].asLong() ?: 32;
+  size_t s_overlap = args["--overlap"].asLong() ?: 1;
 
   std::vector<std::string> files;
   for (auto&& file : args["-f"].asStringList()) {
@@ -140,7 +141,7 @@ int main(int argc, char* argv[]) {
     nw::graph::adjacency<0> s_adj;
     nw::graph::adjacency<1> s_trans_adj;   
     if (std::find(ids.begin(), ids.end(), 4) != ids.end()) {
-      s_over = nw::hypergraph::to_two_graphv6<undirected>(std::execution::seq, hyperedges, hypernodes, hyperedgedegrees);    // 1) find 2-graph corresponding to s-overlapped hyper edges
+      s_over = nw::hypergraph::to_two_graphv6<undirected>(std::execution::seq, hyperedges, hypernodes, hyperedgedegrees, s_overlap, num_bins);    // 1) find 2-graph corresponding to s-overlapped hyper edges
       s_adj  = build_adjacency<0>(s_over);        // 2) convert new edge_list to new_adjacency
       s_trans_adj = build_adjacency<1>(s_over);
     }
@@ -166,7 +167,7 @@ int main(int argc, char* argv[]) {
               case 2:
                 return hyperBFS_bottomup_serial_v0(source, hypernodes, hyperedges);
               case 3:
-                return hyperBFS_hybrid_serial_v0(source, hypernodes, hyperedges, aos_a.size());
+                return hyperBFS_hybrid_serial_v1(source, hypernodes, hyperedges, aos_a.size());
               case 4:
                 return S_BFS_v0(std::execution::seq, source, hypernodes, s_trans_adj, s_adj, num_bins, alpha, beta);
               default:

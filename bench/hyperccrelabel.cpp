@@ -63,10 +63,12 @@ auto relabelHyperCC(ExecutionPolicy&& exec, Graph& g, Transpose& g_t, const size
 
   std::vector<vertex_id_t> E, N;
   if (num_realnodes < num_realedges) {
+    nw::util::life_timer _("unrelabeling");
     E.assign(labeling.begin(), labeling.begin() + num_realedges);
     N.assign(labeling.begin() + num_realedges, labeling.end());
   }
   else {
+    nw::util::life_timer _("unrelabeling");
     N.assign(labeling.begin(), labeling.begin() + num_realnodes);
     E.assign(labeling.begin() + num_realnodes, labeling.end());
   }

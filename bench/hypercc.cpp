@@ -26,13 +26,14 @@ static constexpr const char USAGE[] =
     R"(hycc.exe: hypergraph connected components benchmark driver.
   Usage:
       hycc.exe (-h | --help)
-      hycc.exe [-f FILE...] [--version ID...] [-n NUM] [--succession STR] [--relabel] [--clean] [--direction DIR] [-dvV] [--log FILE] [--log-header] [--overlap NUM] [THREADS]...
+      hycc.exe [-f FILE...] [--version ID...] [-B NUM] [-n NUM] [--succession STR] [--relabel] [--clean] [--direction DIR] [-dvV] [--log FILE] [--log-header] [--overlap NUM] [THREADS]...
 
   Options:
       -h, --help            show this screen
       --version ID          algorithm version to run [default: 0]
       -f FILE               input file paths (can have multiples)
       -n NUM                number of trials [default: 1]
+      -B NUM                number of bins [default: 32]
       --relabel             relabel the graph or not
       -c, --clean           clean the graph or not
       --direction DIR       graph relabeling direction - ascending/descending [default: descending]
@@ -55,8 +56,8 @@ int main(int argc, char* argv[]) {
   bool verbose = args["--verbose"].asBool();
   bool debug   = args["--debug"].asBool();
   long trials  = args["-n"].asLong() ?: 1;
-
-  size_t s_overlap = args["--overlap"].asLong();
+  long num_bins   = args["-B"].asLong() ?: 32;
+  size_t s_overlap = args["--overlap"].asLong() ?: 1;
 
   std::vector ids     = parse_ids(args["--version"].asStringList());
   std::vector threads = parse_n_threads(args["THREADS"].asStringList());

@@ -225,10 +225,10 @@ std::vector<vertex_id_t> init_parent(Graph& g) {
   return parent;
 }
 /*
-* Direction-optimizing bfs in serial.
+* Direction-optimizing bfs in serial. TODO Cannot converge
 */
 template<typename GraphN, typename GraphE>
-auto hyperBFS_hybrid_serial_v0(vertex_id_t source_hyperedge, GraphN& hypernodes, GraphE& hyperedges,
+auto hyperBFS_hybrid_serial_v1(vertex_id_t source_hyperedge, GraphN& hypernodes, GraphE& hyperedges,
 size_t numpairs, int alpha = 15, int beta = 18) {
   nw::util::life_timer _(__func__);
   size_t     num_hypernodes = hypernodes.max() + 1;    // number of hypernodes
@@ -280,10 +280,10 @@ size_t numpairs, int alpha = 15, int beta = 18) {
 }
 
 /*
-* Direction-optimizing bfs in serial.
+* Direction-optimizing bfs in serial, verified working version
 */
 template<typename GraphN, typename GraphE>
-auto hyperBFS_hybrid_serial_v1(vertex_id_t source_hyperedge, GraphN& hypernodes, GraphE& hyperedges,
+auto hyperBFS_hybrid_serial_v0(vertex_id_t source_hyperedge, GraphN& hypernodes, GraphE& hyperedges,
 size_t numpairs, int alpha = 15, int beta = 18) {
   nw::util::life_timer _(__func__);
   size_t     num_hypernodes = hypernodes.max() + 1;    // number of hypernodes
