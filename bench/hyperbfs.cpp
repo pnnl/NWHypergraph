@@ -29,7 +29,7 @@ static constexpr const char USAGE[] =
     R"(hyperbfs.exe: hypergraph breadth-first search benchmark driver.
   Usage:
       hyperbfs.exe (-h | --help)
-      hyperbfs.exe -f FILE... [-r NODE | -s FILE] [-a NUM] [-b NUM] [-B NUM] [-n NUM] [--seed NUM] [--version ID...] [--succession STR] [--relabel] [--clean] [--direction DIR]  [--log FILE] [--log-header] [-dvV] [THREADS]...
+      hyperbfs.exe [-f FILE...] [-r NODE | -s FILE] [-a NUM] [-b NUM] [-B NUM] [-n NUM] [--seed NUM] [--version ID...] [--succession STR] [--relabel] [--clean] [--direction DIR] [-dvV] [--log FILE] [--log-header] [THREADS]...
 
   Options:
       -h, --help            show this screen
@@ -39,9 +39,9 @@ static constexpr const char USAGE[] =
       -a NUM                alpha parameter [default: 15]
       -b NUM                beta parameter [default: 18]
       -B NUM                number of bins [default: 32]
-      -r NODE               start from node r (default is random)
       -s, --sources FILE    sources file
       --seed NUM            random seed [default: 27491095]
+      -r NODE               start from node r (default is random)
       --relabel             relabel the graph or not
       -c, --clean           clean the graph or not
       --direction DIR       graph relabeling direction - ascending/descending [default: descending]
@@ -72,8 +72,8 @@ int main(int argc, char* argv[]) {
     files.emplace_back(file);
   }
 
-  std::vector<long> ids     = parse_ids(args["--version"].asStringList());
-  std::vector<long> threads = parse_n_threads(args["THREADS"].asStringList());
+  std::vector ids     = parse_ids(args["--version"].asStringList());
+  std::vector threads = parse_n_threads(args["THREADS"].asStringList());
 
   Times<bool> times;
 
@@ -122,11 +122,7 @@ int main(int argc, char* argv[]) {
       return std::tuple(aos_a, hyperedges, hypernodes, hyperedgedegrees);
     };
 
-    auto&& graphs     = reader(file, verbose);
-    auto&& aos_a      = std::get<0>(graphs);
-    auto&& hyperedges = std::get<1>(graphs);
-    auto&& hypernodes = std::get<2>(graphs);
-    auto&& hyperedgedegrees = std::get<3>(graphs);
+    auto&& [ aos_a, hyperedges, hypernodes, hyperedgedegrees ]     = reader(file, verbose);
 
     //all sources are hyperedges
     std::vector<vertex_id_t> sources;
@@ -140,11 +136,11 @@ int main(int argc, char* argv[]) {
       sources = build_random_sources(hyperedges, trials, args["--seed"].asLong());
     }
 
-    edge_list<directed> s_over;
+    edge_list<undirected> s_over;
     nw::graph::adjacency<0> s_adj;
     nw::graph::adjacency<1> s_trans_adj;   
     if (std::find(ids.begin(), ids.end(), 4) != ids.end()) {
-      s_over = nw::hypergraph::to_two_graphv2<directed>(std::execution::seq, hyperedges, hypernodes, hyperedgedegrees);    // 1) find 2-graph corresponding to s-overlapped hyper edges
+      s_over = nw::hypergraph::to_two_graphv6<undirected>(std::execution::seq, hyperedges, hypernodes, hyperedgedegrees);    // 1) find 2-graph corresponding to s-overlapped hyper edges
       s_adj  = build_adjacency<0>(s_over);        // 2) convert new edge_list to new_adjacency
       s_trans_adj = build_adjacency<1>(s_over);
     }

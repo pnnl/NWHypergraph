@@ -194,8 +194,9 @@ std::vector<vertex_id_t>& front, std::vector<vertex_id_t>& next) {
   });
   return scout_count;
 }
-inline void queue_to_bitmap(std::vector<vertex_id_t>& queue, nw::graph::AtomicBitVector<>& bitmap) {
-  std::for_each(std::execution::par_unseq, queue.begin(), queue.end(), [&](auto&& u) { 
+template<class ExecutionPolicy>
+inline void queue_to_bitmap(ExecutionPolicy&& ep, std::vector<vertex_id_t>& queue, nw::graph::AtomicBitVector<>& bitmap) {
+  std::for_each(ep, queue.begin(), queue.end(), [&](auto&& u) { 
     bitmap.atomic_set(u); 
   });
 }
@@ -250,7 +251,7 @@ size_t numpairs, int alpha = 15, int beta = 18) {
     if (scout_count > edges_to_check / alpha) {
       //BOTTOMUP
       size_t awake_count, old_awake_count;
-      queue_to_bitmap(frontierE, visitedE);
+      queue_to_bitmap(std::execution::par_unseq, frontierE, visitedE);
       awake_count = frontierE.size();
       while (true) {
         old_awake_count = awake_count;
