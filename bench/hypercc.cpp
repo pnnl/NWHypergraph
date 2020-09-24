@@ -26,12 +26,14 @@ static constexpr const char USAGE[] =
     R"(hycc.exe: hypergraph connected components benchmark driver.
   Usage:
       hycc.exe (-h | --help)
-      hycc.exe [-f FILE...] [--version ID...] [-B NUM] [-n NUM] [--succession STR] [--relabel] [--clean] [--direction DIR] [-dvV] [--log FILE] [--log-header] [--overlap NUM] [THREADS]...
+      hycc.exe [-f FILE...] [--adj FILE...] [--weighted-adj FILE] [--version ID...] [-B NUM] [-n NUM] [--succession STR] [--relabel] [--clean] [--direction DIR] [-dvV] [--log FILE] [--log-header] [--overlap NUM] [THREADS]...
 
   Options:
       -h, --help            show this screen
       --version ID          algorithm version to run [default: 0]
-      -f FILE               input file paths (can have multiples)
+      -f FILE               matrix market input file paths (can have multiples)
+      --adj FILE            adjacent hypergraph input file paths (can have multiples)
+      --weighted-adj FILE   weighted adjacent hypergraph input file paths (can have multiples)
       -n NUM                number of trials [default: 1]
       -B NUM                number of bins [default: 32]
       --relabel             relabel the graph or not
@@ -119,8 +121,7 @@ int main(int argc, char* argv[]) {
       nw::util::life_timer _("build adj line graph");
       if (ids.end() != std::find(ids.begin(), ids.end(), 6)) {
         //create line graph only when needed by the algorithm
-        nw::graph::edge_list<undirected>&& linegraph =  to_two_graphv6<undirected>(std::execution::par_unseq, hyperedges, hypernodes, hyperedgedegrees, s_overlap);
-        //return empty adjacency to avoid a bug in adjacency
+        nw::graph::edge_list<undirected>&& linegraph =  to_two_graphv7<undirected>(std::execution::seq, hyperedges, hypernodes, hyperedgedegrees, s_overlap);
         //where when an empty edge list is passed in, an adjacency still have two elements
         if (0 == linegraph.size()) return nw::graph::adjacency<0>(0);
         nw::graph::adjacency<0> s_adj(linegraph);
@@ -194,7 +195,7 @@ int main(int argc, char* argv[]) {
               record([&] { return lpCC_parallelv2(std::execution::par_unseq, hypernodes, hyperedges); });
               break;
             case 6:
-              record([&] { return base_two(std::execution::par_unseq, hypernodes, s_adj); });
+              record([&] { return linegraph_cc(std::execution::par_unseq, hypernodes, s_adj); });
               break;
             case 7:
 
