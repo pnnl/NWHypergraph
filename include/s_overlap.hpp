@@ -73,40 +73,62 @@ bool is_intersection_size_s(A i, B&& ie, C j, D&& je, size_t s = 1) {
     }
     return false;
 }
-
+/*
+* Parallel naive version
+*/
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
-auto to_two_graph(ExecutionPolicy&& ep, HyperEdge& e_nbs, HyperNode& n_nbs, size_t s = 1) {
+auto to_two_graph_naive_parallel(ExecutionPolicy&& ep, HyperEdge& e_nbs, HyperNode& n_nbs, size_t s = 1, int num_bins = 32) {
+  nw::util::life_timer _(__func__);
+  size_t M = e_nbs.size();
+  std::atomic<size_t> counter = 0, nedges = 0;
+  std::vector<std::vector<std::pair<vertex_id_t, vertex_id_t>>> two_graphs(num_bins);
+  tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M), [&](tbb::blocked_range<vertex_id_t>& r) {
+    int worker_index = tbb::task_arena::current_thread_index();
+    for (auto i = r.begin(), e = r.end(); i != e; ++i) {
+      for (size_t j = i + 1; j < M; ++j) {
+        ++counter;
+        if (nw::graph::intersection_size(e_nbs[i], e_nbs[j]) >= s) {
+          two_graphs[worker_index].push_back(std::make_pair<vertex_id_t, vertex_id_t>(std::forward<vertex_id_t>(i), std::forward<vertex_id_t>(j)));
+          ++nedges;
+        }
+      }
+    }
+  }, tbb::auto_partitioner());
+  std::cout << counter << " intersections performed, " 
+  << nedges << " edges added" << std::endl;
+  nw::graph::edge_list<edge_directedness> result(0);
+  result.open_for_push_back();
+  //do this in serial
+  std::for_each(tbb::counting_iterator<int>(0), tbb::counting_iterator<int>(num_bins), [&](auto i) {
+    std::for_each(two_graphs[i].begin(), two_graphs[i].end(), [&](auto &&e) {
+      result.push_back(e);
+    });
+  });
+  result.close_for_push_back();
+
+  return result;
+}
+
+template<directedness edge_directedness = undirected, class HyperEdge, class HyperNode>
+auto to_two_graph_naive_serial(HyperEdge& e_nbs, HyperNode& n_nbs, size_t s = 1) {
   nw::util::life_timer _(__func__);
   nw::graph::edge_list<edge_directedness> two_graph(0);
   two_graph.open_for_push_back();
-  size_t counter = 0;
+  size_t counter = 0, nedges = 0;
   for (size_t i = 0; i < e_nbs.size(); ++i) {
     for (size_t j = i + 1; j < e_nbs.size(); ++j) {
       ++counter;
-      size_t count = nw::graph::intersection_size(e_nbs[i], e_nbs[j]);    //       if intersection_size(n_nbs(i), n_nbs(j)) >= s
-      if (count >= s) {
-        two_graph.push_back(i, j);    //         add (i,j) to new edge_list
-        std::cout << i << " " << j << std::endl;
-        std::cout << i << " :";
-        std::for_each(e_nbs.begin()[i].begin(), e_nbs.begin()[i].end(), [&](auto &&x) {
-          auto hyperN = std::get<0>(x);
-          std::cout << hyperN << " ";
-        });
-        std::cout << std::endl;
-        std::cout << j << " :";
-        std::for_each(e_nbs.begin()[j].begin(), e_nbs.begin()[j].end(), [&](auto &&x) {
-          auto hyperN = std::get<0>(x);
-          std::cout << hyperN << " ";
-        });
-        std::cout << std::endl;
+      if (nw::graph::intersection_size(e_nbs[i], e_nbs[j]) >= s) {
+        two_graph.push_back(i, j);
+        ++nedges;
       }
     }
   }
-  std::cout << counter << " intersections performed" << std::endl;
+  std::cout << counter << " intersections performed, " 
+  << nedges << " edges added" << std::endl;
   two_graph.close_for_push_back();
   return two_graph;
 }
-
 /*
 * Serial efficient version
 */
