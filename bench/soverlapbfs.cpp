@@ -8,32 +8,42 @@
 // Author: Xu Tony Liu
 //
 
-#include <unordered_set>
-#include <docopt.h>
-#include <edge_list.hpp>
 #include "Log.hpp"
 #include "common.hpp"
 #include "edge_list_hy.hpp"
 #include "s_overlap.hpp"
-#include "algorithms/hyper_connected_components.hpp"
-#include "algorithms/s_connected_components.hpp"
+#include "algorithms/hyper_breadth_first_search.hpp"
+#include "algorithms/s_breadth_first_search.hpp"
+#include <edge_list.hpp>
+#include <util/AtomicBitVector.hpp>
+#include <util/intersection_size.hpp>
+#include <docopt.h>
+#include <tbb/iterators.h>
+#include <execution>
 
 
 using namespace nw::hypergraph::bench;
 using namespace nw::hypergraph;
 
 static constexpr const char USAGE[] =
-    R"(hycc.exe: hypergraph connected components benchmark driver.
+    R"(scc.exe: s-overlap breadth-first search benchmark driver.
   Usage:
-      hycc.exe (-h | --help)
-      hycc.exe [-f FILE...] [--version ID...] [-B NUM] [-n NUM] [--relabel] [--clean] [--direction DIR] [-dvV] [--log FILE] [--log-header] [THREADS]...
+      sbfs.exe (-h | --help)
+      sbfs.exe [-f FILE...] [--version ID...] [--loader-version ID] [-n NUM] [-B NUM] [-s NUM] [--relabel] [--clean] [--direction DIR] [-dvV] [--log FILE] [--log-header] [THREADS]...
 
   Options:
       -h, --help            show this screen
       --version ID          algorithm version to run [default: 0]
-      -f FILE               matrix market input file paths (can have multiples)
+      --loader-version ID   soverlap computation loader kernal version [default: 0]
+      -f FILE               input file paths (can have multiples and different file format)
       -n NUM                number of trials [default: 1]
       -B NUM                number of bins [default: 32]
+      -s NUM                s value of s-overlap [default: 1]
+      -a NUM                alpha parameter [default: 15]
+      -b NUM                beta parameter [default: 18]
+      --sources FILE        sources file
+      --seed NUM            random seed [default: 27491095]
+      -r NODE               start from node r (default is random)
       --relabel             relabel the graph or not
       -c, --clean           clean the graph or not
       --direction DIR       graph relabeling direction - ascending/descending [default: descending]
@@ -45,7 +55,6 @@ static constexpr const char USAGE[] =
 )";
 
 
-
 int main(int argc, char* argv[]) {
   std::vector<std::string> strings(argv + 1, argv + argc);
   auto args = docopt::docopt(USAGE, strings, true);
@@ -54,7 +63,11 @@ int main(int argc, char* argv[]) {
   bool verbose = args["--verbose"].asBool();
   bool debug   = args["--debug"].asBool();
   long trials  = args["-n"].asLong() ?: 1;
-  long num_bins   = args["-B"].asLong() ?: 32;
+  long alpha   = args["-a"].asLong() ?: 15;
+  long beta    = args["-b"].asLong() ?: 18;
+  long num_bins= args["-B"].asLong() ?: 32;
+  size_t s     = args["-s"].asLong() ?: 1;
+  long loader_version = args["--loader-version"].asLong() ?: 0;
 
   std::vector ids     = parse_ids(args["--version"].asStringList());
   std::vector threads = parse_n_threads(args["THREADS"].asStringList());
@@ -110,8 +123,40 @@ int main(int argc, char* argv[]) {
       std::cout << "num_hyperedges = " << aos_a.max()[0] + 1 << " num_hypernodes = " << aos_a.max()[1] + 1 << std::endl;
       return std::tuple(aos_a, hyperedges, hypernodes, hyperedgedegrees);
     };
-
     auto&&[ aos_a, hyperedges, hypernodes, hyperedgedegrees ] = reader(file, verbose);
+
+    //all sources are hyperedges
+    std::vector<vertex_id_t> sources;
+    if (args["--sources"]) {
+      sources = load_sources_from_file(hyperedges, args["--sources"].asString());
+      trials  = sources.size();
+    } else if (args["-r"]) {
+      sources.resize(trials);
+      std::fill(sources.begin(), sources.end(), args["-r"].asLong());
+    } else {
+      sources = build_random_sources(hyperedges, trials, args["--seed"].asLong());
+    }
+
+    auto twograph_reader = [&](adjacency<0>& edges, adjacency<1>& nodes, std::vector<nw::graph::index_t>& edgedegrees, 
+    size_t s = 1, int num_bins = 32) {
+      switch (loader_version) {
+      case 0:
+      {
+          nw::graph::edge_list<undirected> &&linegraph = to_two_graph_efficient_parallel<undirected>(std::execution::seq, hyperedges, hypernodes, hyperedgedegrees, s, num_bins);
+          //where when an empty edge list is passed in, an adjacency still have two elements
+          if (0 == linegraph.size()) return nw::graph::adjacency<0>(0);
+          nw::graph::adjacency<0> s_adj(linegraph);
+          std::cout << "line:" << linegraph.size() << " adjacency: " << s_adj.size() << std::endl;
+          return s_adj;
+      }
+      default:
+      {
+          std::cerr << "unknown soverlap computation loader" << std::endl;
+          return nw::graph::adjacency<0>(0);
+      }
+      }
+    };
+    auto&& s_adj = twograph_reader(hyperedges, hypernodes, hyperedgedegrees, s, num_bins);
 
     if (debug) {
       hypernodes.stream_indices();
@@ -121,70 +166,34 @@ int main(int argc, char* argv[]) {
     for (auto&& thread : threads) {
       auto _ = set_n_threads(thread);
       for (auto&& id : ids) {
-        if (verbose) {
-          std::cout << "version " << id << std::endl;
-        }
+        for (auto&& source : sources) {
+          if (verbose) std::cout << "version " << id << std::endl;
 
-        auto verifier = [&](auto&& result) {
-          auto&& [N, E] = result;
-          if (verbose) {
-            //This returns the subgraph of each component.
-            std::map<vertex_id_t, edge_list<>> comps;
-            std::for_each(aos_a.begin(), aos_a.end(), [&](auto&& elt) {
-              auto&& [edge, node] = elt;
-              vertex_id_t key     = E[edge];
-              comps[key].push_back(elt);
-            });
-
-            for (auto&& j : comps) {
-              auto& [k, v] = j;
-              v.close_for_push_back();
+          auto&& [time, parents] = time_op([&] {
+            switch (id) {
+              case 0:
+                return hyperBFS_topdown_serial_v0(source, hypernodes, hyperedges);
+              case 1:
+                return hyperBFS_topdown_serial_v1(source, hypernodes, hyperedges);
+              case 2:
+                return hyperBFS_bottomup_serial_v0(source, hypernodes, hyperedges);
+              case 3:
+                return hyperBFS_hybrid_serial_v1(source, hypernodes, hyperedges, aos_a.size());
+              default:
+                std::cerr << "Unknown version " << id << "\n";
+                return std::make_tuple(std::vector<vertex_id_t>(), std::vector<vertex_id_t>());
             }
-            std::cout << comps.size() << " subgraphs and" << std::endl;
-          }
-          std::unordered_set<vertex_id_t> uni_comps(E.begin(), E.end());
-          std::cout << uni_comps.size() << " components found" << std::endl;
+          });
 
           if (verify) {
-            std::cerr << " v" << id << " failed verification for " << file << " using " << thread << " threads\n";
+            hyperBFSVerifier(hypernodes, hyperedges, source, std::get<0>(parents), std::get<1>(parents));
           }
-        };
 
-        auto record = [&](auto&& op) { times.record(file, id, thread, std::forward<decltype(op)>(op), verifier, true); };
-        for (int j = 0, e = trials; j < e; ++j) {
-          switch (id) {
-            case 0:
-              record([&] { return baseline(std::execution::seq, aos_a); });
-              break;
-            case 1:
-              record([&] { return baseline_in_parallel(std::execution::par_unseq, aos_a); });
-              break;
-            case 2:
-              record([&] { return lpCC(hypernodes, hyperedges); });
-              break;
-            case 3:
-              record([&] { return lpCCv2(hypernodes, hyperedges); });
-              break;
-            case 4:
-              record([&] { return lpaNoFrontierCC(std::execution::par_unseq, hypernodes, hyperedges); });
-              break;
-            case 5:
-              record([&] { return lpCC_parallelv2(std::execution::par_unseq, hypernodes, hyperedges); });
-              break;
-            case 8:
-              record([&] { return relabelHyperCC(std::execution::seq, aos_a); });
-              break;
-            case 9:
-              record([&] { return relabelHyperCC(std::execution::par_unseq, aos_a); });
-              break;
-            default:
-              std::cout << "Unknown version v" << id << "\n";
-          }
+          times.append(file, id, thread, time, source);
         }
       }
     }
   }
-
   times.print(std::cout);
 
   if (args["--log"]) {

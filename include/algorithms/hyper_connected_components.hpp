@@ -89,6 +89,38 @@ auto baseline(eputionPolicy&& ep, Graph& aos_a) {
   return std::tuple(N, E);
 }
 
+/*
+* baseline has been verified with the Python version
+*/
+template<class eputionPolicy, typename Graph>
+auto baseline_in_parallel(eputionPolicy&& ep, Graph& aos_a) {
+  nw::util::life_timer _(__func__);
+
+  size_t num_hyperedges = aos_a.max()[0] + 1;    // number of hyperedges
+  size_t num_hypernodes = aos_a.max()[1] + 1;    // number of hypernodes
+
+  std::vector<vertex_id_t> N(num_hypernodes, std::numeric_limits<vertex_id_t>::max());
+  std::vector<vertex_id_t> E(num_hyperedges, std::numeric_limits<vertex_id_t>::max());
+
+  std::for_each(ep, aos_a.begin(), aos_a.end(), [&](auto&& elt) {
+    auto&& [edge, node] = elt;
+    auto labelE = E[edge];
+    auto labelN = N[node];
+    if (labelE == std::numeric_limits<vertex_id_t>::max()) writeMin(E[edge], edge);
+    if (labelE == labelN) return;
+    if (labelN == std::numeric_limits<vertex_id_t>::max()) writeMin(N[node], labelE);
+    else if (labelN > labelE) {
+      std::replace(ep, N.begin(), N.end(), labelN, labelE);
+      std::replace(ep, E.begin(), E.end(), labelN, labelE);
+    } else if (labelN < labelE) {
+      std::replace(ep, N.begin(), N.end(), labelE, labelN);
+      std::replace(ep, E.begin(), E.end(), labelE, labelN);
+    }
+  });
+  
+  return std::tuple(N, E);
+}
+
 template<class ExecutionPolicy, typename Graph, typename GraphN, typename GraphE>
 auto svCC(ExecutionPolicy&& ep, Graph& aos_a, GraphN& cn, GraphE& ce) {
   nw::util::life_timer _(__func__);

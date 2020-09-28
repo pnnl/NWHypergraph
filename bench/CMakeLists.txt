@@ -39,3 +39,9 @@ target_link_libraries(hycc.exe bench)
 
 add_executable(hyccrelabel.exe hyperccrelabel.cpp)
 target_link_libraries(hyccrelabel.exe bench)
+
+add_executable(scc.exe soverlapcc.cpp)
+target_link_libraries(scc.exe bench)
+
+add_executable(sbfs.exe soverlapbfs.cpp)
+target_link_libraries(sbfs.exe bench)

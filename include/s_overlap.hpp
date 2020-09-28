@@ -569,7 +569,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
 
 
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
-auto to_two_graphv7(ExecutionPolicy&& ep, HyperEdge& e_nbs, HyperNode& n_nbs, 
+auto to_two_graph_efficient_parallel(ExecutionPolicy&& ep, HyperEdge& e_nbs, HyperNode& n_nbs, 
 std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
   nw::util::life_timer _(__func__);
 
