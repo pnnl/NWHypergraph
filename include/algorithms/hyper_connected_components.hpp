@@ -110,11 +110,11 @@ auto baseline_in_parallel(eputionPolicy&& ep, Graph& aos_a) {
     if (labelE == labelN) return;
     if (labelN == std::numeric_limits<vertex_id_t>::max()) writeMin(N[node], labelE);
     else if (labelN > labelE) {
-      std::replace(ep, N.begin(), N.end(), labelN, labelE);
-      std::replace(ep, E.begin(), E.end(), labelN, labelE);
+      std::replace(N.begin(), N.end(), labelN, labelE);
+      std::replace(E.begin(), E.end(), labelN, labelE);
     } else if (labelN < labelE) {
-      std::replace(ep, N.begin(), N.end(), labelE, labelN);
-      std::replace(ep, E.begin(), E.end(), labelE, labelN);
+      std::replace(N.begin(), N.end(), labelE, labelN);
+      std::replace(E.begin(), E.end(), labelE, labelN);
     }
   });
   
