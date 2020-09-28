@@ -18,6 +18,7 @@
 #include <util/atomic.hpp>
 #include <util/intersection_size.hpp>
 #include <docopt.h>
+#include <execution>
 
 using namespace nw::hypergraph::bench;
 using namespace nw::graph;
@@ -61,16 +62,28 @@ auto relabelHyperCC(ExecutionPolicy&& exec, Graph& g, Transpose& g_t, const size
   auto labeling   = //Afforest(s_adj, s_trans_adj); 
   ccv1(g);//
 
-  std::vector<vertex_id_t> E, N;
+  std::vector<vertex_id_t> E(num_realedges), N(num_realnodes);
   if (num_realnodes < num_realedges) {
     nw::util::life_timer _("unrelabeling");
-    E.assign(labeling.begin(), labeling.begin() + num_realedges);
-    N.assign(labeling.begin() + num_realedges, labeling.end());
+    //E.assign(labeling.begin(), labeling.begin() + num_realedges);
+    std::for_each(exec, tbb::counting_iterator(0ul), tbb::counting_iterator(num_realedges), [&](auto i) {
+      E[i] = labeling[i];
+    });
+    //N.assign(labeling.begin() + num_realedges, labeling.end());
+    std::for_each(exec, tbb::counting_iterator(0ul), tbb::counting_iterator(num_realnodes), [&](auto i) {
+      N[i] = labeling[i + num_realedges];
+    }); 
   }
   else {
     nw::util::life_timer _("unrelabeling");
-    N.assign(labeling.begin(), labeling.begin() + num_realnodes);
-    E.assign(labeling.begin() + num_realnodes, labeling.end());
+    //N.assign(labeling.begin(), labeling.begin() + num_realnodes);
+    std::for_each(exec, tbb::counting_iterator(0ul), tbb::counting_iterator(num_realnodes), [&](auto i) {
+      N[i] = labeling[i];
+    }); 
+    //E.assign(labeling.begin() + num_realnodes, labeling.end());
+    std::for_each(exec, tbb::counting_iterator(0ul), tbb::counting_iterator(num_realedges), [&](auto i) {
+      E[i] = labeling[i + num_realnodes];
+    });
   }
 
   return std::tuple{N, E};
