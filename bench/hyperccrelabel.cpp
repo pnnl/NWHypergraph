@@ -45,43 +45,53 @@ static constexpr const char USAGE[] =
       -V, --verbose         run in verbose mode
 )";
 
-template<class T>
-inline bool writeMin(T& old, T& next) {
-  T    prev;
-  bool success;
-  do
-    prev = old;
-  while (prev > next && !(success = nw::graph::cas(old, prev, next)));
-  return success;
-}
-
-
-template<class ExecutionPolicy, class Graph, class Transpose>
-auto relabelHyperCC(ExecutionPolicy&& exec, Graph& g, Transpose& g_t, const size_t num_realedges, const size_t num_realnodes) {
+template<class Graph, class Transpose>
+auto relabelCC(Graph& g, Transpose& g_t, const size_t num_realedges, const size_t num_realnodes) {
 
   auto labeling   = //Afforest(s_adj, s_trans_adj); 
-  ccv1(g);//
+  ccv1(g);
+
+  std::vector<vertex_id_t> E(num_realedges), N(num_realnodes);
+  if (num_realnodes < num_realedges) {
+    nw::util::life_timer _("unrelabeling");
+    E.assign(labeling.begin(), labeling.begin() + num_realedges);
+    N.assign(labeling.begin() + num_realedges, labeling.end());
+  }
+  else {
+    nw::util::life_timer _("unrelabeling");
+    N.assign(labeling.begin(), labeling.begin() + num_realnodes);
+    E.assign(labeling.begin() + num_realnodes, labeling.end());
+  }
+
+  return std::tuple{N, E};
+}
+
+template<class ExecutionPolicy, class Graph, class Transpose>
+auto relabelCC_in_parallel(ExecutionPolicy&& ep, Graph& g, Transpose& g_t, const size_t num_realedges, const size_t num_realnodes) {
+
+  auto labeling   = //Afforest(s_adj, s_trans_adj); 
+  ccv1(g);
 
   std::vector<vertex_id_t> E(num_realedges), N(num_realnodes);
   if (num_realnodes < num_realedges) {
     nw::util::life_timer _("unrelabeling");
     //E.assign(labeling.begin(), labeling.begin() + num_realedges);
-    std::for_each(exec, tbb::counting_iterator(0ul), tbb::counting_iterator(num_realedges), [&](auto i) {
+    std::for_each(ep, tbb::counting_iterator(0ul), tbb::counting_iterator(num_realedges), [&](auto i) {
       E[i] = labeling[i];
     });
     //N.assign(labeling.begin() + num_realedges, labeling.end());
-    std::for_each(exec, tbb::counting_iterator(0ul), tbb::counting_iterator(num_realnodes), [&](auto i) {
+    std::for_each(ep, tbb::counting_iterator(0ul), tbb::counting_iterator(num_realnodes), [&](auto i) {
       N[i] = labeling[i + num_realedges];
     }); 
   }
   else {
     nw::util::life_timer _("unrelabeling");
     //N.assign(labeling.begin(), labeling.begin() + num_realnodes);
-    std::for_each(exec, tbb::counting_iterator(0ul), tbb::counting_iterator(num_realnodes), [&](auto i) {
+    std::for_each(ep, tbb::counting_iterator(0ul), tbb::counting_iterator(num_realnodes), [&](auto i) {
       N[i] = labeling[i];
     }); 
     //E.assign(labeling.begin() + num_realnodes, labeling.end());
-    std::for_each(exec, tbb::counting_iterator(0ul), tbb::counting_iterator(num_realedges), [&](auto i) {
+    std::for_each(ep, tbb::counting_iterator(0ul), tbb::counting_iterator(num_realedges), [&](auto i) {
       E[i] = labeling[i + num_realnodes];
     });
   }
@@ -185,10 +195,10 @@ int main(int argc, char* argv[]) {
         for (int j = 0, e = trials; j < e; ++j) {
           switch (id) {
             case 0:
-              record([&] { return relabelHyperCC(std::execution::seq, g, g_t, num_realnodes, num_realnodes); });
+              record([&] { return relabelCC(g, g_t, num_realedges, num_realnodes); });
               break;
             case 1:
-              record([&] { return relabelHyperCC(std::execution::par_unseq, g, g_t, num_realnodes, num_realnodes); });
+              record([&] { return relabelCC_in_parallel(std::execution::par_unseq, g, g_t, num_realedges, num_realnodes); });
               break;
             default:
               std::cout << "Unknown version v" << id << "\n";
