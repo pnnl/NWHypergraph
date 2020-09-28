@@ -12,6 +12,30 @@
 
 #include <mmio.hpp>
 
+void mm_fill_relabeling(std::istream& inputStream, nw::graph::edge_list<nw::graph::directed>& A, size_t nedges, size_t nnodes, 
+size_t nNonzeros, bool file_symmetry, bool pattern) {
+
+  A.reserve(nNonzeros);
+  A.open_for_push_back();
+
+  for (size_t i = 0; i < nNonzeros; ++i) {
+    size_t d0, d1;
+    double d2;
+
+    if (pattern) {
+      inputStream >> d0 >> d1;
+    } else {
+      inputStream >> d0 >> d1 >> d2;
+    }
+    if (nedges > nnodes)
+      d1 += nedges;
+    else
+      d0 += nnodes;
+    A.push_back(d0, d1);
+  }
+  A.close_for_push_back();
+}
+
 template<typename T>
 void mm_fill_relabeling(std::istream& inputStream, nw::graph::edge_list<nw::graph::directed, T>& A, size_t nedges, size_t nnodes, 
 size_t nNonzeros, bool file_symmetry, bool pattern) {

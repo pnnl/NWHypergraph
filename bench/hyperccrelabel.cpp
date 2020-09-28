@@ -104,7 +104,7 @@ int main(int argc, char* argv[]) {
   for (auto&& file : files) {
     auto reader = [&](std::string file, bool verbose, size_t& nrealedges, size_t& nrealnodes) {
       //auto aos_a   = load_graph<directed>(file);
-      auto aos_a   = read_mm_relabeling<nw::graph::undirected>(file, nrealedges, nrealnodes);
+      auto aos_a   = read_mm_relabeling<nw::graph::directed>(file, nrealedges, nrealnodes);
       
       // Run relabeling. This operates directly on the incoming edglist.
       if (args["--relabel"].asBool()) {
