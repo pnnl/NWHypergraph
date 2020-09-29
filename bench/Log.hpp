@@ -133,7 +133,7 @@ struct Log {
     }
 
     os_ << std::setw(uuid_size_ + 2) << std::left << uuid_;
-    os_ << std::setw(10) << std::left << "BGL17";
+    os_ << std::setw(10) << std::left << "NWHY";
     os_ << std::setw(10) << std::left << git_branch_;
     os_ << std::setw(10) << std::left << git_version_;
     os_ << std::setw(cxx_size_)        << std::left << CXX_COMPILER;
@@ -169,6 +169,22 @@ struct Log {
       }
     }
   }
+    
+  template <class Samples, class... Headers>
+  void print_withs(std::string algorithm, Samples&& samples, bool header, Headers&&... headers) {
+    if (header) {
+      log_result_header(std::forward<Headers>(headers)...);
+    }
+
+    for (auto&& [config, samples] : samples) {
+      auto [file, id, threads,s] = config;
+      for (auto&& sample : samples) {
+        std::apply([&,file=file,id=id,threads=threads,s=s](auto&&... values) {
+          (*this)(algorithm, "v" + std::to_string(id), threads, file, s, std::forward<decltype(values)>(values)...);
+        }, sample);
+      }
+    }
+  }
 };
 
 template <class Samples, class... Headers>
@@ -176,6 +192,11 @@ void log(std::string algorithm, std::string path, Samples&& samples, bool header
   Log log(path);
   log.print(algorithm, std::forward<Samples>(samples), header, std::forward<Headers>(headers)...);
 }
+template <class Samples, class... Headers>
+void log_withs(std::string algorithm, std::string path, Samples&& samples, bool header, Headers&&... headers) {
+  Log log(path);
+  log.print_withs(algorithm, std::forward<Samples>(samples), header, std::forward<Headers>(headers)...);
 }
-}
+}//bench
+}//nw::hypergraph
 

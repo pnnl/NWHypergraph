@@ -15,7 +15,6 @@
 #include "common.hpp"
 #include "edge_list_hy.hpp"
 #include "s_overlap.hpp"
-#include "algorithms/hyper_connected_components.hpp"
 #include "algorithms/s_connected_components.hpp"
 
 
@@ -26,7 +25,7 @@ static constexpr const char USAGE[] =
     R"(scc.exe: s-overlap connected components benchmark driver.
   Usage:
       scc.exe (-h | --help)
-      scc.exe [-f FILE...] [--version ID...] [--feature ID...] [--loader-version ID] [-n NUM] [-B NUM] [-s NUM] [--relabel] [--clean] [--direction DIR] [-dvV] [--log FILE] [--log-header] [THREADS]...
+      scc.exe [-f FILE...] [--version ID...] [--feature ID...] [--loader-version ID] [-n NUM] [-B NUM] [-s NUM...] [--relabel] [--clean] [--direction DIR] [-dvV] [--log FILE] [--log-header] [THREADS]...
 
   Options:
       -h, --help            show this screen
@@ -36,14 +35,13 @@ static constexpr const char USAGE[] =
       -f FILE               input file paths (can have multiples and different file format)
       -n NUM                number of trials [default: 1]
       -B NUM                number of bins [default: 32]
-      -s NUM                s value of s-overlap [default: 1]
+      -s NUM                s value of soverlap [default: 1]
       --relabel             relabel the graph or not
       -c, --clean           clean the graph or not
       --direction DIR       graph relabeling direction - ascending/descending [default: descending]
       --log FILE            log times to a file
       --log-header          add a header to the log file
       -d, --debug           run in debug mode
-      -v, --verify          verify results
       -V, --verbose         run in verbose mode
 )";
 
@@ -52,24 +50,24 @@ int main(int argc, char* argv[]) {
   std::vector<std::string> strings(argv + 1, argv + argc);
   auto args = docopt::docopt(USAGE, strings, true);
 
-  bool verify  = args["--verify"].asBool();
   bool verbose = args["--verbose"].asBool();
   bool debug   = args["--debug"].asBool();
   long trials  = args["-n"].asLong() ?: 1;
   long num_bins= args["-B"].asLong() ?: 32;
-  size_t s = args["-s"].asLong() ?: 1;
   long loader_version = args["--loader-version"].asLong() ?: 0;
 
   std::vector ids     = parse_ids(args["--version"].asStringList());
   std::vector threads = parse_n_threads(args["THREADS"].asStringList());
   std::bitset features= parse_features(args["--feature"].asStringList());
+  std::vector s_values= parse_ids(args["-s"].asStringList());
+  if (s_values.empty()) s_values.push_back(1);
 
   std::vector<std::string> files;
   for (auto&& file : args["-f"].asStringList()) {
     files.emplace_back(file);
   }
 
-  Times<bool> times;
+  Times_WithS<bool> times;
 
   // Appease clang.
   //
@@ -116,7 +114,7 @@ int main(int argc, char* argv[]) {
       return std::tuple(aos_a, hyperedges, hypernodes, hyperedgedegrees);
     };
     auto&&[ aos_a, hyperedges, hypernodes, hyperedgedegrees ] = reader(file, verbose);
-
+    for (auto&& s : s_values) {
     auto twograph_reader = [&](adjacency<0>& edges, adjacency<1>& nodes, std::vector<nw::graph::index_t>& edgedegrees, 
     size_t s = 1, int num_bins = 32) {
       switch (loader_version) {
@@ -153,6 +151,7 @@ int main(int argc, char* argv[]) {
     }
 
     for (auto&& thread : threads) {
+      
       auto _ = set_n_threads(thread);
       for (auto&& id : ids) {
         if (verbose) {
@@ -179,13 +178,9 @@ int main(int argc, char* argv[]) {
           }
           std::unordered_set<vertex_id_t> uni_comps(E.begin(), E.end());
           std::cout << uni_comps.size() << " components found" << std::endl;
-
-          if (verify) {
-            std::cerr << " v" << id << " failed verification for " << file << " using " << thread << " threads\n";
-          }
         };
 
-        auto record = [&](auto&& op) { times.record(file, id, thread, std::forward<decltype(op)>(op), verifier, true); };
+        auto record = [&](auto&& op) { times.record(file, id, thread, s, std::forward<decltype(op)>(op), verifier, true); };
         for (int j = 0, e = trials; j < e; ++j) {
           switch (id) {
             case 0:
@@ -205,15 +200,16 @@ int main(int argc, char* argv[]) {
           }
         }
       }
-    }
-  }
+    }//for thread
+    }//for s
+  }//for file
 
   times.print(std::cout);
 
   if (args["--log"]) {
     auto file   = args["--log"].asString();
     bool header = args["--log-header"].asBool();
-    log("cc", file, times, header, "Time(s)");
+    log_withs("scc", file, times, header, "Time(s)");
   }
 
   return 0;
