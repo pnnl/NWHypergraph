@@ -111,9 +111,9 @@ int main(int argc, char* argv[]) {
         hyperedges.stream_stats();
       }
       std::cout << "num_hyperedges = " << aos_a.max()[0] + 1 << " num_hypernodes = " << aos_a.max()[1] + 1 << std::endl;
-      return std::tuple(aos_a, hyperedges, hypernodes, hyperedgedegrees);
+      return std::tuple(hyperedges, hypernodes, hyperedgedegrees);
     };
-    auto&&[ aos_a, hyperedges, hypernodes, hyperedgedegrees ] = reader(file, verbose);
+    auto&&[ hyperedges, hypernodes, hyperedgedegrees ] = reader(file, verbose);
     for (auto&& s : s_values) {
     auto twograph_reader = [&](adjacency<0>& edges, adjacency<1>& nodes, std::vector<nw::graph::index_t>& edgedegrees, 
     size_t s = 1, int num_bins = 32) {
@@ -154,28 +154,9 @@ int main(int argc, char* argv[]) {
       
       auto _ = set_n_threads(thread);
       for (auto&& id : ids) {
-        if (verbose) {
-          std::cout << "version " << id << std::endl;
-        }
-
         auto verifier = [&](auto&& result) {
             //only verify #cc in the result
           auto&& [N, E] = result;
-          if (verbose) {
-            // This returns the subgraph of each component.
-            std::map<vertex_id_t, edge_list<>> comps;
-            std::for_each(aos_a.begin(), aos_a.end(), [&](auto&& elt) {
-              auto&& [edge, node] = elt;
-              vertex_id_t key     = E[edge];
-              comps[key].push_back(elt);
-            });
-
-            for (auto&& j : comps) {
-              auto& [k, v] = j;
-              v.close_for_push_back();
-            }
-            std::cout << comps.size() << " subgraphs and" << std::endl;
-          }
           std::unordered_set<vertex_id_t> uni_comps(E.begin(), E.end());
           std::cout << uni_comps.size() << " components found" << std::endl;
         };
@@ -184,15 +165,9 @@ int main(int argc, char* argv[]) {
         for (int j = 0, e = trials; j < e; ++j) {
           switch (id) {
             case 0:
-              record([&] { return baseline(std::execution::seq, aos_a); });
-              break;
-            case 1:
-              record([&] { return baseline(std::execution::par_unseq, aos_a); });
-              break;
-            case 2:
               record([&] { return linegraph_ccv1(std::execution::par_unseq, hypernodes, s_adj); });
               break;
-            case 3:
+            case 1:
               record([&] { return linegraph_Afforest(std::execution::par_unseq, hypernodes, s_adj); });
               break;
             default:
