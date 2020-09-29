@@ -20,6 +20,34 @@
 
 namespace nw {
 namespace hypergraph {
+
+enum heuristics {
+ALL = 0,
+DEG_PRUNING,
+SKIP_VISITED,
+UPPER_TRIANGULAR,
+SHORT_CIRCUIT,
+NONE
+};
+
+void print_heuristics_verbose(heuristics h) {
+  switch (h) {
+  case ALL:
+    std::cout << "All are turned on" << std::endl; return;
+  case DEG_PRUNING:
+    std::cout << "Degree pruning is turned on" << std::endl; return;
+  case SKIP_VISITED:
+    std::cout << "Skip visited is turned on" << std::endl; return;
+  case UPPER_TRIANGULAR:
+    std::cout << "Upper triangular is turned on" << std::endl; return;
+  case SHORT_CIRCUIT:
+    std::cout << "Short circuit is turned on" << std::endl; return;
+  case NONE:
+    std::cout << "None heuristic is turned on" << std::endl; return;
+  default:
+    std::cout << "Unknow heuristic is passed" << std::endl; return;
+  }
+}
 /// Basic helper used for all of the inner set intersections.
 ///
 /// This wraps `std::set_intersection` to produce the size of the set rather
@@ -74,10 +102,41 @@ bool is_intersection_size_s(A i, B&& ie, C j, D&& je, size_t s = 1) {
     return false;
 }
 /*
-* Parallel naive version
+* Parallel naive version, clean version, for perf testing
 */
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_naive_parallel(ExecutionPolicy&& ep, HyperEdge& e_nbs, HyperNode& n_nbs, size_t s = 1, int num_bins = 32) {
+  nw::util::life_timer _(__func__);
+  size_t M = e_nbs.size();
+  std::vector<std::vector<std::pair<vertex_id_t, vertex_id_t>>> two_graphs(num_bins);
+  tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M), [&](tbb::blocked_range<vertex_id_t>& r) {
+    int worker_index = tbb::task_arena::current_thread_index();
+    for (auto i = r.begin(), e = r.end(); i != e; ++i) {
+      for (size_t j = i + 1; j < M; ++j) {
+        if (nw::graph::intersection_size(e_nbs[i], e_nbs[j]) >= s) {
+          two_graphs[worker_index].push_back(std::make_pair<vertex_id_t, vertex_id_t>(std::forward<vertex_id_t>(i), std::forward<vertex_id_t>(j)));
+        }
+      }
+    }
+  }, tbb::auto_partitioner());
+  nw::graph::edge_list<edge_directedness> result(0);
+  result.open_for_push_back();
+  //do this in serial
+  std::for_each(tbb::counting_iterator<int>(0), tbb::counting_iterator<int>(num_bins), [&](auto i) {
+    std::for_each(two_graphs[i].begin(), two_graphs[i].end(), [&](auto &&e) {
+      result.push_back(e);
+    });
+  });
+  result.close_for_push_back();
+
+  return result;
+}
+
+/*
+* Parallel naive version with statistic counters, for benchmarking
+*/
+template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
+auto to_two_graph_naive_parallel_with_counter(ExecutionPolicy&& ep, HyperEdge& e_nbs, HyperNode& n_nbs, size_t s = 1, int num_bins = 32) {
   nw::util::life_timer _(__func__);
   size_t M = e_nbs.size();
   std::atomic<size_t> counter = 0, nedges = 0;
@@ -567,15 +626,131 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
   }//else
 }
 
-
+/*
+* clean without counter. All features on.
+*/
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
-auto to_two_graph_efficient_parallel(ExecutionPolicy&& ep, HyperEdge& e_nbs, HyperNode& n_nbs, 
+auto to_two_graph_efficient_parallel_clean(ExecutionPolicy&& ep, HyperEdge& e_nbs, HyperNode& n_nbs, 
 std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
   nw::util::life_timer _(__func__);
 
   size_t M = e_nbs.size();
   size_t N = n_nbs.size();
+  auto edges = e_nbs.begin();
+  auto nodes = n_nbs.begin();
 
+  if (1 == s) {
+    //avoid intersection when s=1
+    std::vector<nw::graph::edge_list<edge_directedness>> two_graphs(num_bins, nw::graph::edge_list<edge_directedness>(0));
+    std::for_each(ep, tbb::counting_iterator<int>(0), tbb::counting_iterator<int>(num_bins), [&](auto i){
+      two_graphs[i].open_for_push_back();
+    });
+      
+    nw::graph::AtomicBitVector   visitedE(M);
+    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M), [&](tbb::blocked_range<vertex_id_t>& r) {
+      int worker_index = tbb::task_arena::current_thread_index();
+      for (auto hyperE = r.begin(), e = r.end(); hyperE < e; ++hyperE) {
+        //all neighbors of hyperedges are hypernode
+        std::for_each(edges[hyperE].begin(), edges[hyperE].end(), [&](auto &&x) { //O(average degree of hyperedges)
+          auto hyperN = std::get<0>(x);
+          std::for_each(nodes[hyperN].begin(), nodes[hyperN].end(), [&](auto &&y) { //O(average degree of hypernodes)
+            //so we check compid of each hyperedge
+            auto anotherhyperE = std::get<0>(y);
+            //if (hyperE >= anotherhyperE) return;
+            if (1 == visitedE.atomic_get(anotherhyperE)) return; else visitedE.atomic_set(anotherhyperE);
+            two_graphs[worker_index].push_back(hyperE, anotherhyperE);
+          });
+        });
+        visitedE.clear();
+      } //for
+    }, tbb::auto_partitioner());
+    nw::graph::edge_list<edge_directedness> result(0);
+    result.open_for_push_back();
+    //do this in serial
+    std::for_each(tbb::counting_iterator<int>(0), tbb::counting_iterator<int>(num_bins), [&](auto i){
+      two_graphs[i].close_for_push_back();
+      std::for_each(two_graphs[i].begin(), two_graphs[i].end(), [&](auto&& e){
+        result.push_back(e);
+      });
+    });
+    result.close_for_push_back();
+
+    return result;
+  }
+  else {
+    //when s > 1
+    //create an array of line graphs for each thread
+    std::vector<std::vector<std::pair<vertex_id_t, vertex_id_t>>> two_graphs(num_bins);
+    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M), [&](tbb::blocked_range<vertex_id_t>& r) {
+      int worker_index = tbb::task_arena::current_thread_index();
+      std::vector<bool> visitedE(M, false);
+      for (auto hyperE = r.begin(), e = r.end(); hyperE != e; ++hyperE) {
+        std::fill(visitedE.begin(), visitedE.end(), false);
+        if (hyperedgedegrees[hyperE] < s) continue;
+        //all neighbors of hyperedges are hypernode
+        std::for_each(edges[hyperE].begin(), edges[hyperE].end(), [&](auto &&x) { //O(average degree of hyperedges)
+          auto hyperN = std::get<0>(x);
+          std::for_each(nodes[hyperN].begin(), nodes[hyperN].end(), [&](auto &&y) { //O(average degree of hypernodes)
+            //so we check compid of each hyperedge
+            auto anotherhyperE = std::get<0>(y);            
+            //travese upper triangluar with lhs > rhs
+            //avoid self edge with lhs == rhs
+            if (hyperE >= anotherhyperE) return;
+            //filter edges deg(e) < s
+            if (hyperedgedegrees[anotherhyperE] < s) return;
+            //avoid duplicate intersections
+            if (visitedE[anotherhyperE]) return; else visitedE[anotherhyperE] = true;         
+            //O(average degree of hyperedges)
+            if (is_intersection_size_s(e_nbs[hyperE].begin(), e_nbs[hyperE].end(),
+            e_nbs[anotherhyperE].begin(), e_nbs[anotherhyperE].end(), s)) {
+              two_graphs[worker_index].push_back(std::make_pair<vertex_id_t, vertex_id_t>(std::forward<vertex_id_t>(hyperE), std::forward<vertex_id_t>(anotherhyperE)));
+            }
+          });//each neighbor of hyperN
+        });//each neighbor of hyperE
+      } //for each hyperE
+     
+    }, tbb::auto_partitioner());
+
+    nw::graph::edge_list<edge_directedness> result(0);
+    result.open_for_push_back();
+    //do this in serial
+    vertex_id_t index = 0;
+    std::unordered_map<vertex_id_t, vertex_id_t> relabel_map;
+    std::for_each(tbb::counting_iterator<int>(0), tbb::counting_iterator<int>(num_bins), [&](auto i) {
+      std::for_each(two_graphs[i].begin(), two_graphs[i].end(), [&](auto &&e) {
+        auto &&[x, y] = e;
+        if (relabel_map.end() == relabel_map.find(x)) {
+          //if x has not been relabeled
+          relabel_map[x] = index;
+          ++index;
+        }
+        auto newx = relabel_map[x];
+        if (relabel_map.end() == relabel_map.find(y)) {
+          //if y has not been relabeled
+          relabel_map[y] = index;
+          ++index;
+        }
+        auto newy = relabel_map[y];
+        //std::cout << x << " " << y << " into " << newx << " " << newy << std::endl;
+        result.push_back(newx, newy);
+      });
+    });
+    result.close_for_push_back();
+
+    return result;
+  }//else
+}
+
+/*
+* With counter, all features on.
+*/
+template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
+auto to_two_graph_efficient_parallel_with_counter(ExecutionPolicy&& ep, HyperEdge& e_nbs, HyperNode& n_nbs, 
+std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
+  nw::util::life_timer _(__func__);
+
+  size_t M = e_nbs.size();
+  size_t N = n_nbs.size();
   auto edges = e_nbs.begin();
   auto nodes = n_nbs.begin();
 
@@ -627,11 +802,8 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
     std::atomic<size_t> nvisited = 0, nbelowS = 0, nduplicates = 0, nintersections = 0, nedges = 0;
     tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M), [&](tbb::blocked_range<vertex_id_t>& r) {
       int worker_index = tbb::task_arena::current_thread_index();
-      //nw::graph::AtomicBitVector visitedE(M);
       std::vector<bool> visitedE(M, false);
-      //std::cout << worker_index << ": " <<  r.begin() << " " <<  r.end() << std::endl;
       for (auto hyperE = r.begin(), e = r.end(); hyperE != e; ++hyperE) {
-        //visitedE.clear();
         std::fill(visitedE.begin(), visitedE.end(), false);
         if (hyperedgedegrees[hyperE] < s) continue;
         //all neighbors of hyperedges are hypernode
@@ -652,9 +824,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
 
             ++nduplicates;
             //avoid duplicate intersections
-            if (1 == visitedE[anotherhyperE]) return; else {
-              visitedE[anotherhyperE] = 1;
-            }
+            if (visitedE[anotherhyperE]) return; else visitedE[anotherhyperE] = true;
             
             ++nintersections;
             //O(average degree of hyperedges)
@@ -704,7 +874,177 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
   }//else
 }
 
+/*
+* With counter, optional feature
+*/
+template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
+auto to_two_graph_efficient_parallel_optional_features(std::bitset<8>& features, ExecutionPolicy&& ep, HyperEdge& e_nbs, HyperNode& n_nbs, 
+std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
+  nw::util::life_timer _(__func__);
 
+  size_t M = e_nbs.size();
+  size_t N = n_nbs.size();
+  auto edges = e_nbs.begin();
+  auto nodes = n_nbs.begin();
+
+  if (1 == s) {
+    //avoid intersection when s=1
+    std::atomic<size_t> nedges = 0;
+    std::vector<nw::graph::edge_list<edge_directedness>> two_graphs(num_bins, nw::graph::edge_list<edge_directedness>(0));
+    std::for_each(ep, tbb::counting_iterator<int>(0), tbb::counting_iterator<int>(num_bins), [&](auto i){
+      two_graphs[i].open_for_push_back();
+    });
+      
+    nw::graph::AtomicBitVector   visitedE(M);
+    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M), [&](tbb::blocked_range<vertex_id_t>& r) {
+      int worker_index = tbb::task_arena::current_thread_index();
+      for (auto hyperE = r.begin(), e = r.end(); hyperE < e; ++hyperE) {
+        //all neighbors of hyperedges are hypernode
+        std::for_each(edges[hyperE].begin(), edges[hyperE].end(), [&](auto &&x) { //O(average degree of hyperedges)
+          auto hyperN = std::get<0>(x);
+          std::for_each(nodes[hyperN].begin(), nodes[hyperN].end(), [&](auto &&y) { //O(average degree of hypernodes)
+            //so we check compid of each hyperedge
+            auto anotherhyperE = std::get<0>(y);
+            //if (hyperE >= anotherhyperE) return;
+            if (1 == visitedE.atomic_get(anotherhyperE)) return; else visitedE.atomic_set(anotherhyperE);
+            ++nedges;
+            two_graphs[worker_index].push_back(hyperE, anotherhyperE);
+          });
+        });
+        visitedE.clear();
+      } //for
+    }, tbb::auto_partitioner());
+    std::cout << nedges << " edges added" << std::endl;
+    nw::graph::edge_list<edge_directedness> result(0);
+    result.open_for_push_back();
+    //do this in serial
+    std::for_each(tbb::counting_iterator<int>(0), tbb::counting_iterator<int>(num_bins), [&](auto i){
+      two_graphs[i].close_for_push_back();
+      std::for_each(two_graphs[i].begin(), two_graphs[i].end(), [&](auto&& e){
+        result.push_back(e);
+      });
+    });
+    result.close_for_push_back();
+
+    return result;
+  }
+  else {
+    //when s > 1
+    //create an array of line graphs for each thread
+    std::vector<std::vector<std::pair<vertex_id_t, vertex_id_t>>> two_graphs(num_bins);
+    std::atomic<size_t> nvisited = 0, nbelowS = 0, nduplicates = 0, nintersections = 0, nedges = 0;
+    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M), [&](tbb::blocked_range<vertex_id_t>& r) {
+      int worker_index = tbb::task_arena::current_thread_index();
+      std::vector<bool> visitedE(M, false);
+      for (auto hyperE = r.begin(), e = r.end(); hyperE != e; ++hyperE) {
+        std::fill(visitedE.begin(), visitedE.end(), false);
+        if (features[heuristics::DEG_PRUNING] && hyperedgedegrees[hyperE] < s) continue;
+        //all neighbors of hyperedges are hypernode
+        std::for_each(edges[hyperE].begin(), edges[hyperE].end(), [&](auto &&x) { //O(average degree of hyperedges)
+          auto hyperN = std::get<0>(x);
+          std::for_each(nodes[hyperN].begin(), nodes[hyperN].end(), [&](auto &&y) { //O(average degree of hypernodes)
+            //so we check compid of each hyperedge
+            auto anotherhyperE = std::get<0>(y);
+            ++nvisited;
+            
+            //travese upper triangluar with lhs > rhs
+            //avoid self edge with lhs == rhs
+            if (features[heuristics::UPPER_TRIANGULAR] && hyperE >= anotherhyperE) return;
+            ++nbelowS;
+
+            //filter edges deg(e) < s
+            if (features[heuristics::DEG_PRUNING] && hyperedgedegrees[anotherhyperE] < s) return;
+
+            ++nduplicates;
+            //avoid duplicate intersections
+            if (features[heuristics::SKIP_VISITED] && visitedE[anotherhyperE]) return; else visitedE[anotherhyperE] = true;
+            
+            ++nintersections;
+            //O(average degree of hyperedges)
+            //short circuit
+            auto r = features[heuristics::SHORT_CIRCUIT] ? (is_intersection_size_s(e_nbs[hyperE].begin(), e_nbs[hyperE].end(),
+            e_nbs[anotherhyperE].begin(), e_nbs[anotherhyperE].end(), s)) :
+            (s <= nw::graph::intersection_size(e_nbs[hyperE], e_nbs[anotherhyperE]));
+            if (r) {
+              ++nedges;
+              two_graphs[worker_index].push_back(std::make_pair<vertex_id_t, vertex_id_t>(std::forward<vertex_id_t>(hyperE), std::forward<vertex_id_t>(anotherhyperE)));
+            }
+          });//each neighbor of hyperN
+        });//each neighbor of hyperE
+      } //for each hyperE
+     
+    }, tbb::auto_partitioner());
+    std::cout << nvisited << " visits, "
+    << nbelowS << " hyperedges has less S nodes, "
+    << nduplicates << " duplicate intersections avoid, "
+    << nintersections << " intersections performed, " 
+    << nedges << " edges added" << std::endl;
+
+    nw::graph::edge_list<edge_directedness> result(0);
+    result.open_for_push_back();
+    //do this in serial
+    vertex_id_t index = 0;
+    std::unordered_map<vertex_id_t, vertex_id_t> relabel_map;
+    std::for_each(tbb::counting_iterator<int>(0), tbb::counting_iterator<int>(num_bins), [&](auto i) {
+      std::for_each(two_graphs[i].begin(), two_graphs[i].end(), [&](auto &&e) {
+        auto &&[x, y] = e;
+        if (relabel_map.end() == relabel_map.find(x)) {
+          //if x has not been relabeled
+          relabel_map[x] = index;
+          ++index;
+        }
+        auto newx = relabel_map[x];
+        if (relabel_map.end() == relabel_map.find(y)) {
+          //if y has not been relabeled
+          relabel_map[y] = index;
+          ++index;
+        }
+        auto newy = relabel_map[y];
+        //std::cout << x << " " << y << " into " << newx << " " << newy << std::endl;
+        result.push_back(newx, newy);
+      });
+    });
+    result.close_for_push_back();
+
+    return result;
+  }//else
+}
+
+template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
+auto to_two_graph_naive_parallel_portal(bool verbose, ExecutionPolicy&& ep, HyperEdge& e_nbs, HyperNode& n_nbs, size_t s = 1, int num_bins = 32) {
+  if(!verbose)
+    return to_two_graph_naive_parallel(ep, e_nbs, n_nbs, s, num_bins);
+  else
+    return to_two_graph_naive_parallel_with_counter(ep, e_nbs, n_nbs, s, num_bins);
+}
+
+template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
+auto to_two_graph_efficient_parallel_portal(bool verbose, std::bitset<8>& features, ExecutionPolicy&& ep, HyperEdge& e_nbs, HyperNode& n_nbs, 
+std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
+  //if none feature selected, then default to turn all on
+  if (features.none()) features[heuristics::ALL] = true;
+  if (features[heuristics::NONE]) {
+    //if none is set, manully override each heuristic to false
+    for (int i = heuristics::DEG_PRUNING; i != heuristics::NONE; ++i){
+      features[i] = false;
+    }
+  }
+
+  if (features[heuristics::ALL]) {
+    if (!verbose) 
+      return to_two_graph_efficient_parallel_clean(ep, e_nbs, n_nbs, hyperedgedegrees, s, num_bins);
+    else {
+      print_heuristics_verbose(heuristics::ALL);
+      return to_two_graph_efficient_parallel_with_counter(ep, e_nbs, n_nbs, hyperedgedegrees, s, num_bins);
+    }
+  }
+  else {
+    for (int i = heuristics::DEG_PRUNING; i <= heuristics::NONE; ++i) {
+      if (features[i]) print_heuristics_verbose((heuristics)i);
+    }
+    return to_two_graph_efficient_parallel_optional_features(features, ep, e_nbs, n_nbs, hyperedgedegrees, s, num_bins);
+  }
+}
 
 }//namespace hypergraph
 }//namespace nw

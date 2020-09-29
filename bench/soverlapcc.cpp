@@ -26,12 +26,13 @@ static constexpr const char USAGE[] =
     R"(scc.exe: s-overlap connected components benchmark driver.
   Usage:
       scc.exe (-h | --help)
-      scc.exe [-f FILE...] [--version ID...] [--loader-version ID] [-n NUM] [-B NUM] [-s NUM] [--relabel] [--clean] [--direction DIR] [-dvV] [--log FILE] [--log-header] [THREADS]...
+      scc.exe [-f FILE...] [--version ID...] [--feature ID...] [--loader-version ID] [-n NUM] [-B NUM] [-s NUM] [--relabel] [--clean] [--direction DIR] [-dvV] [--log FILE] [--log-header] [THREADS]...
 
   Options:
       -h, --help            show this screen
       --version ID          algorithm version to run [default: 0]
       --loader-version ID   soverlap computation loader kernal version [default: 0]
+      --feature ID          heuristics in finding soverlap 0)all 1)degree-based pruning 2)skip visited 3)upper triangular 4)short circuit 5)none [default: 0]
       -f FILE               input file paths (can have multiples and different file format)
       -n NUM                number of trials [default: 1]
       -B NUM                number of bins [default: 32]
@@ -55,12 +56,13 @@ int main(int argc, char* argv[]) {
   bool verbose = args["--verbose"].asBool();
   bool debug   = args["--debug"].asBool();
   long trials  = args["-n"].asLong() ?: 1;
-  long num_bins   = args["-B"].asLong() ?: 32;
+  long num_bins= args["-B"].asLong() ?: 32;
   size_t s = args["-s"].asLong() ?: 1;
   long loader_version = args["--loader-version"].asLong() ?: 0;
 
   std::vector ids     = parse_ids(args["--version"].asStringList());
   std::vector threads = parse_n_threads(args["THREADS"].asStringList());
+  std::bitset features= parse_features(args["--feature"].asStringList());
 
   std::vector<std::string> files;
   for (auto&& file : args["-f"].asStringList()) {
@@ -120,11 +122,20 @@ int main(int argc, char* argv[]) {
       switch (loader_version) {
       case 0:
       {
-          nw::graph::edge_list<undirected> &&linegraph = to_two_graph_efficient_parallel<undirected>(std::execution::seq, hyperedges, hypernodes, hyperedgedegrees, s, num_bins);
+          nw::graph::edge_list<undirected> &&linegraph = to_two_graph_efficient_parallel_portal<undirected>(verbose, features, std::execution::par_unseq, hyperedges, hypernodes, hyperedgedegrees, s, num_bins);
           //where when an empty edge list is passed in, an adjacency still have two elements
           if (0 == linegraph.size()) return nw::graph::adjacency<0>(0);
           nw::graph::adjacency<0> s_adj(linegraph);
-          std::cout << "line:" << linegraph.size() << " adjacency: " << s_adj.size() << std::endl;
+          std::cout << "line graph edges = " << linegraph.size() << ", adjacency size = " << s_adj.size() << std::endl;
+          return s_adj;
+      }
+      case 1:
+      {
+          nw::graph::edge_list<undirected> &&linegraph = to_two_graph_naive_parallel_portal<undirected>(verbose, std::execution::par_unseq, hyperedges, hypernodes, s, num_bins);
+          //where when an empty edge list is passed in, an adjacency still have two elements
+          if (0 == linegraph.size()) return nw::graph::adjacency<0>(0);
+          nw::graph::adjacency<0> s_adj(linegraph);
+          std::cout << "line graph edges = " << linegraph.size() << ", adjacency size = " << s_adj.size() << std::endl;
           return s_adj;
       }
       default:
@@ -184,10 +195,10 @@ int main(int argc, char* argv[]) {
               record([&] { return baseline(std::execution::par_unseq, aos_a); });
               break;
             case 2:
-              record([&] { return linegraph_cc(std::execution::par_unseq, hypernodes, s_adj); });
+              record([&] { return linegraph_ccv1(std::execution::par_unseq, hypernodes, s_adj); });
               break;
             case 3:
-
+              record([&] { return linegraph_Afforest(std::execution::par_unseq, hypernodes, s_adj); });
               break;
             default:
               std::cout << "Unknown algorithm version " << id << "\n";

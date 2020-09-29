@@ -15,6 +15,7 @@
 #include <string>
 #include <tuple>
 #include <vector>
+#include <bitset>
 
 #include "hypergraph_io.hpp"
 
@@ -73,6 +74,22 @@ std::vector<long> parse_ids(const std::vector<std::string>& args) {
   return ids;
 }
 /*
+* parse the option string as a bitset
+*/
+template<size_t N = 8>
+std::bitset<N> parse_features(const std::vector<std::string>& args) {
+  std::bitset<N> ids;
+  for (auto&& n : args) {
+    auto i = std::stoul(n);
+    if (i > N) {
+      std::cerr << "Wrong feature specified" << std::endl;
+      exit(1);
+    }
+    ids[i] = true;
+  }
+  return ids;
+}
+
 template <directedness Directedness, class... Attributes>
 nw::graph::edge_list<Directedness, Attributes...> load_graph(std::string file) {
   std::ifstream in(file);
@@ -95,12 +112,13 @@ nw::graph::edge_list<Directedness, Attributes...> load_graph(std::string file) {
     exit(1);
   }
 }
-*/
+/*
 template <directedness Directedness, class... Attributes>
 nw::graph::edge_list<Directedness, Attributes...> load_graph(std::string file) {
   std::ifstream in(file);
   std::string type;
   in >> type;
+
   nw::util::life_timer _("load edgelist");
   if (type == "BGL17") {
     nw::graph::edge_list<Directedness, Attributes...> aos_a(0);
@@ -111,11 +129,11 @@ nw::graph::edge_list<Directedness, Attributes...> load_graph(std::string file) {
     std::cout << "Reading matrix market input " << file << " (slow)\n";
     return nw::graph::read_mm<Directedness, Attributes...>(file);
   }
-  else if (type ==  "AdjacencyHypergraph") {
+  else if (type == "AdjacencyHypergraph") {
     std::cout << "Reading adjacency hypergraph input " << file << " (slow)\n";
     return nw::hypergraph::read_adj_hypergraph<Directedness, Attributes...>(file);
   }
-  else if (type ==   "WeightedAdjacencyHypergraph") {
+  else if (type == "WeightedAdjacencyHypergraph") {
     std::cout << "Reading weighted adjacency hypergraph input " << file << " (slow)\n";
     return nw::hypergraph::read_weighted_adj_hypergraph<Directedness, Attributes...>(file);
   }
@@ -124,7 +142,7 @@ nw::graph::edge_list<Directedness, Attributes...> load_graph(std::string file) {
     exit(1);
   }
 }
-
+*/
 template <int Adj, directedness Directedness, class... Attributes>
 nw::graph::adjacency<Adj, Attributes...> build_adjacency(nw::graph::edge_list<Directedness, Attributes...>& graph) {
   nw::util::life_timer _("build adjacency");

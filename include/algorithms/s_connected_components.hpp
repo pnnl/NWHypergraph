@@ -15,11 +15,30 @@
 namespace nw {
 namespace hypergraph {
 
+/*
+* soverlap cc using label propagation cc
+*/
 template<class ExecutionPolicy, class HyperNode, class SGraph>
-auto linegraph_cc(ExecutionPolicy&& ep, HyperNode& hypernodes, SGraph& s_adj) {
+auto linegraph_ccv1(ExecutionPolicy&& ep, HyperNode& hypernodes, SGraph& s_adj) {
   auto E = ccv1(s_adj);
-  //nw::graph::adjacency<1> s_adj_trans(0);
-  //auto E = Afforest(s_adj, s_adj_trans);
+  //if no component found, then return an empty pair
+  if (E.empty()) return std::tuple(E, E);
+  size_t nhypernodes = hypernodes.max() + 1;
+  std::vector<vertex_id_t> N(nhypernodes);
+  //for each hypernode, find N[i]
+  std::for_each(ep, tbb::counting_iterator<vertex_id_t>(0ul), tbb::counting_iterator<vertex_id_t>(nhypernodes), [&](auto hyperN) {
+    auto hyperE = std::get<0>(*hypernodes[hyperN].begin());
+    N[hyperN] = E[hyperE];
+  });
+  return std::tuple(N, E);
+}
+/*
+* soverlap cc using Afforest
+*/
+template<class ExecutionPolicy, class HyperNode, class SGraph>
+auto linegraph_Afforest(ExecutionPolicy&& ep, HyperNode& hypernodes, SGraph& s_adj) {
+  nw::graph::adjacency<1> s_adj_trans(0);
+  auto E = Afforest(s_adj, s_adj_trans);
   //if no component found, then return an empty pair
   if (E.empty()) return std::tuple(E, E);
   size_t nhypernodes = hypernodes.max() + 1;

@@ -157,7 +157,7 @@ int main(int argc, char* argv[]) {
               record([&] { return baseline(std::execution::seq, aos_a); });
               break;
             case 1:
-              record([&] { return baseline_in_parallel(std::execution::par_unseq, aos_a); });
+              record([&] { return baseline(std::execution::par_unseq, aos_a); });
               break;
             case 2:
               record([&] { return lpCC(hypernodes, hyperedges); });
