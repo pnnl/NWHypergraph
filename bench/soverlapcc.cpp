@@ -31,7 +31,7 @@ static constexpr const char USAGE[] =
       -h, --help            show this screen
       --version ID          algorithm version to run [default: 0]
       --loader-version ID   soverlap computation loader kernal version [default: 0]
-      --feature ID          heuristics in finding soverlap 0)all 1)degree-based pruning 2)skip visited 3)upper triangular 4)short circuit 5)none [default: 0]
+      --feature ID          heuristics in finding soverlap 0)all 1)degree-based pruning 2)skip visited 3)short circuit 4)none [default: 0]
       -f FILE               input file paths (can have multiples and different file format)
       -n NUM                number of trials [default: 1]
       -B NUM                number of bins [default: 32]
