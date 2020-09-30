@@ -154,9 +154,8 @@ int main(int argc, char* argv[]) {
       
       auto _ = set_n_threads(thread);
       for (auto&& id : ids) {
-        auto verifier = [&](auto&& result) {
+        auto verifier = [&](auto&& E) {
             //only verify #cc in the result
-          auto&& [N, E] = result;
           std::unordered_set<vertex_id_t> uni_comps(E.begin(), E.end());
           std::cout << uni_comps.size() << " components found" << std::endl;
         };

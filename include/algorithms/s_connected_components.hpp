@@ -21,6 +21,8 @@ namespace hypergraph {
 template<class ExecutionPolicy, class HyperNode, class SGraph>
 auto linegraph_ccv1(ExecutionPolicy&& ep, HyperNode& hypernodes, SGraph& s_adj) {
   auto E = ccv1(s_adj);
+  return E;
+  /*
   //if no component found, then return an empty pair
   if (E.empty()) return std::tuple(E, E);
   size_t nhypernodes = hypernodes.max() + 1;
@@ -31,6 +33,7 @@ auto linegraph_ccv1(ExecutionPolicy&& ep, HyperNode& hypernodes, SGraph& s_adj) 
     N[hyperN] = E[hyperE];
   });
   return std::tuple(N, E);
+  */
 }
 /*
 * soverlap cc using Afforest
@@ -39,6 +42,8 @@ template<class ExecutionPolicy, class HyperNode, class SGraph>
 auto linegraph_Afforest(ExecutionPolicy&& ep, HyperNode& hypernodes, SGraph& s_adj) {
   nw::graph::adjacency<1> s_adj_trans(0);
   auto E = Afforest(s_adj, s_adj_trans);
+  return E;
+  /*
   //if no component found, then return an empty pair
   if (E.empty()) return std::tuple(E, E);
   size_t nhypernodes = hypernodes.max() + 1;
@@ -49,6 +54,7 @@ auto linegraph_Afforest(ExecutionPolicy&& ep, HyperNode& hypernodes, SGraph& s_a
     N[hyperN] = E[hyperE];
   });
   return std::tuple(N, E);
+  */
 }
 
 /*
