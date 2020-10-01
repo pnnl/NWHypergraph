@@ -78,6 +78,11 @@ int main(int argc, char* argv[]) {
   for (auto&& file : files) {
     auto reader = [&](std::string file, bool verbose) {
       auto aos_a   = load_graph<directed>(file);
+      if (0 == aos_a.size()) {
+        auto&& [hyperedges, hypernodes] = load_adjacency<>(file);
+        auto hyperedgedegrees = hyperedges.degrees();
+        return std::tuple(hyperedges, hypernodes, hyperedgedegrees);
+      }
       auto hyperedgedegrees = aos_a.degrees<0>();
 
       // Run relabeling. This operates directly on the incoming edglist.
