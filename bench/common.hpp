@@ -103,46 +103,35 @@ nw::graph::edge_list<Directedness, Attributes...> load_graph(std::string file) {
     return aos_a;
   }
   else if (type == "%%MatrixMarket") {
-    std::cout << "Reading matrix market input " << file << " (slow)\n";
+    std::cout << "Reading matrix market input " << file << " (slow)" << std::endl;
     nw::util::life_timer _("read mm");
     return nw::graph::read_mm<Directedness, Attributes...>(file);
   }
   else {
-    std::cerr << "Did not recognize graph input file " << file << "\n";
-    exit(1);
+    //std::cerr << "Did not recognize graph input file " << file << "\n";
+    return nw::graph::edge_list<Directedness, Attributes...>(0);
   }
 }
-/*
-template <directedness Directedness, class... Attributes>
-nw::graph::edge_list<Directedness, Attributes...> load_graph(std::string file) {
+template<class... Attributes>
+std::tuple<nw::graph::adjacency<0, Attributes...>, nw::graph::adjacency<1, Attributes...>> 
+load_adjacency(std::string file) {
   std::ifstream in(file);
   std::string type;
   in >> type;
-
-  nw::util::life_timer _("load edgelist");
-  if (type == "BGL17") {
-    nw::graph::edge_list<Directedness, Attributes...> aos_a(0);
-    aos_a.deserialize(file);
-    return aos_a;
-  }
-  else if (type == "%%MatrixMarket") {
-    std::cout << "Reading matrix market input " << file << " (slow)\n";
-    return nw::graph::read_mm<Directedness, Attributes...>(file);
-  }
-  else if (type == "AdjacencyHypergraph") {
-    std::cout << "Reading adjacency hypergraph input " << file << " (slow)\n";
-    return nw::hypergraph::read_adj_hypergraph<Directedness, Attributes...>(file);
+  if (type == "AdjacencyHypergraph") {
+    std::cout << "Reading adjacency hypergraph input " << file << " (slow)" << std::endl;
+    return nw::hypergraph::read_adj_hypergraph<Attributes...>(file);
   }
   else if (type == "WeightedAdjacencyHypergraph") {
-    std::cout << "Reading weighted adjacency hypergraph input " << file << " (slow)\n";
-    return nw::hypergraph::read_weighted_adj_hypergraph<Directedness, Attributes...>(file);
+    std::cout << "Reading weighted adjacency hypergraph input " << file << " (slow)" << std::endl;
+    return nw::hypergraph::read_weighted_adj_hypergraph<Attributes...>(file);
   }
   else {
-    std::cerr << "Did not recognize graph input file " << file << "\n";
+    std::cerr << "Did not recognize graph input file " << file << std::endl;;
     exit(1);
   }
 }
-*/
+
 template <int Adj, directedness Directedness, class... Attributes>
 nw::graph::adjacency<Adj, Attributes...> build_adjacency(nw::graph::edge_list<Directedness, Attributes...>& graph) {
   nw::util::life_timer _("build adjacency");

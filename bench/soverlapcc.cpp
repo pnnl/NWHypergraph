@@ -31,7 +31,7 @@ static constexpr const char USAGE[] =
       -h, --help            show this screen
       --version ID          algorithm version to run [default: 0]
       --loader-version ID   soverlap computation loader kernal version [default: 0]
-      --feature ID          heuristics in finding soverlap 0)all 1)degree-based pruning 2)skip visited 3)upper triangular 4)short circuit 5)none [default: 0]
+      --feature ID          heuristics in finding soverlap 0)all 1)degree-based pruning 2)skip visited 3)short circuit 4)none [default: 0]
       -f FILE               input file paths (can have multiples and different file format)
       -n NUM                number of trials [default: 1]
       -B NUM                number of bins [default: 32]
@@ -78,6 +78,11 @@ int main(int argc, char* argv[]) {
   for (auto&& file : files) {
     auto reader = [&](std::string file, bool verbose) {
       auto aos_a   = load_graph<directed>(file);
+      if (0 == aos_a.size()) {
+        auto&& [hyperedges, hypernodes] = load_adjacency<>(file);
+        auto hyperedgedegrees = hyperedges.degrees();
+        return std::tuple(hyperedges, hypernodes, hyperedgedegrees);
+      }
       auto hyperedgedegrees = aos_a.degrees<0>();
 
       // Run relabeling. This operates directly on the incoming edglist.
@@ -154,9 +159,8 @@ int main(int argc, char* argv[]) {
       
       auto _ = set_n_threads(thread);
       for (auto&& id : ids) {
-        auto verifier = [&](auto&& result) {
+        auto verifier = [&](auto&& E) {
             //only verify #cc in the result
-          auto&& [N, E] = result;
           std::unordered_set<vertex_id_t> uni_comps(E.begin(), E.end());
           std::cout << uni_comps.size() << " components found" << std::endl;
         };

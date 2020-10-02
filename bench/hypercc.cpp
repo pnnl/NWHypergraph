@@ -26,21 +26,21 @@ static constexpr const char USAGE[] =
     R"(hycc.exe: hypergraph connected components benchmark driver.
   Usage:
       hycc.exe (-h | --help)
-      hycc.exe [-f FILE...] [--version ID...] [-B NUM] [-n NUM] [--relabel] [--clean] [--direction DIR] [-dvV] [--log FILE] [--log-header] [THREADS]...
+      hycc.exe [-f FILE...] [-a FILE...] [--version ID...] [-B NUM] [-n NUM] [--direction DIR] [-cdrV] [--log FILE] [--log-header] [THREADS]...
 
   Options:
       -h, --help            show this screen
       --version ID          algorithm version to run [default: 0]
-      -f FILE               matrix market input file paths (can have multiples)
+      -f FILE               edge list or matrix market input file paths (can have multiples)
+      -a FILE               hypergraph adjacency fils paths (can have multiples)
       -n NUM                number of trials [default: 1]
       -B NUM                number of bins [default: 32]
-      --relabel             relabel the graph or not
+      -r, --relabel         relabel the graph or not
       -c, --clean           clean the graph or not
       --direction DIR       graph relabeling direction - ascending/descending [default: descending]
       --log FILE            log times to a file
       --log-header          add a header to the log file
       -d, --debug           run in debug mode
-      -v, --verify          verify results
       -V, --verbose         run in verbose mode
 )";
 
@@ -50,7 +50,6 @@ int main(int argc, char* argv[]) {
   std::vector<std::string> strings(argv + 1, argv + argc);
   auto args = docopt::docopt(USAGE, strings, true);
 
-  bool verify  = args["--verify"].asBool();
   bool verbose = args["--verbose"].asBool();
   bool debug   = args["--debug"].asBool();
   long trials  = args["-n"].asLong() ?: 1;
@@ -75,6 +74,26 @@ int main(int argc, char* argv[]) {
   for (auto&& file : files) {
     auto reader = [&](std::string file, bool verbose) {
       auto aos_a   = load_graph<directed>(file);
+      if (0 == aos_a.size()) {
+        auto&& [hyperedges, hypernodes] = load_adjacency<>(file);
+        auto hyperedgedegrees = hyperedges.degrees();
+        /*
+        aos_a.open_for_push_back();
+        for (vertex_id_t i = 0, e = hyperedges.size(); i < e; ++i) {
+        std::for_each (hyperedges[i].begin(), hyperedges[i].end(), [&](auto&& j) {
+          aos_a.push_back(i, std::get<0>(j));
+        });
+        }
+        for (vertex_id_t i = 0, e = hypernodes.size(); i < e; ++i) {
+        std::for_each (hypernodes[i].begin(), hypernodes[i].end(), [&](auto&& j) {
+          aos_a.push_back(i, std::get<0>(j));
+        });
+        }
+        aos_a.close_for_push_back();
+        */
+        std::cout << "num_hyperedges = " << hyperedges.size() << " num_hypernodes = " << hypernodes.size() << std::endl;
+        return std::tuple(aos_a, hyperedges, hypernodes, hyperedgedegrees);
+      }
       auto hyperedgedegrees = aos_a.degrees<0>();
 
       // Run relabeling. This operates directly on the incoming edglist.
@@ -145,9 +164,7 @@ int main(int argc, char* argv[]) {
           std::unordered_set<vertex_id_t> uni_comps(E.begin(), E.end());
           std::cout << uni_comps.size() << " components found" << std::endl;
 
-          if (verify) {
-            std::cerr << " v" << id << " failed verification for " << file << " using " << thread << " threads\n";
-          }
+          
         };
 
         auto record = [&](auto&& op) { times.record(file, id, thread, std::forward<decltype(op)>(op), verifier, true); };
