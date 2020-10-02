@@ -39,7 +39,7 @@ size_t n0, size_t m0, size_t n1, size_t m1) {
     e0[i] = tmp;
   }
   N.copy(v0, e0);
-  N.close_for_copy();
+  N.close_for_copy();  
   E.open_for_copy();
   std::vector<vertex_id_t> v1(n1);
   for (size_t i = 0; i < n1; ++i) {
@@ -65,6 +65,7 @@ auto read_adj_hypergraph(std::istream& inputStream) {
     std::cerr << "Unsupported format" << std::endl;
     throw;
   }
+  //100, 972 100 972
   size_t n0, m0, n1, m1;
   inputStream >> n0;
   inputStream >> m0;
