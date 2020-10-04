@@ -162,9 +162,11 @@ int main(int argc, char* argv[]) {
             std::cout << comps.size() << " subgraphs and" << std::endl;
           }
           std::unordered_set<vertex_id_t> uni_comps(E.begin(), E.end());
+          std::vector<vertex_id_t> tmp(N);
+          std::sort(tmp.begin(), tmp.end());
+          std::unique(tmp.begin(), tmp.end());
+          std::cout << tmp.size() << std::endl;
           std::cout << uni_comps.size() << " components found" << std::endl;
-
-          
         };
 
         auto record = [&](auto&& op) { times.record(file, id, thread, std::forward<decltype(op)>(op), verifier, true); };

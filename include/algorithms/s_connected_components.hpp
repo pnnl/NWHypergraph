@@ -20,6 +20,7 @@ namespace hypergraph {
 */
 template<class ExecutionPolicy, class HyperNode, class SGraph>
 auto linegraph_ccv1(ExecutionPolicy&& ep, HyperNode& hypernodes, SGraph& s_adj) {
+  nw::util::life_timer _(__func__);
   auto E = ccv1(s_adj);
   return E;
   /*
@@ -40,6 +41,7 @@ auto linegraph_ccv1(ExecutionPolicy&& ep, HyperNode& hypernodes, SGraph& s_adj) 
 */
 template<class ExecutionPolicy, class HyperNode, class SGraph>
 auto linegraph_Afforest(ExecutionPolicy&& ep, HyperNode& hypernodes, SGraph& s_adj) {
+  nw::util::life_timer _(__func__);
   nw::graph::adjacency<1> s_adj_trans(0);
   auto E = Afforest(s_adj, s_adj_trans);
   return E;
@@ -63,7 +65,7 @@ auto linegraph_Afforest(ExecutionPolicy&& ep, HyperNode& hypernodes, SGraph& s_a
 */
 template<class ExecutionPolicy, class HyperGraph>
 auto to_relabel_graph(ExecutionPolicy&& ep, HyperGraph& aos_a) {
-
+  nw::util::life_timer _(__func__);
   auto n_nbs = aos_a.max()[1] + 1;
   auto e_nbs = aos_a.max()[0] + 1;
   edge_list<undirected> relabel_graph(0);
@@ -90,6 +92,7 @@ auto to_relabel_graph(ExecutionPolicy&& ep, HyperGraph& aos_a) {
 
 template<class ExecutionPolicy, class HyperGraph>
 auto relabelHyperCC(ExecutionPolicy&& ep, HyperGraph& aos_a) {
+  nw::util::life_timer _(__func__);
   auto relabel_g = to_relabel_graph(ep, aos_a);    // 1) find 2-graph corresponding to s-overlapped hyper edges
   //relabel_g. template lexical_sort_by<0>();
   //relabel_g.uniq();

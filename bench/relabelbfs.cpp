@@ -318,10 +318,7 @@ int main(int argc, char* argv[]) {
       return std::tuple(aos_a, hyperedges, hypernodes);
     };
     size_t num_realedges, num_realnodes;
-    auto&& graphs     = reader(file, verbose, num_realedges, num_realnodes);
-    auto&& aos_a      = std::get<0>(graphs);
-    auto&& hyperedges = std::get<1>(graphs);
-    auto&& hypernodes = std::get<2>(graphs);
+    auto&& [aos_a, hyperedges, hypernodes]     = reader(file, verbose, num_realedges, num_realnodes);
 
     //all sources are hyperedges
     std::vector<vertex_id_t> sources;

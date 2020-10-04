@@ -117,24 +117,32 @@ int main(int argc, char* argv[]) {
         auto record = [&](auto&& op) { times.record(file, id, thread, std::forward<decltype(op)>(op), verifier, true); };
         using Graph = nw::graph::adjacency<0>;
         using Transpose = nw::graph::adjacency<1>;
-        auto lpf = nw::graph::ccv1<Graph>;
-        using LabelPropagationF = decltype(lpf);
-        auto af = nw::graph::Afforest<Graph, Transpose>;
-        using AfforestF = decltype(af);
         using ExecutionPolicy = decltype(std::execution::par_unseq);
         for (int j = 0, e = trials; j < e; ++j) {
           switch (id) {
             case 0:
-              record([&] { return nw::hypergraph::relabel_x<LabelPropagationF, vertex_id_t>(num_realedges, num_realnodes, lpf, g); });
+              record([&] { 
+                auto lpf = nw::graph::ccv1<Graph>;
+                using LabelPropagationF = decltype(lpf);
+                return nw::hypergraph::relabel_x_parallel<ExecutionPolicy, LabelPropagationF, vertex_id_t>(std::execution::par_unseq, num_realedges, num_realnodes, lpf, g); });
               break;
             case 1:
-              record([&] { return nw::hypergraph::relabel_x<AfforestF, vertex_id_t>(num_realedges, num_realnodes, af, g, g_t, 2); });
+              record([&] { 
+                auto af = nw::graph::Afforest<Graph, Transpose>;
+                using AfforestF = decltype(af);
+                return nw::hypergraph::relabel_x_parallel<ExecutionPolicy, AfforestF, vertex_id_t>(std::execution::par_unseq, num_realedges, num_realnodes, af, g, g_t, 2); });
               break;
             case 2:
-              record([&] { return nw::hypergraph::relabel_x_parallel<ExecutionPolicy, LabelPropagationF, vertex_id_t>(std::execution::par_unseq, num_realedges, num_realnodes, lpf, g); });
+              record([&] { 
+                auto lpf = nw::graph::ccv5<Graph>;
+                using LabelPropagationF = decltype(lpf);
+                return nw::hypergraph::relabel_x_parallel<ExecutionPolicy, LabelPropagationF, vertex_id_t>(std::execution::par_unseq, num_realedges, num_realnodes, lpf, g); });
               break;
             case 3:
-              record([&] { return nw::hypergraph::relabel_x_parallel<ExecutionPolicy, AfforestF, vertex_id_t>(std::execution::par_unseq, num_realedges, num_realnodes, af, g, g_t, 2); });
+              record([&] { 
+                auto svf = nw::graph::compute_connected_components_v2<Graph>;
+                using SVF = decltype(lpf);
+                return nw::hypergraph::relabel_x_parallel<ExecutionPolicy, SVF, vertex_id_t>(std::execution::par_unseq, num_realedges, num_realnodes, svf, g); });
               break;
             default:
               std::cout << "Unknown version v" << id << "\n";
