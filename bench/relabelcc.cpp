@@ -76,8 +76,8 @@ int main(int argc, char* argv[]) {
       //auto aos_a   = load_graph<directed>(file);
       auto aos_a   = read_mm_relabeling<nw::graph::directed>(file, nrealedges, nrealnodes);
       if (0 == aos_a.size()) {
-        auto&& [hyperedges, hypernodes] = load_adjacency<>(file);
-        return std::tuple(hyperedges, hypernodes);
+        auto&& g = read_and_relabel_adj_hypergraph(file, nrealedges, nrealnodes);
+        return std::tuple(g, nw::graph::adjacency<1>(0, 0));
       }
       // Run relabeling. This operates directly on the incoming edglist.
       if (args["--relabel"].asBool()) {

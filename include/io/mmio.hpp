@@ -9,7 +9,7 @@
 //
 
 #pragma once
-
+#include <util/timer.hpp>
 #include <mmio.hpp>
 
 void mm_fill_relabeling(std::istream& inputStream, nw::graph::edge_list<nw::graph::directed>& A, size_t nedges, size_t nnodes, 
@@ -115,8 +115,11 @@ size_t nNonzeros, bool file_symmetry, bool pattern) {
   A.close_for_push_back();
 }
 
+//loader for mmio
 template<nw::graph::directedness sym, typename... Attributes>
-nw::graph::edge_list<sym, Attributes...> read_mm_relabeling(std::istream& inputStream, size_t& numRealEdges, size_t& numRealNodes) {
+nw::graph::edge_list<sym, Attributes...> read_mm_relabeling(const std::string& filename, size_t& numRealEdges, size_t& numRealNodes) {
+  nw::util::life_timer _(__func__);
+  std::ifstream inputStream(filename);
   std::string              string_input;
   bool                     file_symmetry = false;
   std::vector<std::string> header(5);
@@ -129,7 +132,7 @@ nw::graph::edge_list<sym, Attributes...> read_mm_relabeling(std::istream& inputS
 
   if (header[0] != "%%MatrixMarket") {
     std::cerr << "Unsupported format" << std::endl;
-    throw;
+    return nw::graph::edge_list<sym, Attributes...>(0);
   }
   if (header[4] == "symmetric") {
     file_symmetry = true;
@@ -150,25 +153,4 @@ nw::graph::edge_list<sym, Attributes...> read_mm_relabeling(std::istream& inputS
   mm_fill_relabeling(inputStream, A, numRealEdges, numRealNodes, nNonzeros, file_symmetry, (header[3] == "pattern"));
 
   return A;
-}
-
-//loader for mmio
-template<nw::graph::directedness sym, typename... Attributes>
-nw::graph::edge_list<sym, Attributes...> read_mm_relabeling(const std::string& filename, size_t& numRealEdges, size_t& numRealNodes) {
-  std::ifstream inputFile(filename);
-  std::string type;
-  inputFile >> type;
-
-  if ("%%MatrixMarket" == type) {
-    std::cout << "Reading matrix market input " << filename << " (slow)" << std::endl;
-    nw::util::life_timer _("read and relable mm");
-    nw::graph::edge_list<sym, Attributes...> A = read_mm_relabeling<sym, Attributes...>(inputFile, numRealEdges, numRealNodes);
-    A.set_origin(filename);
-
-    return A;
-  }
-  else {
-    //std::cerr << "Did not recognize graph input file " << file << "\n";
-    return nw::graph::edge_list<sym, Attributes...>(0);
-  }
 }
