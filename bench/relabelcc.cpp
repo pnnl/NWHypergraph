@@ -8,19 +8,20 @@
 // Author: Xu Tony Liu
 //
 
-#include "Log.hpp"
+#include <execution>
 #include <unordered_set>
+#include <edge_list.hpp>
 #include <algorithms/connected_components.hpp>
+#include <docopt.h>
+#include "Log.hpp"
 #include "common.hpp"
 #include "mmio_hy.hpp"
-#include <edge_list.hpp>
-#include <util/AtomicBitVector.hpp>
-#include <util/atomic.hpp>
-#include <util/intersection_size.hpp>
-#include <docopt.h>
-#include <execution>
+#include "algorithms/relabel_x.hpp"
+
+
 
 using namespace nw::hypergraph::bench;
+using namespace nw::hypergraph;
 using namespace nw::graph;
 
 static constexpr const char USAGE[] =
@@ -44,60 +45,6 @@ static constexpr const char USAGE[] =
       -v, --verify          verify results
       -V, --verbose         run in verbose mode
 )";
-
-template<class Graph, class Transpose>
-auto relabelCC(Graph& g, Transpose& g_t, const size_t num_realedges, const size_t num_realnodes) {
-
-  auto labeling   = //Afforest(s_adj, s_trans_adj); 
-  ccv1(g);
-
-  std::vector<vertex_id_t> E(num_realedges), N(num_realnodes);
-  if (num_realnodes < num_realedges) {
-    nw::util::life_timer _("unrelabeling");
-    E.assign(labeling.begin(), labeling.begin() + num_realedges);
-    N.assign(labeling.begin() + num_realedges, labeling.end());
-  }
-  else {
-    nw::util::life_timer _("unrelabeling");
-    N.assign(labeling.begin(), labeling.begin() + num_realnodes);
-    E.assign(labeling.begin() + num_realnodes, labeling.end());
-  }
-
-  return std::tuple{N, E};
-}
-
-template<class ExecutionPolicy, class Graph, class Transpose>
-auto relabelCC_in_parallel(ExecutionPolicy&& ep, Graph& g, Transpose& g_t, const size_t num_realedges, const size_t num_realnodes) {
-
-  auto labeling   = //Afforest(s_adj, s_trans_adj); 
-  ccv1(g);
-
-  std::vector<vertex_id_t> E(num_realedges), N(num_realnodes);
-  if (num_realnodes < num_realedges) {
-    nw::util::life_timer _("unrelabeling");
-    //E.assign(labeling.begin(), labeling.begin() + num_realedges);
-    std::for_each(ep, tbb::counting_iterator(0ul), tbb::counting_iterator(num_realedges), [&](auto i) {
-      E[i] = labeling[i];
-    });
-    //N.assign(labeling.begin() + num_realedges, labeling.end());
-    std::for_each(ep, tbb::counting_iterator(0ul), tbb::counting_iterator(num_realnodes), [&](auto i) {
-      N[i] = labeling[i + num_realedges];
-    }); 
-  }
-  else {
-    nw::util::life_timer _("unrelabeling");
-    //N.assign(labeling.begin(), labeling.begin() + num_realnodes);
-    std::for_each(ep, tbb::counting_iterator(0ul), tbb::counting_iterator(num_realnodes), [&](auto i) {
-      N[i] = labeling[i];
-    }); 
-    //E.assign(labeling.begin() + num_realnodes, labeling.end());
-    std::for_each(ep, tbb::counting_iterator(0ul), tbb::counting_iterator(num_realedges), [&](auto i) {
-      E[i] = labeling[i + num_realnodes];
-    });
-  }
-
-  return std::tuple{N, E};
-}
 
 int main(int argc, char* argv[]) {
   std::vector<std::string> strings(argv + 1, argv + argc);
@@ -143,62 +90,48 @@ int main(int argc, char* argv[]) {
         aos_a.remove_self_loops();
       }
 
-      adjacency<0> g(aos_a);
-      adjacency<1> g_t(aos_a);
+      nw::graph::adjacency<0> g(aos_a);
+      nw::graph::adjacency<1> g_t(aos_a);
       if (verbose) {
         g_t.stream_stats();
         g.stream_stats();
       }
       std::cout << "num_hyperedges = " << nrealedges << " num_hypernodes = " << nrealnodes << std::endl;
-      return std::tuple(aos_a, g, g_t);
+      return std::tuple(g, g_t);
     };
     size_t num_realedges, num_realnodes;
-    auto&& [aos_a, g, g_t]     = reader(file, verbose, num_realedges, num_realnodes);
+    auto&& [g, g_t]     = reader(file, verbose, num_realedges, num_realnodes);
 
     for (auto&& thread : threads) {
       auto _ = set_n_threads(thread);
       for (auto&& id : ids) {
-        if (verbose) {
-          std::cout << "version " << id << std::endl;
-        }
-
         auto verifier = [&](auto&& result) {
-          //TODO This returns the subgraph of each component.
-          //Does not work for s overlap
           auto&& [N, E] = result;
-          if (verbose) {
-            //print_top_n(graph, comp);
-            std::map<vertex_id_t, edge_list<>> comps;
-            std::for_each(aos_a.begin(), aos_a.end(), [&](auto&& elt) {
-              auto&& [edge, node] = elt;
-              vertex_id_t key     = E[edge];
-              comps[key].push_back(elt);
-            });
-
-            for (auto&& j : comps) {
-              auto& [k, v] = j;
-              v.close_for_push_back();
-            }
-            std::cout << comps.size() << " subgraphs and" << std::endl;
-          }
           std::unordered_set<vertex_id_t> uni_comps(E.begin(), E.end());
           std::cout << uni_comps.size() << " components found" << std::endl;
-
-          if (verify) {
-            std::cerr << " v" << id << " failed verification for " << file << " using " << thread << " threads\n";
-          }
         };
 
         auto record = [&](auto&& op) { times.record(file, id, thread, std::forward<decltype(op)>(op), verifier, true); };
-        std::vector<vertex_id_t> E, N;
-
+        using Graph = nw::graph::adjacency<0>;
+        using Transpose = nw::graph::adjacency<1>;
+        auto lpf = nw::graph::ccv1<Graph>;
+        using LabelPropagationF = decltype(lpf);
+        auto af = nw::graph::Afforest<Graph, Transpose>;
+        using AfforestF = decltype(af);
+        using ExecutionPolicy = decltype(std::execution::par_unseq);
         for (int j = 0, e = trials; j < e; ++j) {
           switch (id) {
             case 0:
-              record([&] { return relabelCC(g, g_t, num_realedges, num_realnodes); });
+              record([&] { return nw::hypergraph::relabel_x<LabelPropagationF, vertex_id_t>(num_realedges, num_realnodes, lpf, g); });
               break;
             case 1:
-              record([&] { return relabelCC_in_parallel(std::execution::par_unseq, g, g_t, num_realedges, num_realnodes); });
+              record([&] { return nw::hypergraph::relabel_x<AfforestF, vertex_id_t>(num_realedges, num_realnodes, af, g, g_t, 2); });
+              break;
+            case 2:
+              record([&] { return nw::hypergraph::relabel_x_parallel<ExecutionPolicy, LabelPropagationF, vertex_id_t>(std::execution::par_unseq, num_realedges, num_realnodes, lpf, g); });
+              break;
+            case 3:
+              record([&] { return nw::hypergraph::relabel_x_parallel<ExecutionPolicy, AfforestF, vertex_id_t>(std::execution::par_unseq, num_realedges, num_realnodes, af, g, g_t, 2); });
               break;
             default:
               std::cout << "Unknown version v" << id << "\n";

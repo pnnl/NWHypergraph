@@ -27,7 +27,6 @@ std::string WghAdjHypergraphHeader = "WeightedAdjacencyHypergraph";
 void adj_hypergraph_fill(std::istream& inputStream, adjacency<0>& E, adjacency<1>& N,
 size_t n0, size_t m0, size_t n1, size_t m1) {
   vertex_id_t tmp;
-  N.open_for_copy();
   std::vector<vertex_id_t> v0(n0);
   for (size_t i = 0; i < n0; ++i) {
     inputStream >> tmp;
@@ -38,9 +37,8 @@ size_t n0, size_t m0, size_t n1, size_t m1) {
     inputStream >> tmp;
     e0[i] = tmp;
   }
-  N.copy(v0, e0);
-  N.close_for_copy();  
-  E.open_for_copy();
+  //N.copy(v0, e0);
+  N.move(std::move(v0), std::move(e0));
   std::vector<vertex_id_t> v1(n1);
   for (size_t i = 0; i < n1; ++i) {
     inputStream >> tmp;
@@ -51,8 +49,8 @@ size_t n0, size_t m0, size_t n1, size_t m1) {
     inputStream >> tmp;
     e1[i] = tmp;
   }
-  E.copy(v1, e1);
-  E.close_for_copy();
+  //E.copy(v1, e1);
+  E.move(std::move(v1), std::move(e1));
 }
 
 

@@ -9,12 +9,11 @@
 //
 
 #include "Log.hpp"
-#include <algorithms/bfs.hpp>
 #include "mmio_hy.hpp"
 #include "common.hpp"
 #include <edge_list.hpp>
+#include <algorithms/bfs.hpp>
 #include <util/AtomicBitVector.hpp>
-#include <util/intersection_size.hpp>
 #include <docopt.h>
 
 using namespace nw::hypergraph::bench;
