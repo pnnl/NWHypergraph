@@ -31,8 +31,8 @@ target_link_libraries(bench INTERFACE NW_HYPERGRAPH docopt date::date std::files
 add_executable(hybfs.exe hyperbfs.cpp)
 target_link_libraries(hybfs.exe bench)
 
-add_executable(hybfsrelabel.exe hyperbfsrelabel.cpp)
-target_link_libraries(hybfsrelabel.exe bench)
+add_executable(relabelbfs.exe relabelbfs.cpp)
+target_link_libraries(relabelbfs.exe bench)
 
 add_executable(hycc.exe hypercc.cpp)
 target_link_libraries(hycc.exe bench)

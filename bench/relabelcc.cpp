@@ -15,7 +15,7 @@
 #include <docopt.h>
 #include "Log.hpp"
 #include "common.hpp"
-#include "mmio_hy.hpp"
+#include "io/mmio.hpp"
 #include "algorithms/relabel_x.hpp"
 
 
@@ -75,7 +75,10 @@ int main(int argc, char* argv[]) {
     auto reader = [&](std::string file, bool verbose, size_t& nrealedges, size_t& nrealnodes) {
       //auto aos_a   = load_graph<directed>(file);
       auto aos_a   = read_mm_relabeling<nw::graph::directed>(file, nrealedges, nrealnodes);
-      
+      if (0 == aos_a.size()) {
+        auto&& [hyperedges, hypernodes] = load_adjacency<>(file);
+        return std::tuple(hyperedges, hypernodes);
+      }
       // Run relabeling. This operates directly on the incoming edglist.
       if (args["--relabel"].asBool()) {
         auto degrees = aos_a.degrees();

@@ -9,7 +9,7 @@
 //
 
 #include "Log.hpp"
-#include "mmio_hy.hpp"
+#include "io/mmio.hpp"
 #include "common.hpp"
 #include <edge_list.hpp>
 #include <algorithms/bfs.hpp>

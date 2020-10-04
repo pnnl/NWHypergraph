@@ -17,7 +17,7 @@
 #include <vector>
 #include <bitset>
 
-#include "hypergraph_io.hpp"
+#include "io/hypergraph_io.hpp"
 
 using namespace nw::graph;
 

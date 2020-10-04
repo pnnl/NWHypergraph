@@ -152,12 +152,23 @@ nw::graph::edge_list<sym, Attributes...> read_mm_relabeling(std::istream& inputS
   return A;
 }
 
+//loader for mmio
 template<nw::graph::directedness sym, typename... Attributes>
 nw::graph::edge_list<sym, Attributes...> read_mm_relabeling(const std::string& filename, size_t& numRealEdges, size_t& numRealNodes) {
   std::ifstream inputFile(filename);
+  std::string type;
+  inputFile >> type;
 
-  nw::graph::edge_list<sym, Attributes...> A = read_mm_relabeling<sym, Attributes...>(inputFile, numRealEdges, numRealNodes);
-  A.set_origin(filename);
+  if ("%%MatrixMarket" == type) {
+    std::cout << "Reading matrix market input " << filename << " (slow)" << std::endl;
+    nw::util::life_timer _("read and relable mm");
+    nw::graph::edge_list<sym, Attributes...> A = read_mm_relabeling<sym, Attributes...>(inputFile, numRealEdges, numRealNodes);
+    A.set_origin(filename);
 
-  return A;
+    return A;
+  }
+  else {
+    //std::cerr << "Did not recognize graph input file " << file << "\n";
+    return nw::graph::edge_list<sym, Attributes...>(0);
+  }
 }
