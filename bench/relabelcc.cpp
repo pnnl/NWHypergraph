@@ -141,7 +141,7 @@ int main(int argc, char* argv[]) {
             case 3:
               record([&] { 
                 auto svf = nw::graph::compute_connected_components_v2<Graph>;
-                using SVF = decltype(lpf);
+                using SVF = decltype(svf);
                 return nw::hypergraph::relabel_x_parallel<ExecutionPolicy, SVF, vertex_id_t>(std::execution::par_unseq, num_realedges, num_realnodes, svf, g); });
               break;
             default:
