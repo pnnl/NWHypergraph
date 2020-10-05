@@ -25,7 +25,7 @@ static constexpr const char USAGE[] =
     R"(scc.exe: s-overlap connected components benchmark driver.
   Usage:
       scc.exe (-h | --help)
-      scc.exe [-f FILE...] [--version ID...] [--feature ID...] [--loader-version ID] [-n NUM] [-B NUM] [-s NUM...] [--relabel] [--clean] [--direction DIR] [-dvV] [--log FILE] [--log-header] [THREADS]...
+      scc.exe [-f FILE...] [--version ID...] [--feature ID...] [--loader-version ID] [-n NUM] [-B NUM] [-s NUM...] [--relabel NUM] [--clean] [--direction DIR] [-dvV] [--log FILE] [--log-header] [THREADS]...
 
   Options:
       -h, --help            show this screen
@@ -36,7 +36,7 @@ static constexpr const char USAGE[] =
       -n NUM                number of trials [default: 1]
       -B NUM                number of bins [default: 32]
       -s NUM                s value of soverlap [default: 1]
-      --relabel             relabel the graph or not
+      --relabel NUM         relabel the graph - 0(left)/1(right) [default: 0]
       -c, --clean           clean the graph or not
       --direction DIR       graph relabeling direction - ascending/descending [default: descending]
       --log FILE            log times to a file
@@ -83,21 +83,22 @@ int main(int argc, char* argv[]) {
         auto hyperedgedegrees = hyperedges.degrees();
         return std::tuple(hyperedges, hypernodes, hyperedgedegrees);
       }
-      auto hyperedgedegrees = aos_a.degrees<0>();
+      std::vector<index_t> hyperedge_degrees =  aos_a.degrees<0>();
 
       // Run relabeling. This operates directly on the incoming edglist.
-      if (args["--relabel"].asBool()) {
+      const int idx = args["--relabel"].asLong() ?: -1;
+      if (-1 != idx) {
         //relabel the column with smaller size
-        if (aos_a.max()[0] > aos_a.max()[1]) {
-          auto hypernodedegrees = aos_a.degrees<1>();
-          std::cout << "relabeling hypernodes..." << std::endl;
-          //TODO NOT WORKING
-          nw::hypergraph::relabel_by_degree_bipartite<1>(aos_a, args["--direction"].asString(), hypernodedegrees);
+        std::vector<index_t> degrees;
+        if (0 == idx) {
+          degrees = hyperedge_degrees;
+          std::cout << "relabeling hyperedges by degree..." << std::endl;
+          nw::hypergraph::relabel_by_degree_bipartite<0>(aos_a, args["--direction"].asString(), degrees);
         }
         else {
-          std::cout << "relabeling hyperedges..." << std::endl;
-          //TODO NOT WORKING
-          nw::hypergraph::relabel_by_degree_bipartite<1>(aos_a, args["--direction"].asString(), hyperedgedegrees);
+          degrees = aos_a.degrees<1>();
+          std::cout << "relabeling hypernodes by degree..." << std::endl;
+          nw::hypergraph::relabel_by_degree_bipartite<1>(aos_a, args["--direction"].asString(), degrees);
         }
       }
       // Clean up the edgelist to deal with the normal issues related to
@@ -116,7 +117,7 @@ int main(int argc, char* argv[]) {
         hyperedges.stream_stats();
       }
       std::cout << "num_hyperedges = " << aos_a.max()[0] + 1 << " num_hypernodes = " << aos_a.max()[1] + 1 << std::endl;
-      return std::tuple(hyperedges, hypernodes, hyperedgedegrees);
+      return std::tuple(hyperedges, hypernodes, hyperedge_degrees);
     };
     auto&&[ hyperedges, hypernodes, hyperedgedegrees ] = reader(file, verbose);
     for (auto&& s : s_values) {
