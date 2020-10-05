@@ -230,11 +230,11 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
     nw::util::life_timer _(__func__);
     //avoid intersection when s=1
     std::vector<std::vector<std::pair<vertex_id_t, vertex_id_t>>> two_graphs(num_bins);
-      
-    nw::graph::AtomicBitVector   visitedE(M);
     tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M), [&](tbb::blocked_range<vertex_id_t>& r) {
       int worker_index = tbb::task_arena::current_thread_index();
+      std::vector<bool> visitedE(M, false);
       for (auto hyperE = r.begin(), e = r.end(); hyperE < e; ++hyperE) {
+        std::fill(visitedE.begin(), visitedE.end(), false);
         //all neighbors of hyperedges are hypernode
         std::for_each(edges[hyperE].begin(), edges[hyperE].end(), [&](auto &&x) { //O(average degree of hyperedges)
           auto hyperN = std::get<0>(x);
@@ -242,11 +242,10 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
             //so we check compid of each hyperedge
             auto anotherhyperE = std::get<0>(y);
             if (hyperE >= anotherhyperE) return;
-            if (1 == visitedE.atomic_get(anotherhyperE)) return; else visitedE.atomic_set(anotherhyperE);
+            if (visitedE[anotherhyperE]) return; else visitedE[anotherhyperE] = true;  
             two_graphs[worker_index].push_back(std::make_pair<vertex_id_t, vertex_id_t>(std::forward<vertex_id_t>(hyperE), std::forward<vertex_id_t>(anotherhyperE)));
           });
         });
-        visitedE.clear();
       } //for
     }, tbb::auto_partitioner());
     nw::graph::edge_list<edge_directedness> result(0);
@@ -315,16 +314,12 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
   if (1 == s) {
     nw::util::life_timer _(__func__);
     //avoid intersection when s=1
-    std::atomic<size_t> nedges = 0;
-    std::vector<nw::graph::edge_list<edge_directedness>> two_graphs(num_bins, nw::graph::edge_list<edge_directedness>(0));
-    std::for_each(ep, tbb::counting_iterator<int>(0), tbb::counting_iterator<int>(num_bins), [&](auto i){
-      two_graphs[i].open_for_push_back();
-    });
-      
-    nw::graph::AtomicBitVector   visitedE(M);
+    std::vector<std::vector<std::pair<vertex_id_t, vertex_id_t>>> two_graphs(num_bins);
     tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M), [&](tbb::blocked_range<vertex_id_t>& r) {
       int worker_index = tbb::task_arena::current_thread_index();
+      std::vector<bool> visitedE(M, false);
       for (auto hyperE = r.begin(), e = r.end(); hyperE < e; ++hyperE) {
+        std::fill(visitedE.begin(), visitedE.end(), false);
         //all neighbors of hyperedges are hypernode
         std::for_each(edges[hyperE].begin(), edges[hyperE].end(), [&](auto &&x) { //O(average degree of hyperedges)
           auto hyperN = std::get<0>(x);
@@ -332,18 +327,16 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
             //so we check compid of each hyperedge
             auto anotherhyperE = std::get<0>(y);
             if (hyperE >= anotherhyperE) return;
-            if (1 == visitedE.atomic_get(anotherhyperE)) return; else visitedE.atomic_set(anotherhyperE);
-            two_graphs[worker_index].push_back(hyperE, anotherhyperE);
+            if (visitedE[anotherhyperE]) return; else visitedE[anotherhyperE] = true;  
+            two_graphs[worker_index].push_back(std::make_pair<vertex_id_t, vertex_id_t>(std::forward<vertex_id_t>(hyperE), std::forward<vertex_id_t>(anotherhyperE)));
           });
         });
-        visitedE.clear();
       } //for
     }, tbb::auto_partitioner());
     nw::graph::edge_list<edge_directedness> result(0);
     result.open_for_push_back();
     //do this in serial
-    std::for_each(tbb::counting_iterator<int>(0), tbb::counting_iterator<int>(num_bins), [&](auto i){
-      two_graphs[i].close_for_push_back();
+    std::for_each(tbb::counting_iterator<int>(0), tbb::counting_iterator<int>(num_bins), [&](auto i) {
       std::for_each(two_graphs[i].begin(), two_graphs[i].end(), [&](auto&& e){
         result.push_back(e);
       });
@@ -412,17 +405,14 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
 
   if (1 == s) {
     nw::util::life_timer _(__func__);
-    //avoid intersection when s=1
     std::atomic<size_t> nedges = 0;
-    std::vector<nw::graph::edge_list<edge_directedness>> two_graphs(num_bins, nw::graph::edge_list<edge_directedness>(0));
-    std::for_each(ep, tbb::counting_iterator<int>(0), tbb::counting_iterator<int>(num_bins), [&](auto i){
-      two_graphs[i].open_for_push_back();
-    });
-      
-    nw::graph::AtomicBitVector   visitedE(M);
+    //avoid intersection when s=1
+    std::vector<std::vector<std::pair<vertex_id_t, vertex_id_t>>> two_graphs(num_bins);
     tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M), [&](tbb::blocked_range<vertex_id_t>& r) {
       int worker_index = tbb::task_arena::current_thread_index();
+      std::vector<bool> visitedE(M, false);
       for (auto hyperE = r.begin(), e = r.end(); hyperE < e; ++hyperE) {
+        std::fill(visitedE.begin(), visitedE.end(), false);
         //all neighbors of hyperedges are hypernode
         std::for_each(edges[hyperE].begin(), edges[hyperE].end(), [&](auto &&x) { //O(average degree of hyperedges)
           auto hyperN = std::get<0>(x);
@@ -430,20 +420,18 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
             //so we check compid of each hyperedge
             auto anotherhyperE = std::get<0>(y);
             if (hyperE >= anotherhyperE) return;
-            if (1 == visitedE.atomic_get(anotherhyperE)) return; else visitedE.atomic_set(anotherhyperE);
+            if (visitedE[anotherhyperE]) return; else visitedE[anotherhyperE] = true;  
             ++nedges;
-            two_graphs[worker_index].push_back(hyperE, anotherhyperE);
+            two_graphs[worker_index].push_back(std::make_pair<vertex_id_t, vertex_id_t>(std::forward<vertex_id_t>(hyperE), std::forward<vertex_id_t>(anotherhyperE)));
           });
         });
-        visitedE.clear();
       } //for
     }, tbb::auto_partitioner());
     std::cout << nedges << " edges added" << std::endl;
     nw::graph::edge_list<edge_directedness> result(0);
     result.open_for_push_back();
     //do this in serial
-    std::for_each(tbb::counting_iterator<int>(0), tbb::counting_iterator<int>(num_bins), [&](auto i){
-      two_graphs[i].close_for_push_back();
+    std::for_each(tbb::counting_iterator<int>(0), tbb::counting_iterator<int>(num_bins), [&](auto i) {
       std::for_each(two_graphs[i].begin(), two_graphs[i].end(), [&](auto&& e){
         result.push_back(e);
       });
@@ -522,17 +510,14 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
 
   if (1 == s) {
     nw::util::life_timer _(__func__);
-    //avoid intersection when s=1
     std::atomic<size_t> nedges = 0;
-    std::vector<nw::graph::edge_list<edge_directedness>> two_graphs(num_bins, nw::graph::edge_list<edge_directedness>(0));
-    std::for_each(ep, tbb::counting_iterator<int>(0), tbb::counting_iterator<int>(num_bins), [&](auto i){
-      two_graphs[i].open_for_push_back();
-    });
-      
-    nw::graph::AtomicBitVector   visitedE(M);
+    //avoid intersection when s=1
+    std::vector<std::vector<std::pair<vertex_id_t, vertex_id_t>>> two_graphs(num_bins);
     tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M), [&](tbb::blocked_range<vertex_id_t>& r) {
       int worker_index = tbb::task_arena::current_thread_index();
+      std::vector<bool> visitedE(M, false);
       for (auto hyperE = r.begin(), e = r.end(); hyperE < e; ++hyperE) {
+        std::fill(visitedE.begin(), visitedE.end(), false);
         //all neighbors of hyperedges are hypernode
         std::for_each(edges[hyperE].begin(), edges[hyperE].end(), [&](auto &&x) { //O(average degree of hyperedges)
           auto hyperN = std::get<0>(x);
@@ -540,20 +525,18 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
             //so we check compid of each hyperedge
             auto anotherhyperE = std::get<0>(y);
             if (hyperE >= anotherhyperE) return;
-            if (1 == visitedE.atomic_get(anotherhyperE)) return; else visitedE.atomic_set(anotherhyperE);
+            if (visitedE[anotherhyperE]) return; else visitedE[anotherhyperE] = true;  
             ++nedges;
-            two_graphs[worker_index].push_back(hyperE, anotherhyperE);
+            two_graphs[worker_index].push_back(std::make_pair<vertex_id_t, vertex_id_t>(std::forward<vertex_id_t>(hyperE), std::forward<vertex_id_t>(anotherhyperE)));
           });
         });
-        visitedE.clear();
       } //for
     }, tbb::auto_partitioner());
     std::cout << nedges << " edges added" << std::endl;
     nw::graph::edge_list<edge_directedness> result(0);
     result.open_for_push_back();
     //do this in serial
-    std::for_each(tbb::counting_iterator<int>(0), tbb::counting_iterator<int>(num_bins), [&](auto i){
-      two_graphs[i].close_for_push_back();
+    std::for_each(tbb::counting_iterator<int>(0), tbb::counting_iterator<int>(num_bins), [&](auto i) {
       std::for_each(two_graphs[i].begin(), two_graphs[i].end(), [&](auto&& e){
         result.push_back(e);
       });
