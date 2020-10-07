@@ -82,7 +82,6 @@ int main(int argc, char* argv[]) {
         auto hyperedge_degrees = hyperedges.degrees();
         // Run relabeling. This operates directly on the incoming edglist.
         const long idx = args["--relabel"].asLong();
-        std::cout << idx << std::endl;
         if (-1 != idx) {
           //relabel the column with smaller size
           if (0 == idx) {

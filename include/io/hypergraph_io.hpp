@@ -27,7 +27,7 @@ std::string WghAdjHypergraphHeader = "WeightedAdjacencyHypergraph";
 void adj_hypergraph_fill(std::istream& inputStream, adjacency<0>& E, adjacency<1>& N,
 size_t n0, size_t m0, size_t n1, size_t m1) {
   vertex_id_t tmp;
-  std::vector<vertex_id_t> v0(n0);
+  std::vector<vertex_id_t> v0(n0 + 1);
   for (size_t i = 0; i < n0; ++i) {
     inputStream >> tmp;
     v0[i] = tmp;
@@ -37,9 +37,9 @@ size_t n0, size_t m0, size_t n1, size_t m1) {
     inputStream >> tmp;
     e0[i] = tmp;
   }
-  //N.copy(v0, e0);
+  v0[n0 + 1] = m0;
   N.move(std::move(v0), std::move(e0));
-  std::vector<vertex_id_t> v1(n1);
+  std::vector<vertex_id_t> v1(n1 + 1);
   for (size_t i = 0; i < n1; ++i) {
     inputStream >> tmp;
     v1[i] = tmp;
@@ -49,7 +49,7 @@ size_t n0, size_t m0, size_t n1, size_t m1) {
     inputStream >> tmp;
     e1[i] = tmp;
   }
-  //E.copy(v1, e1);
+  v1[n1 + 1] = m1;
   E.move(std::move(v1), std::move(e1));
 }
 
@@ -99,7 +99,7 @@ size_t n0, size_t m0, size_t n1, size_t m1) {
   }
   }
   v0[n0 + n1 + 1] = m0 + m1;
-  return adjacency<0>(v0, e0);
+  return adjacency<0>(std::move(v0), std::move(e0));
 }
 
 auto read_and_relabel_adj_hypergraph(std::istream& inputStream, size_t& nreal_edges, size_t& nreal_nodes) {
