@@ -25,7 +25,7 @@ static constexpr const char USAGE[] =
     R"(scc.exe: s-overlap connected components benchmark driver.
   Usage:
       scc.exe (-h | --help)
-      scc.exe [-f FILE...] [--version ID...] [--feature ID...] [--loader-version ID] [-n NUM] [-B NUM] [-s NUM...] [--relabel NUM] [--clean] [--direction DIR] [-dvV] [--log FILE] [--log-header] [THREADS]...
+      scc.exe [-f FILE...] [--version ID...] [--feature ID...] [--loader-version ID] [-n NUM] [-B NUM] [-s NUM...] [--relabel NUM] [--direction DIR] [-dvV] [--log FILE] [--log-header] [THREADS]...
 
   Options:
       -h, --help            show this screen
@@ -36,8 +36,7 @@ static constexpr const char USAGE[] =
       -n NUM                number of trials [default: 1]
       -B NUM                number of bins [default: 32]
       -s NUM                s value of soverlap [default: 1]
-      --relabel NUM         relabel the graph - 0(left)/1(right) [default: 0]
-      -c, --clean           clean the graph or not
+      --relabel NUM         relabel the graph - 0(hyperedge)/1(hypernode) [default: -1]
       --direction DIR       graph relabeling direction - ascending/descending [default: descending]
       --log FILE            log times to a file
       --log-header          add a header to the log file
@@ -80,13 +79,28 @@ int main(int argc, char* argv[]) {
       auto aos_a   = load_graph<directed>(file);
       if (0 == aos_a.size()) {
         auto&& [hyperedges, hypernodes] = load_adjacency<>(file);
-        auto hyperedgedegrees = hyperedges.degrees();
-        return std::tuple(hyperedges, hypernodes, hyperedgedegrees);
+        auto hyperedge_degrees = hyperedges.degrees();
+        // Run relabeling. This operates directly on the incoming edglist.
+        const long idx = args["--relabel"].asLong();
+        std::cout << idx << std::endl;
+        if (-1 != idx) {
+          //relabel the column with smaller size
+          if (0 == idx) {
+            auto iperm = hyperedges.sort_by_degree(args["--direction"].asString());
+            hypernodes.permute(iperm);
+            std::cout << "relabeling hyperedge adjacency by degree..." << std::endl;
+          }
+          else {
+            auto iperm = hypernodes.sort_by_degree(args["--direction"].asString());
+            hyperedges.permute(iperm);
+            std::cout << "relabeling hypernodes adjacency by degree..." << std::endl;
+          }
+        }
+        return std::tuple(hyperedges, hypernodes, hyperedge_degrees);
       }
       std::vector<index_t> hyperedge_degrees =  aos_a.degrees<0>();
-
       // Run relabeling. This operates directly on the incoming edglist.
-      const int idx = args["--relabel"].asLong() ?: -1;
+      const long idx = args["--relabel"].asLong();
       if (-1 != idx) {
         //relabel the column with smaller size
         std::vector<index_t> degrees;
@@ -100,14 +114,6 @@ int main(int argc, char* argv[]) {
           std::cout << "relabeling hypernodes by degree..." << std::endl;
           nw::hypergraph::relabel_by_degree_bipartite<1>(aos_a, args["--direction"].asString(), degrees);
         }
-      }
-      // Clean up the edgelist to deal with the normal issues related to
-      // undirectedness.
-      if (args["--clean"].asBool()) {
-        aos_a.swap_to_triangular<0>(args["--succession"].asString());
-        aos_a.lexical_sort_by<0>();
-        aos_a.uniq();
-        aos_a.remove_self_loops();
       }
 
       adjacency<0> hyperedges(aos_a);
@@ -128,16 +134,16 @@ int main(int argc, char* argv[]) {
       {
           nw::graph::edge_list<undirected> &&linegraph = to_two_graph_efficient_parallel_portal<undirected>(verbose, features, std::execution::par_unseq, hyperedges, hypernodes, hyperedgedegrees, s, num_bins);
           //where when an empty edge list is passed in, an adjacency still have two elements
-          if (0 == linegraph.size()) return nw::graph::adjacency<0>(0);
+          if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
           nw::graph::adjacency<0> s_adj(linegraph);
-          std::cout << "line graph edges = " << linegraph.size() << ", adjacency size = " << s_adj.size() << std::endl;
+          std::cout << "line graph edges = " << linegraph.size() << ", adjacency size = " << s_adj.size() << ", max= " << s_adj.max() << std::endl;
           return s_adj;
       }
       case 1:
       {
           nw::graph::edge_list<undirected> &&linegraph = to_two_graph_naive_parallel_portal<undirected>(verbose, std::execution::par_unseq, hyperedges, hypernodes, s, num_bins);
           //where when an empty edge list is passed in, an adjacency still have two elements
-          if (0 == linegraph.size()) return nw::graph::adjacency<0>(0);
+          if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
           nw::graph::adjacency<0> s_adj(linegraph);
           std::cout << "line graph edges = " << linegraph.size() << ", adjacency size = " << s_adj.size() << std::endl;
           return s_adj;
@@ -162,7 +168,9 @@ int main(int argc, char* argv[]) {
       for (auto&& id : ids) {
         auto verifier = [&](auto&& E) {
             //only verify #cc in the result
+          
           std::unordered_set<vertex_id_t> uni_comps(E.begin(), E.end());
+              
           std::cout << uni_comps.size() << " components found" << std::endl;
         };
 
