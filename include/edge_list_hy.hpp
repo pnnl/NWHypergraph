@@ -23,8 +23,6 @@ void relabel_by_degree_bipartite(nw::graph::edge_list<nw::graph::directed>& aos_
 
     std::vector<vertex_id_t> perm = (0 == degree.size()) ? aos_a.perm_by_degree<idx>(direction) : aos_a.perm_by_degree<idx>(degree, direction);
 
-    std::vector<vertex_id_t> iperm(perm.size());
-
     aos_a.relabel<idx>(perm);
   }
 

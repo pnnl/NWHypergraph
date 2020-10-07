@@ -95,6 +95,8 @@ int main(int argc, char* argv[]) {
             std::cout << "relabeling hypernodes adjacency by degree..." << std::endl;
           }
         }
+        //may need to update the degree vector, if we relabel the graph
+        hyperedge_degrees = hyperedges.degrees();
         return std::tuple(hyperedges, hypernodes, hyperedge_degrees);
       }
       std::vector<index_t> hyperedge_degrees =  aos_a.degrees<0>();
@@ -114,7 +116,9 @@ int main(int argc, char* argv[]) {
           nw::hypergraph::relabel_by_degree_bipartite<1>(aos_a, args["--direction"].asString(), degrees);
         }
       }
-
+      //we may need to get the new degrees 
+      //if we relabel the edge list
+      hyperedge_degrees = aos_a.degrees<0>();
       adjacency<0> hyperedges(aos_a);
       adjacency<1> hypernodes(aos_a);
       if (verbose) {
