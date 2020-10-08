@@ -23,9 +23,19 @@ namespace hypergraph {
 std::string AdjHypergraphHeader = "AdjacencyHypergraph";
 std::string WghAdjHypergraphHeader = "WeightedAdjacencyHypergraph";
 
+//fill biadjacency
+auto adj_hypergraph_fill(std::istream& inputStream) {
+  //100, 972 100 972
+  size_t n0, m0, n1, m1;
+  inputStream >> n0;
+  inputStream >> m0;
+  inputStream >> n1;
+  inputStream >> m1;
 
-void adj_hypergraph_fill(std::istream& inputStream, adjacency<0>& E, adjacency<1>& N,
-size_t n0, size_t m0, size_t n1, size_t m1) {
+  //in adj_hypergraph, <0> is hypernodes, <1> is hyperedges
+  adjacency<0> E(n1, m1);
+  adjacency<1> N(n0, m0);
+
   vertex_id_t tmp;
   std::vector<vertex_id_t> v0(n0 + 1);
   for (size_t i = 0; i < n0; ++i) {
@@ -37,7 +47,7 @@ size_t n0, size_t m0, size_t n1, size_t m1) {
     inputStream >> tmp;
     e0[i] = tmp;
   }
-  v0[n0 + 1] = m0;
+  v0[n0] = m0;
   N.move(std::move(v0), std::move(e0));
   std::vector<vertex_id_t> v1(n1 + 1);
   for (size_t i = 0; i < n1; ++i) {
@@ -49,64 +59,95 @@ size_t n0, size_t m0, size_t n1, size_t m1) {
     inputStream >> tmp;
     e1[i] = tmp;
   }
-  v1[n1 + 1] = m1;
+  v1[n1] = m1;
   E.move(std::move(v1), std::move(e1));
+  return std::tuple(E, N);
 }
 
+/*
+* combine biadjacency into an adjacency
+* Transform a bipartite graph into a general graph
+*/
 auto adj_hypergraph_fill_and_relabel(std::istream& inputStream,
-size_t n0, size_t m0, size_t n1, size_t m1) {
+const size_t n0, const size_t m0, const size_t n1, const size_t m1) {
   vertex_id_t tmp;
-  std::vector<vertex_id_t> v0(n0 + n1 + 1);
-  std::vector<vertex_id_t> e0(m0 + m1);
-  if (n0 > n1) {
+  std::string buffer;
+  size_t N = n0 + n1;
+  size_t M = m0 + m1;
+  std::vector<vertex_id_t> v0(N + 1);
+  std::vector<vertex_id_t> e0(M);
+  if (n0 >= n1) {
     //if the first adjacency is larger the the second adjacency
     //we relabel the latter
-  for (size_t i = 0; i < n0; ++i) {
-    inputStream >> tmp;
-    v0[i] = tmp;
-  }
-  for (size_t i = 0; i < m0; ++i) {
-    inputStream >> tmp;
-    e0[i] = tmp + n0;
-  }
-  for (size_t i = n0, e = n0 + n1; i < e; ++i) {
-    inputStream >> tmp;
-    v0[i] = tmp + m0;
-  }
-  for (size_t i = 0, e = m0 + m1; i < e; ++i) {
-    inputStream >> tmp;
-    e0[i] = tmp;
-  }
+    //here is what v0 contains: v0={0, ..., n0-1, n0,..., n0+n1-1, n0+n1}
+    //where v0[n0+n1]=m0+m1, which is populated later before return
+    //here is what e0 contains: e0={0, ..., m0-1, m0,..., m0+m1-1}
+    for (size_t i = 0; i < n0; ++i) {
+      inputStream >> tmp;
+      
+      v0[i] = tmp;
+    }
+    for (size_t i = 0; i < m0; ++i) {
+      inputStream >> tmp;
+      //increment each neighbor of hypernodes
+      //by n0 (num of hypernodes)
+      e0[i] = tmp + n0;
+    }
+    for (size_t i = n0, e = N; i < e; ++i) {
+      inputStream >> tmp;
+      //increment each index of hyperedges
+      //by m0 (the last index of first adjacency)
+      v0[i] = tmp + m0;
+    }
+    for (size_t i = m0, e = M; i < e; ++i) {
+      inputStream >> tmp;
+      e0[i] = tmp;
+    }
   }
   else {
     //if the first adjacency is smaller the the second adjacency
     //we relabel the first
-  for (size_t i = 0; i < n0; ++i) {
-    inputStream >> tmp;
-    v0[i] = tmp + m1;
+    //here is what v0 contains: v0={0, ..., n1-1, n1,..., n1+n0-1, n1+n0}
+    //where v0[n0+n1]=m0+m1, which is populated later before return
+    //here is what e0 contains: e0={0, ..., m1-1, m1,..., m1+m0-1}
+    for (size_t i = 0; i < n0; ++i) {
+      inputStream >> tmp;
+      //increment the first index by
+      //the last offset of the second adjacency
+      v0[i] = tmp + m1;
+    }
+    for (size_t i = 0; i < m0; ++i) {
+      inputStream >> tmp;
+      e0[i] = tmp;
+    }
+    for (size_t i = n0, e = N; i < e; ++i) {
+      inputStream >> tmp;
+      //the second index remains the same
+      v0[i] = tmp;
+    }
+    for (size_t i = m0, e = M; i < e; ++i) {
+      inputStream >> tmp;
+      //increment each neighbor of the second adjacency
+      //by n1 the num of indices of first adjacency
+      e0[i] = tmp + n1;
+    }
   }
-  for (size_t i = 0; i < m0; ++i) {
-    inputStream >> tmp;
-    e0[i] = tmp;
-  }
-  for (size_t i = n0, e = n0 + n1; i < e; ++i) {
-    inputStream >> tmp;
-    v0[i] = tmp;
-  }
-  for (size_t i = 0, e = m0 + m1; i < e; ++i) {
-    inputStream >> tmp;
-    e0[i] = tmp + n1;
-  }
-  }
-  v0[n0 + n1 + 1] = m0 + m1;
+  v0[N] = M;
+  /*
+  //create an empty adjacency then move data into it
+  adjacency<0> g(N, M);
+  g.move(std::move(v0), std::move(e0));
+  return g;
+  */
+  //create use move constructor
   return adjacency<0>(std::move(v0), std::move(e0));
 }
 
 auto read_and_relabel_adj_hypergraph(std::istream& inputStream, size_t& nreal_edges, size_t& nreal_nodes) {
-  std::string header;
-  inputStream >> header;
+  std::string buffer;
+  inputStream >> buffer;
 
-  if (AdjHypergraphHeader.c_str() != header) {
+  if (AdjHypergraphHeader.c_str() != buffer) {
     std::cerr << "Unsupported format" << std::endl;
     throw;
   }
@@ -116,6 +157,7 @@ auto read_and_relabel_adj_hypergraph(std::istream& inputStream, size_t& nreal_ed
   inputStream >> m0;
   inputStream >> nreal_edges;
   inputStream >> m1;
+  //std::cout << nreal_nodes << " " << m0 << " " << nreal_edges << " " << m1 << std::endl;
 
   return adj_hypergraph_fill_and_relabel(inputStream, nreal_nodes, m0, nreal_edges, m1);
 }
@@ -130,28 +172,6 @@ auto read_and_relabel_adj_hypergraph(const std::string& filename, size_t& nreal_
   return read_and_relabel_adj_hypergraph(file, nreal_edges, nreal_nodes);
 }
 
-template <typename... Attributes>
-auto read_adj_hypergraph(std::istream& inputStream) {
-  std::string header;
-  inputStream >> header;
-
-  if (AdjHypergraphHeader.c_str() != header) {
-    std::cerr << "Unsupported format" << std::endl;
-    throw;
-  }
-  //100, 972 100 972
-  size_t n0, m0, n1, m1;
-  inputStream >> n0;
-  inputStream >> m0;
-  inputStream >> n1;
-  inputStream >> m1;
-
-  //in adj_hypergraph, <0> is hypernodes, <1> is hyperedges
-  adjacency<0> E(n1, m1);
-  adjacency<1> N(n0, m0);
-  adj_hypergraph_fill(inputStream, E, N, n0, m0, n1, m1);
-  return std::tuple(E, N);
-}
 
 template <typename... Attributes>
 auto read_adj_hypergraph(const std::string& filename) {
@@ -161,7 +181,14 @@ auto read_adj_hypergraph(const std::string& filename) {
     std::cerr << "Can not open file: " << filename << std::endl;
     throw;
   }
-  return read_adj_hypergraph<Attributes...>(file);
+  std::string header;
+  file >> header;
+
+  if (AdjHypergraphHeader.c_str() != header) {
+    std::cerr << "Unsupported format" << std::endl;
+    throw;
+  }
+  return adj_hypergraph_fill(file);;
 }
 
 template <typename... Attributes>
