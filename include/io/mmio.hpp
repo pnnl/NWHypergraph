@@ -131,7 +131,7 @@ nw::graph::edge_list<sym, Attributes...> read_mm_relabeling(const std::string& f
     h >> s;
 
   if (header[0] != "%%MatrixMarket") {
-    //std::cerr << "Unsupported format" << std::endl;
+    std::cerr << "Not Matrix Market format" << std::endl;
     return nw::graph::edge_list<sym, Attributes...>(0);
   }
   if (header[4] == "symmetric") {
