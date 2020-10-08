@@ -125,7 +125,7 @@ int main(int argc, char* argv[]) {
         hypernodes.stream_stats();
         hyperedges.stream_stats();
       }
-      std::cout << "num_hyperedges = " << aos_a.max()[0] + 1 << " num_hypernodes = " << aos_a.max()[1] + 1 << std::endl;
+      std::cout << "num_hyperedges = " << hyperedges.size() << " num_hypernodes = " << hypernodes.size() << std::endl;
       return std::tuple(hyperedges, hypernodes, hyperedge_degrees);
     };
     auto&&[ hyperedges, hypernodes, hyperedgedegrees ] = reader(file, verbose);
@@ -170,10 +170,8 @@ int main(int argc, char* argv[]) {
       auto _ = set_n_threads(thread);
       for (auto&& id : ids) {
         auto verifier = [&](auto&& E) {
-            //only verify #cc in the result
-          
+            //only verify #cc in the result    
           std::unordered_set<vertex_id_t> uni_comps(E.begin(), E.end());
-              
           std::cout << uni_comps.size() << " components found" << std::endl;
         };
 
