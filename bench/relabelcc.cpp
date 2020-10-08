@@ -144,6 +144,18 @@ int main(int argc, char* argv[]) {
                 using SVF = decltype(svf);
                 return nw::hypergraph::relabel_x_parallel<ExecutionPolicy, SVF, vertex_id_t>(std::execution::par_unseq, num_realedges, num_realnodes, svf, g); });
               break;
+            case 4:
+              record([&] { 
+                auto lpf = nw::graph::ccv1<Graph>;
+                using LabelPropagationF = decltype(lpf);
+                return nw::hypergraph::relabel_x< LabelPropagationF, vertex_id_t>(num_realedges, num_realnodes, lpf, g); });
+              break;
+            case 5:
+              record([&] { 
+                auto af = nw::graph::Afforest<Graph, Transpose>;
+                using AfforestF = decltype(af);
+                return nw::hypergraph::relabel_x<AfforestF, vertex_id_t>(num_realedges, num_realnodes, af, g, g_t, 2); });
+              break;
             default:
               std::cout << "Unknown version v" << id << "\n";
           }
