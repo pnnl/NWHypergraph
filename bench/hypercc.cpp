@@ -94,6 +94,7 @@ int main(int argc, char* argv[]) {
         }
         //may need to update the degree vector, if we relabel the graph
         hyperedge_degrees = hyperedges.degrees();
+        std::cout << "num_hyperedges = " << hyperedges.size() << " num_hypernodes = " << hypernodes.size() << std::endl;
         return std::tuple(aos_a, hyperedges, hypernodes, hyperedge_degrees);
       }
       std::vector<index_t> hyperedge_degrees =  aos_a.degrees<0>();
@@ -122,7 +123,7 @@ int main(int argc, char* argv[]) {
         hypernodes.stream_stats();
         hyperedges.stream_stats();
       }
-      std::cout << "num_hyperedges = " << aos_a.max()[0] + 1 << " num_hypernodes = " << aos_a.max()[1] + 1 << std::endl;
+      std::cout << "num_hyperedges = " << hyperedges.size() << " num_hypernodes = " << hypernodes.size() << std::endl;
       return std::tuple(aos_a, hyperedges, hypernodes, hyperedge_degrees);
     };
 
@@ -142,23 +143,16 @@ int main(int argc, char* argv[]) {
 
         auto verifier = [&](auto&& result) {
           auto&& [N, E] = result;
-          if (verbose) {
-            //This returns the subgraph of each component.
-            std::map<vertex_id_t, edge_list<>> comps;
-            std::for_each(aos_a.begin(), aos_a.end(), [&](auto&& elt) {
-              auto&& [edge, node] = elt;
-              vertex_id_t key     = E[edge];
-              comps[key].push_back(elt);
-            });
-
-            for (auto&& j : comps) {
-              auto& [k, v] = j;
-              v.close_for_push_back();
-            }
-            std::cout << comps.size() << " subgraphs and" << std::endl;
-          }
           std::unordered_set<vertex_id_t> uni_comps(E.begin(), E.end());
-          std::cout << uni_comps.size() << " components found" << std::endl;
+          std::cout << uni_comps.size() << " components found" ;
+          if (verbose) {
+            std::cout << ":";
+            for(auto it = uni_comps.begin(); it != uni_comps.end(); ++it)
+              std::cout << *it << std::endl;
+            for(size_t i = 0, e = E.size(); i < e; ++i)
+              std::cout << i << " " << E[i] << std::endl;
+          }
+          std::cout << std::endl;
         };
 
         auto record = [&](auto&& op) { times.record(file, id, thread, std::forward<decltype(op)>(op), verifier, true); };

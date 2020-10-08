@@ -76,7 +76,13 @@ int main(int argc, char* argv[]) {
       //auto aos_a   = load_graph<directed>(file);
       auto aos_a   = read_mm_relabeling<nw::graph::directed>(file, nrealedges, nrealnodes);
       if (0 == aos_a.size()) {
-        auto&& g = read_and_relabel_adj_hypergraph(file, nrealedges, nrealnodes);
+        auto g = read_and_relabel_adj_hypergraph(file, nrealedges, nrealnodes);
+        // Run relabeling. 
+        if (args["--relabel"].asBool()) {
+          g.sort_by_degree(args["--direction"].asString());
+        }
+        std::cout << "num_hyperedges = " << nrealedges << " num_hypernodes = " << nrealnodes << std::endl;
+        std::cout << "size of the merged adjacency = " << g.size() << std::endl;
         return std::tuple(g, nw::graph::adjacency<1>(0, 0));
       }
       // Run relabeling. This operates directly on the incoming edglist.
