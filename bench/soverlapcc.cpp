@@ -46,6 +46,7 @@ static constexpr const char USAGE[] =
 
 
 int main(int argc, char* argv[]) {
+  tbb::task_scheduler_init init(1);
   std::vector<std::string> strings(argv + 1, argv + argc);
   auto args = docopt::docopt(USAGE, strings, true);
 
@@ -145,6 +146,15 @@ int main(int argc, char* argv[]) {
       case 1:
       {
           nw::graph::edge_list<undirected> &&linegraph = to_two_graph_naive_parallel_portal<undirected>(verbose, std::execution::par_unseq, hyperedges, hypernodes, s, num_bins);
+          //where when an empty edge list is passed in, an adjacency still have two elements
+          if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
+          nw::graph::adjacency<0> s_adj(linegraph);
+          std::cout << "line graph edges = " << linegraph.size() << ", adjacency size = " << s_adj.size() << std::endl;
+          return s_adj;
+      }
+      case 2:
+      {
+        nw::graph::edge_list<undirected> &&linegraph = to_two_graph_with_map_parallel<undirected>(std::execution::par_unseq, hyperedges, hypernodes, hyperedgedegrees, s, num_bins);
           //where when an empty edge list is passed in, an adjacency still have two elements
           if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
           nw::graph::adjacency<0> s_adj(linegraph);
