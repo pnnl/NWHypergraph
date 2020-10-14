@@ -16,7 +16,7 @@
 #include <util/AtomicBitVector.hpp>
 #include <docopt.h>
 #include "algorithms/relabel_x.hpp"
-#include <unistd.h>
+
 using namespace nw::hypergraph::bench;
 using namespace nw::hypergraph;
 using namespace nw::graph;
@@ -326,10 +326,7 @@ int main(int argc, char* argv[]) {
     std::cout << "num_hyperedges = " << num_realedges << " num_hypernodes = " << num_realnodes << std::endl;
     //all sources are hyperedges
     std::vector<vertex_id_t> sources;
-    if (args["--sources"]) {
-      sources = load_sources_from_file(getattrlistbulk, args["--sources"].asString());
-      trials  = sources.size();
-    } else if (args["-r"]) {
+    if (args["-r"]) {
       sources.resize(trials);
       std::fill(sources.begin(), sources.end(), args["-r"].asLong());
     } else {
@@ -351,9 +348,7 @@ int main(int argc, char* argv[]) {
           using ExecutionPolicy = decltype(std::execution::par_unseq);
           auto&& [time, parents] = time_op([&] {
             switch (id) {
-              case 0:
-                return relabelhyperBFS_hybrid(std::execution::seq, source, g, g_t, num_realedges, num_realnodes, g.to_be_indexed_.size(), alpha, beta);
-              case 1: {
+              case 0: {
                 auto v11 = nw::graph::bfs_v11<Graph, Transpose>;
                 //bfs_v11(graph, gx, source, num_bins, alpha, beta);
                 using BFSV11 = decltype(v11);
