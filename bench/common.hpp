@@ -172,10 +172,8 @@ auto build_random_sources(Graph&& graph, size_t n, long seed)
 /// This will load a set of vertices from the passed `file` and verify that we
 /// have the expected number `n`.
 template <class Graph>
-auto load_sources_from_file(Graph&&, std::string file, size_t n = 0)
-{
-  using Id = typename nw::graph::vertex_id<std::decay_t<Graph>>::type;
-  std::vector sources = read_mm_vector<Id>(file);
+auto load_sources_from_file(Graph&&, std::string file, size_t n = 0) {
+  std::vector sources = read_mm_vector<nw::graph::vertex_id_t>(file);
   if (n && sources.size() != n) {
     std::cerr << file << " contains " << sources.size() << " sources, however options require " << n << "\n";
     exit(1);

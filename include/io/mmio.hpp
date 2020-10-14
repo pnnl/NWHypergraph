@@ -151,6 +151,7 @@ nw::graph::edge_list<sym, Attributes...> read_mm_relabeling(const std::string& f
 
   nw::graph::edge_list<sym, Attributes...> A(numRealEdges);
   mm_fill_relabeling(inputStream, A, numRealEdges, numRealNodes, nNonzeros, file_symmetry, (header[3] == "pattern"));
-
+  A.set_origin(filename);
+  
   return A;
 }

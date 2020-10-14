@@ -15,8 +15,11 @@
 #include <algorithms/bfs.hpp>
 #include <util/AtomicBitVector.hpp>
 #include <docopt.h>
+#include "algorithms/relabel_x.hpp"
 
 using namespace nw::hypergraph::bench;
+using namespace nw::hypergraph;
+using namespace nw::graph;
 
 static constexpr const char USAGE[] =
     R"(hyperbfsrelabel.exe: nw::graph hypergraph breadth-first search benchmark driver.
@@ -267,8 +270,7 @@ int main(int argc, char* argv[]) {
   bool verify  = args["--verify"].asBool();
   bool verbose = args["--verbose"].asBool();
   bool debug   = args["--debug"].asBool();
-  long trials  = args["-n"].asLong() ?: 1;
-  long iterations = args["-i"].asLong() ?: 1;
+  long trials  = args["-n"].asLong();
   long alpha      = args["-a"].asLong() ?: 15;
   long beta       = args["-b"].asLong() ?: 18;
   long num_bins   = args["-B"].asLong() ?: 32;
@@ -291,9 +293,11 @@ int main(int argc, char* argv[]) {
   // them real symbols here rather than the local bindings.
   for (auto&& file : files) {
     auto reader = [&](std::string file, bool verbose, size_t& nrealedges, size_t& nrealnodes) {
-      auto aos_a   = read_mm_relabeling<undirected>(file, nrealedges, nrealnodes);
-      auto hyperedgedegrees = aos_a.degrees<0>();
-
+      //auto aos_a   = load_graph<directed>(file);
+      auto aos_a   = read_mm_relabeling<nw::graph::directed>(file, nrealedges, nrealnodes);
+      if (0 == aos_a.size()) {
+        return read_and_relabel_adj_hypergraph_pair(file, nrealedges, nrealnodes);
+      }
       // Run relabeling. This operates directly on the incoming edglist.
       if (args["--relabel"].asBool()) {
         auto degrees = aos_a.degrees();
@@ -308,32 +312,32 @@ int main(int argc, char* argv[]) {
         aos_a.remove_self_loops();
       }
 
-      adjacency<0> hyperedges(aos_a);
-      adjacency<1> hypernodes(aos_a);
+      nw::graph::adjacency<0> g(aos_a);
+      nw::graph::adjacency<1> g_t(aos_a);
       if (verbose) {
-        hypernodes.stream_stats();
-        hyperedges.stream_stats();
+        g_t.stream_stats();
+        g.stream_stats();
       }
-      std::cout << "num_hyperedges = " << aos_a.max()[0] + 1 << " num_hypernodes = " << aos_a.max()[1] + 1 << std::endl;
-      return std::tuple(aos_a, hyperedges, hypernodes);
+      
+      return std::tuple(g, g_t);
     };
     size_t num_realedges, num_realnodes;
-    auto&& [aos_a, hyperedges, hypernodes]     = reader(file, verbose, num_realedges, num_realnodes);
-
+    auto&& [g, g_t]     = reader(file, verbose, num_realedges, num_realnodes);
+    std::cout << "num_hyperedges = " << num_realedges << " num_hypernodes = " << num_realnodes << std::endl;
     //all sources are hyperedges
     std::vector<vertex_id_t> sources;
     if (args["--sources"]) {
-      sources = load_sources_from_file(hyperedges, args["--sources"].asString());
+      sources = load_sources_from_file(getattrlistbulk, args["--sources"].asString());
       trials  = sources.size();
     } else if (args["-r"]) {
       sources.resize(trials);
       std::fill(sources.begin(), sources.end(), args["-r"].asLong());
     } else {
-      sources = build_random_sources(hyperedges, trials, args["--seed"].asLong());
+      sources = build_random_sources(g, trials, args["--seed"].asLong());
     }
     if (debug) {
-      hypernodes.stream_indices();
-      hyperedges.stream_indices();
+      g.stream_indices();
+      g_t.stream_indices();
     }
 
     for (auto&& thread : threads) {
@@ -342,11 +346,32 @@ int main(int argc, char* argv[]) {
         for (auto&& source : sources) {
           if (verbose) 
             std::cout << "version " << id << std::endl;
-
+          using Graph = nw::graph::adjacency<0>;
+          using Transpose = nw::graph::adjacency<1>;
+          using ExecutionPolicy = decltype(std::execution::par_unseq);
           auto&& [time, parents] = time_op([&] {
             switch (id) {
               case 0:
-                return relabelhyperBFS_hybrid(std::execution::seq, source, hypernodes, hyperedges, num_realedges, num_realnodes, aos_a.size());
+                return relabelhyperBFS_hybrid(std::execution::seq, source, g, g_t, num_realedges, num_realnodes, g.to_be_indexed_.size(), alpha, beta);
+              case 1: {
+                auto v11 = nw::graph::bfs_v11<Graph, Transpose>;
+                //bfs_v11(graph, gx, source, num_bins, alpha, beta);
+                using BFSV11 = decltype(v11);
+                auto&& [N, E] = nw::hypergraph::relabel_x_parallel<ExecutionPolicy, BFSV11, vertex_id_t>(std::execution::par_unseq, num_realedges, num_realnodes, v11, g, g_t, source, num_bins, alpha, beta);
+                if (num_realnodes < num_realedges) {
+                  //for all the parent of hyperN, substract the offset
+                  std::for_each(std::execution::par_unseq, tbb::counting_iterator(0ul), tbb::counting_iterator(N.size()), [&](auto i) {
+                    N[i] -= num_realedges;
+                  }); 
+                }
+                else {
+                  //for all the parent of hyperE, substract the offset
+                   std::for_each(std::execution::par_unseq, tbb::counting_iterator(0ul), tbb::counting_iterator(E.size()), [&](auto i) {
+                    E[i] -= num_realnodes;
+                  }); 
+                }
+                return std::tuple(N, E);
+              }
               default:
                 std::cerr << "Unknown version " << id << "\n";
                 return std::make_tuple(std::vector<vertex_id_t>(), std::vector<vertex_id_t>());
@@ -354,7 +379,7 @@ int main(int argc, char* argv[]) {
           });
 
           if (verify) {
-            hyperBFSVerifier(hypernodes, hyperedges, source, std::get<0>(parents), std::get<1>(parents));
+            hyperBFSVerifier(g, g_t, source, std::get<0>(parents), std::get<1>(parents));
           }
 
           times.append(file, id, thread, time, source);

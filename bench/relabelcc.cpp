@@ -128,9 +128,9 @@ int main(int argc, char* argv[]) {
           switch (id) {
             case 0:
               record([&] { 
-                auto lpf = nw::graph::ccv1<Graph>;
-                using LabelPropagationF = decltype(lpf);
-                return nw::hypergraph::relabel_x_parallel<ExecutionPolicy, LabelPropagationF, vertex_id_t>(std::execution::par_unseq, num_realedges, num_realnodes, lpf, g); });
+                return std::tuple(std::vector<vertex_id_t>(0), std::vector<vertex_id_t>(0));
+                //std::vector<std::atomic<vertex_id_t> r = afforest(std::execution::par_unseq, g, g_t, 2); 
+              });
               break;
             case 1:
               record([&] { 
@@ -161,6 +161,12 @@ int main(int argc, char* argv[]) {
                 auto af = nw::graph::Afforest<Graph, Transpose>;
                 using AfforestF = decltype(af);
                 return nw::hypergraph::relabel_x<AfforestF, vertex_id_t>(num_realedges, num_realnodes, af, g, g_t, 2); });
+              break;
+            case 6:
+              record([&] { 
+                auto lpf = nw::graph::ccv1<Graph>;
+                using LabelPropagationF = decltype(lpf);
+                return nw::hypergraph::relabel_x_parallel<ExecutionPolicy, LabelPropagationF, vertex_id_t>(std::execution::par_unseq, num_realedges, num_realnodes, lpf, g); });
               break;
             default:
               std::cout << "Unknown version v" << id << "\n";

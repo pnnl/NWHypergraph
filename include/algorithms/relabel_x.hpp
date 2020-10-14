@@ -17,15 +17,8 @@
 namespace nw {
 namespace hypergraph {
 
-/*
-* X is the algorithm X. T is the type of the elements in the vector function f returns.
-* Parameters is parameter list of the algorithm X, which is a parameter pack that
-* contains zero or more function argurments.
-*/
-template<class X, class T, class... Args>
-std::tuple<std::vector<T>, std::vector<T>> 
-relabel_x(const size_t num_realedges, const size_t num_realnodes, X f, Args&&... args) {
-  std::vector<T> labeling = f(std::forward<Args>(args)...);
+template<class T>
+std::tuple<std::vector<T>, std::vector<T>> splitLabeling(std::vector<T>& labeling, const size_t num_realedges, const size_t num_realnodes) {
   std::vector<T> E(num_realedges), N(num_realnodes);
   if (num_realnodes < num_realedges) {
     nw::util::life_timer _("unrelabeling");
@@ -48,10 +41,8 @@ relabel_x(const size_t num_realedges, const size_t num_realnodes, X f, Args&&...
   return std::tuple(N, E);
 }
 
-template<class ExecutionPolicy, class X, class T, class... Args>
-std::tuple<std::vector<T>, std::vector<T>> 
-relabel_x_parallel(ExecutionPolicy& ep, const size_t num_realedges, const size_t num_realnodes, X f, Args&&... args) {
-  std::vector<T> labeling = f(std::forward<Args>(args)...);
+template<class ExecutionPolicy, class T>
+std::tuple<std::vector<T>, std::vector<T>> splitLabeling(ExecutionPolicy& ep, std::vector<T>& labeling, const size_t num_realedges, const size_t num_realnodes) {
   std::vector<T> E(num_realedges), N(num_realnodes);
   if (num_realnodes < num_realedges) {
     nw::util::life_timer _("unrelabeling");
@@ -75,6 +66,25 @@ relabel_x_parallel(ExecutionPolicy& ep, const size_t num_realedges, const size_t
     });
   }
   return std::tuple(N, E);
+}
+
+/*
+* X is the algorithm X. T is the type of the elements in the vector function f returns.
+* Parameters is parameter list of the algorithm X, which is a parameter pack that
+* contains zero or more function argurments.
+*/
+template<class X, class T, class... Args>
+std::tuple<std::vector<T>, std::vector<T>> 
+relabel_x(const size_t num_realedges, const size_t num_realnodes, X f, Args&&... args) {
+  std::vector<T> labeling = f(std::forward<Args>(args)...);
+  return splitLabeling(labeling, num_realedges, num_realnodes);
+}
+
+template<class ExecutionPolicy, class X, class T, class... Args>
+std::tuple<std::vector<T>, std::vector<T>> 
+relabel_x_parallel(ExecutionPolicy& ep, const size_t num_realedges, const size_t num_realnodes, X f, Args&&... args) {
+  std::vector<T> labeling = f(std::forward<Args>(args)...);
+  return splitLabeling(ep, labeling, num_realedges, num_realnodes);
 }
 
 }//namespace hypergraph
