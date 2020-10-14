@@ -19,7 +19,6 @@
 #include "algorithms/relabel_x.hpp"
 
 
-
 using namespace nw::hypergraph::bench;
 using namespace nw::hypergraph;
 using namespace nw::graph;
@@ -77,39 +76,21 @@ int main(int argc, char* argv[]) {
       auto aos_a   = read_mm_relabeling<nw::graph::directed>(file, nrealedges, nrealnodes);
       if (0 == aos_a.size()) {
         auto g = read_and_relabel_adj_hypergraph(file, nrealedges, nrealnodes);
-        // Run relabeling. 
-        if (args["--relabel"].asBool()) {
-          g.sort_by_degree(args["--direction"].asString());
-        }
         std::cout << "num_hyperedges = " << nrealedges << " num_hypernodes = " << nrealnodes << std::endl;
         std::cout << "size of the merged adjacency = " << g.size() << std::endl;
-        return std::tuple(g, nw::graph::adjacency<1>(0, 0));
-      }
-      // Run relabeling. This operates directly on the incoming edglist.
-      if (args["--relabel"].asBool()) {
-        auto degrees = aos_a.degrees();
-        aos_a.relabel_by_degree<0>(args["--direction"].asString(), degrees);
-      }
-      // Clean up the edgelist to deal with the normal issues related to
-      // undirectedness.
-      if (args["--clean"].asBool()) {
-        aos_a.swap_to_triangular<0>(args["--succession"].asString());
-        aos_a.lexical_sort_by<0>();
-        aos_a.uniq();
-        aos_a.remove_self_loops();
+        return g;
       }
 
       nw::graph::adjacency<0> g(aos_a);
-      nw::graph::adjacency<1> g_t(aos_a);
       if (verbose) {
-        g_t.stream_stats();
         g.stream_stats();
       }
       std::cout << "num_hyperedges = " << nrealedges << " num_hypernodes = " << nrealnodes << std::endl;
-      return std::tuple(g, g_t);
+      std::cout << "size of the merged adjacency = " << g.size() << std::endl;
+      return g;
     };
     size_t num_realedges, num_realnodes;
-    auto&& [g, g_t]     = reader(file, verbose, num_realedges, num_realnodes);
+    auto&& g    = reader(file, verbose, num_realedges, num_realnodes);
 
     for (auto&& thread : threads) {
       auto _ = set_n_threads(thread);
@@ -117,26 +98,35 @@ int main(int argc, char* argv[]) {
         auto verifier = [&](auto&& result) {
           auto&& [N, E] = result;
           std::unordered_set<vertex_id_t> uni_comps(E.begin(), E.end());
-          std::cout << uni_comps.size() << " components found" << std::endl;
+          std::cout << uni_comps.size() << " components found" ;
+          if (verbose) {
+            std::cout << ":" << std::endl;
+            for(auto it = uni_comps.begin(); it != uni_comps.end(); ++it)
+              std::cout << *it << std::endl;
+            for(size_t i = 0, e = E.size(); i < e; ++i)
+              std::cout << i << " " << E[i] << std::endl;
+          }
+          std::cout << std::endl;
         };
 
         auto record = [&](auto&& op) { times.record(file, id, thread, std::forward<decltype(op)>(op), verifier, true); };
         using Graph = nw::graph::adjacency<0>;
         using Transpose = nw::graph::adjacency<1>;
         using ExecutionPolicy = decltype(std::execution::par_unseq);
+        Transpose g_t(0, 0);
         for (int j = 0, e = trials; j < e; ++j) {
           switch (id) {
             case 0:
               record([&] { 
-                return std::tuple(std::vector<vertex_id_t>(0), std::vector<vertex_id_t>(0));
-                //std::vector<std::atomic<vertex_id_t> r = afforest(std::execution::par_unseq, g, g_t, 2); 
+                auto l = nw::graph::Afforest<ExecutionPolicy, Graph, Transpose>(std::execution::par_unseq, g, g_t, 2);
+                return splitLabeling<ExecutionPolicy, vertex_id_t>(std::execution::par_unseq, l, num_realedges, num_realnodes);
               });
               break;
             case 1:
               record([&] { 
-                auto af = nw::graph::Afforest<Graph, Transpose>;
+                auto af = nw::graph::Afforest<ExecutionPolicy, Graph, Transpose>;
                 using AfforestF = decltype(af);
-                return nw::hypergraph::relabel_x_parallel<ExecutionPolicy, AfforestF, vertex_id_t>(std::execution::par_unseq, num_realedges, num_realnodes, af, g, g_t, 2); });
+                return nw::hypergraph::relabel_x_parallel<ExecutionPolicy, AfforestF, vertex_id_t>(std::execution::par_unseq, num_realedges, num_realnodes, af, std::execution::par_unseq,  g, g_t, 2); });
               break;
             case 2:
               record([&] { 
@@ -158,9 +148,9 @@ int main(int argc, char* argv[]) {
               break;
             case 5:
               record([&] { 
-                auto af = nw::graph::Afforest<Graph, Transpose>;
+                auto af = nw::graph::Afforest<ExecutionPolicy, Graph, Transpose>;
                 using AfforestF = decltype(af);
-                return nw::hypergraph::relabel_x<AfforestF, vertex_id_t>(num_realedges, num_realnodes, af, g, g_t, 2); });
+                return nw::hypergraph::relabel_x<AfforestF, vertex_id_t>(num_realedges, num_realnodes, af, std::execution::par_unseq, g, g_t, 2); });
               break;
             case 6:
               record([&] { 

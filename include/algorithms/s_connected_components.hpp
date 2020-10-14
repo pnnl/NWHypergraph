@@ -43,7 +43,7 @@ template<class ExecutionPolicy, class HyperNode, class SGraph>
 auto linegraph_Afforest(ExecutionPolicy&& ep, HyperNode& hypernodes, SGraph& s_adj) {
   nw::util::life_timer _(__func__);
   nw::graph::adjacency<1> s_adj_trans(0);
-  auto E = Afforest(s_adj, s_adj_trans);
+  auto E = Afforest(ep, s_adj, s_adj_trans);
   return E;
   /*
   //if no component found, then return an empty pair

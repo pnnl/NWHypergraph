@@ -76,15 +76,15 @@ std::tuple<std::vector<T>, std::vector<T>> splitLabeling(ExecutionPolicy& ep, st
 template<class X, class T, class... Args>
 std::tuple<std::vector<T>, std::vector<T>> 
 relabel_x(const size_t num_realedges, const size_t num_realnodes, X f, Args&&... args) {
-  std::vector<T> labeling = f(std::forward<Args>(args)...);
-  return splitLabeling(labeling, num_realedges, num_realnodes);
+  std::vector<T>&& labeling = f(std::forward<Args>(args)...);
+  return splitLabeling<T>(labeling, num_realedges, num_realnodes);
 }
 
 template<class ExecutionPolicy, class X, class T, class... Args>
 std::tuple<std::vector<T>, std::vector<T>> 
 relabel_x_parallel(ExecutionPolicy& ep, const size_t num_realedges, const size_t num_realnodes, X f, Args&&... args) {
-  std::vector<T> labeling = f(std::forward<Args>(args)...);
-  return splitLabeling(ep, labeling, num_realedges, num_realnodes);
+  std::vector<T>&& labeling = f(std::forward<Args>(args)...);
+  return splitLabeling<ExecutionPolicy, T>(ep, labeling, num_realedges, num_realnodes);
 }
 
 }//namespace hypergraph
