@@ -16,7 +16,7 @@
 #include <util/AtomicBitVector.hpp>
 #include <docopt.h>
 #include "algorithms/relabel_x.hpp"
-
+#include <unistd.h>
 using namespace nw::hypergraph::bench;
 using namespace nw::hypergraph;
 using namespace nw::graph;
