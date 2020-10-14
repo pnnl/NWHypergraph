@@ -46,7 +46,6 @@ static constexpr const char USAGE[] =
 
 
 int main(int argc, char* argv[]) {
-  tbb::task_scheduler_init init(1);
   std::vector<std::string> strings(argv + 1, argv + argc);
   auto args = docopt::docopt(USAGE, strings, true);
 
@@ -98,6 +97,7 @@ int main(int argc, char* argv[]) {
         }
         //may need to update the degree vector, if we relabel the graph
         hyperedge_degrees = hyperedges.degrees();
+        std::cout << "num_hyperedges = " << hyperedges.size() << " num_hypernodes = " << hypernodes.size() << std::endl;
         return std::tuple(hyperedges, hypernodes, hyperedge_degrees);
       }
       std::vector<index_t> hyperedge_degrees =  aos_a.degrees<0>();
