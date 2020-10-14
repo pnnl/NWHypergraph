@@ -46,6 +46,7 @@ static constexpr const char USAGE[] =
 
 
 int main(int argc, char* argv[]) {
+  tbb::task_scheduler_init init(std::stol(argv[argc - 1]));
   std::vector<std::string> strings(argv + 1, argv + argc);
   auto args = docopt::docopt(USAGE, strings, true);
 

@@ -600,7 +600,6 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
   std::vector<std::vector<std::pair<vertex_id_t, vertex_id_t>>> two_graphs(num_bins);
   size_t M = edges.size();
   size_t N = nodes.size();
-  std::cout << M <<" " <<N << std::endl;
   if (1 < s) {
     nw::util::life_timer _(__func__);
     tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M), [&](tbb::blocked_range<vertex_id_t>& r) {
