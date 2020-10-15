@@ -83,25 +83,15 @@ int main(int argc, char* argv[]) {
   // standard). That's a little bit noisy where it happens, so I just give
   // them real symbols here rather than the local bindings.
   for (auto&& file : files) {
+    size_t size;
     auto reader = [&](std::string file, bool verbose) {
       nw::graph::edge_list<nw::graph::directed> aos_a = load_graph<nw::graph::directed>(file);
-      std::vector<nw::graph::index_t> hyperedgedegrees = aos_a.degrees<0>();
-
-      // Run relabeling. This operates directly on the incoming edglist.
-      if (args["--relabel"].asBool()) {
-        //relabel the column with smaller size
-        if (aos_a.max()[0] > aos_a.max()[1]) {
-          std::vector<nw::graph::index_t> hypernodedegrees = aos_a.degrees<1>();
-          std::cout << "relabeling hypernodes..." << std::endl;
-                    //TODO NOT WORKING
-          nw::hypergraph::relabel_by_degree_bipartite<0>(aos_a, args["--direction"].asString(), hypernodedegrees);
-        }
-        else {
-          std::cout << "relabeling hyperedges..." << std::endl;
-          //TODO NOT WORKING
-          nw::hypergraph::relabel_by_degree_bipartite<0>(aos_a, args["--direction"].asString(), hyperedgedegrees);
-        }
+      if (0 == aos_a.size()) {
+        auto&& [hyperedges, hypernodes] = load_adjacency<>(file);
+        std::cout << "num_hyperedges = " << hyperedges.size() << " num_hypernodes = " << hypernodes.size() << std::endl;
+        return std::tuple(hyperedges, hypernodes);
       }
+      size = aos_a.size();
       // Clean up the edgelist to deal with the normal issues related to
       // undirectedness.
       if (args["--clean"].asBool()) {
@@ -118,10 +108,10 @@ int main(int argc, char* argv[]) {
         hyperedges.stream_stats();
       }
       std::cout << "num_hyperedges = " << aos_a.max()[0] + 1 << " num_hypernodes = " << aos_a.max()[1] + 1 << std::endl;
-      return std::tuple(aos_a, hyperedges, hypernodes, hyperedgedegrees);
+      return std::tuple(hyperedges, hypernodes);
     };
 
-    auto&& [ aos_a, hyperedges, hypernodes, hyperedgedegrees ]     = reader(file, verbose);
+    auto&& [ hyperedges, hypernodes ]     = reader(file, verbose);
 
     //all sources are hyperedges
     std::vector<vertex_id_t> sources;
@@ -149,13 +139,15 @@ int main(int argc, char* argv[]) {
           auto&& [time, parents] = time_op([&] {
             switch (id) {
               case 0:
-                return hyperBFS_topdown_serial_v0(source, hypernodes, hyperedges);
+                return hyperBFS_topdown_parallel_v0(std::execution::par_unseq, source, hypernodes, hyperedges);
               case 1:
-                return hyperBFS_topdown_serial_v1(source, hypernodes, hyperedges);
+                return hyperBFS_bottomup_parallel_v0(std::execution::par_unseq, source, hypernodes, hyperedges);
               case 2:
-                return hyperBFS_bottomup_serial_v0(source, hypernodes, hyperedges);
+                return hyperBFS_topdown_serial_v0(source, hypernodes, hyperedges);
               case 3:
-                return hyperBFS_hybrid_serial_v1(source, hypernodes, hyperedges, aos_a.size());
+                return hyperBFS_topdown_serial_v1(source, hypernodes, hyperedges);
+              case 4:
+                return hyperBFS_bottomup_serial_v0(source, hypernodes, hyperedges);
               default:
                 std::cerr << "Unknown version " << id << "\n";
                 return std::make_tuple(std::vector<vertex_id_t>(), std::vector<vertex_id_t>());
