@@ -296,33 +296,19 @@ int main(int argc, char* argv[]) {
       //auto aos_a   = load_graph<directed>(file);
       auto aos_a   = read_mm_relabeling<nw::graph::directed>(file, nrealedges, nrealnodes);
       if (0 == aos_a.size()) {
-        return read_and_relabel_adj_hypergraph_pair(file, nrealedges, nrealnodes);
-      }
-      // Run relabeling. This operates directly on the incoming edglist.
-      if (args["--relabel"].asBool()) {
-        auto degrees = aos_a.degrees();
-        aos_a.relabel_by_degree<0>(args["--direction"].asString(), degrees);
-      }
-      // Clean up the edgelist to deal with the normal issues related to
-      // undirectedness.
-      if (args["--clean"].asBool()) {
-        aos_a.swap_to_triangular<0>(args["--succession"].asString());
-        aos_a.lexical_sort_by<0>();
-        aos_a.uniq();
-        aos_a.remove_self_loops();
+        return read_and_relabel_adj_hypergraph(file, nrealedges, nrealnodes);
       }
 
       nw::graph::adjacency<0> g(aos_a);
-      nw::graph::adjacency<1> g_t(aos_a);
       if (verbose) {
-        g_t.stream_stats();
         g.stream_stats();
       }
-      
-      return std::tuple(g, g_t);
+      return g;
     };
     size_t num_realedges, num_realnodes;
-    auto&& [g, g_t]     = reader(file, verbose, num_realedges, num_realnodes);
+    auto&& g    = reader(file, verbose, num_realedges, num_realnodes);
+    nw::graph::adjacency<1> g_t(0, 0);
+    std::cout << "size of the merged adjacency = " << g.size() << std::endl;
     std::cout << "num_hyperedges = " << num_realedges << " num_hypernodes = " << num_realnodes << std::endl;
     //all sources are hyperedges
     std::vector<vertex_id_t> sources;
@@ -330,11 +316,10 @@ int main(int argc, char* argv[]) {
       sources.resize(trials);
       std::fill(sources.begin(), sources.end(), args["-r"].asLong());
     } else {
-      sources = build_random_sources(g, trials, args["--seed"].asLong());
+      sources = {0};//build_random_sources(g, trials, args["--seed"].asLong());
     }
     if (debug) {
       g.stream_indices();
-      g_t.stream_indices();
     }
 
     for (auto&& thread : threads) {

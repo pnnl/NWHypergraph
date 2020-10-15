@@ -75,22 +75,18 @@ int main(int argc, char* argv[]) {
       //auto aos_a   = load_graph<directed>(file);
       auto aos_a   = read_mm_relabeling<nw::graph::directed>(file, nrealedges, nrealnodes);
       if (0 == aos_a.size()) {
-        auto g = read_and_relabel_adj_hypergraph(file, nrealedges, nrealnodes);
-        std::cout << "num_hyperedges = " << nrealedges << " num_hypernodes = " << nrealnodes << std::endl;
-        std::cout << "size of the merged adjacency = " << g.size() << std::endl;
-        return g;
+        return read_and_relabel_adj_hypergraph(file, nrealedges, nrealnodes);
       }
-
       nw::graph::adjacency<0> g(aos_a);
       if (verbose) {
         g.stream_stats();
       }
-      std::cout << "num_hyperedges = " << nrealedges << " num_hypernodes = " << nrealnodes << std::endl;
-      std::cout << "size of the merged adjacency = " << g.size() << std::endl;
       return g;
     };
     size_t num_realedges, num_realnodes;
     auto&& g    = reader(file, verbose, num_realedges, num_realnodes);
+    std::cout << "num_hyperedges = " << num_realedges << " num_hypernodes = " << num_realnodes << std::endl;
+    std::cout << "size of the merged adjacency = " << g.size() << std::endl;
 
     for (auto&& thread : threads) {
       auto _ = set_n_threads(thread);
