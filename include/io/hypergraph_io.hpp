@@ -306,6 +306,50 @@ auto read_weighted_adj_hypergraph(const std::string& filename) {
   return read_weighted_adj_hypergraph<Attributes...>(file);
 }
 
+auto write_adj_hypergraph(const std::string& filename, adjacency<0>& E, adjacency<1>& N) {
+  nw::util::life_timer _(__func__);
+  std::ofstream file(filename, std::ifstream::out);
+  if (!file.is_open()) {
+    std::cerr << "Can not open file: " << filename << std::endl;
+    return false;
+  }
+  std::vector<vertex_id_t> v0(N.get_indices());
+  v0.pop_back();
+  std::vector<vertex_id_t> e0(std::get<0>(N.get_to_be_indexed()));
+  std::vector<vertex_id_t> v1(E.get_indices());
+  v1.pop_back();
+  std::vector<vertex_id_t> e1(std::get<0>(E.get_to_be_indexed()));
+  //write header at line 1
+  file << AdjHypergraphHeader.c_str() << std::endl;
+  size_t n0 = v0.size();
+  size_t m0 = v0[n0];
+  size_t n1 = v1.size();
+  size_t m1 = v1[n1];
+  std::cout << n0 << " " << m0 << " " << n1 << " " << m1 << std::endl;
+  //write the stats of biadjacency followed by header
+  file << n0 << std::endl;
+  file << m0 << std::endl;
+  file << n1 << std::endl;
+  file << m1 << std::endl;
+  vertex_id_t tmp;
 
+
+  for (size_t i = 0; i < n0; ++i) {
+    file << v0[i] << std::endl;
+  }
+  
+  for (size_t i = 0; i < m0; ++i) {
+    file << e0[i] << std::endl;
+  }
+
+  for (size_t i = 0; i < n1; ++i) {
+    file << v1[i] << std::endl;
+  }
+  
+  for (size_t i = 0; i < m1; ++i) {
+    file << e1[i] << std::endl;
+  }
+  return true;
+}
 }//namespace hypergraph
 }//namespace nw

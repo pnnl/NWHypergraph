@@ -45,3 +45,6 @@ target_link_libraries(scc.exe bench)
 
 add_executable(sbfs.exe soverlapbfs.cpp)
 target_link_libraries(sbfs.exe bench)
+
+add_executable(mm2adj.exe mmio_to_hyadj.cpp)
+target_link_libraries(mm2adj.exe bench)
