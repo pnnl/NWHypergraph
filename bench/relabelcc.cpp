@@ -75,16 +75,17 @@ int main(int argc, char* argv[]) {
       //auto aos_a   = load_graph<directed>(file);
       auto aos_a   = read_mm_relabeling<nw::graph::directed>(file, nrealedges, nrealnodes);
       if (0 == aos_a.size()) {
-        return read_and_relabel_adj_hypergraph(file, nrealedges, nrealnodes);
+        return read_and_relabel_adj_hypergraph_pair(file, nrealedges, nrealnodes);
       }
       nw::graph::adjacency<0> g(aos_a);
+      nw::graph::adjacency<1> g_t(aos_a);
       if (verbose) {
         g.stream_stats();
       }
-      return g;
+      return std::tuple(g, g_t);
     };
     size_t num_realedges, num_realnodes;
-    auto&& g    = reader(file, verbose, num_realedges, num_realnodes);
+    auto&& [g, g_t]    = reader(file, verbose, num_realedges, num_realnodes);
     std::cout << "num_hyperedges = " << num_realedges << " num_hypernodes = " << num_realnodes << std::endl;
     std::cout << "size of the merged adjacency = " << g.size() << std::endl;
 
@@ -109,7 +110,6 @@ int main(int argc, char* argv[]) {
         using Graph = nw::graph::adjacency<0>;
         using Transpose = nw::graph::adjacency<1>;
         using ExecutionPolicy = decltype(std::execution::par_unseq);
-        Transpose g_t(0, 0);
         for (int j = 0, e = trials; j < e; ++j) {
           switch (id) {
             case 0:

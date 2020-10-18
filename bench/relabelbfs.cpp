@@ -296,18 +296,19 @@ int main(int argc, char* argv[]) {
       //auto aos_a   = load_graph<directed>(file);
       auto aos_a   = read_mm_relabeling<nw::graph::directed>(file, nrealedges, nrealnodes);
       if (0 == aos_a.size()) {
-        return read_and_relabel_adj_hypergraph(file, nrealedges, nrealnodes);
+        return read_and_relabel_adj_hypergraph_pair(file, nrealedges, nrealnodes);
       }
 
       nw::graph::adjacency<0> g(aos_a);
+      nw::graph::adjacency<1> g_t(aos_a);
       if (verbose) {
         g.stream_stats();
       }
-      return g;
+      return std::tuple(g, g_t);
     };
     size_t num_realedges, num_realnodes;
-    auto&& g    = reader(file, verbose, num_realedges, num_realnodes);
-    nw::graph::adjacency<1> g_t(0, 0);
+    auto&& [g, g_t]    = reader(file, verbose, num_realedges, num_realnodes);
+
     std::cout << "size of the merged adjacency = " << g.size() << std::endl;
     std::cout << "num_hyperedges = " << num_realedges << " num_hypernodes = " << num_realnodes << std::endl;
     //all sources are hyperedges
@@ -337,6 +338,7 @@ int main(int argc, char* argv[]) {
                 auto v11 = nw::graph::bfs_v11<Graph, Transpose>;
                 //bfs_v11(graph, gx, source, num_bins, alpha, beta);
                 using BFSV11 = decltype(v11);
+                if (!verify) {
                 auto&& [N, E] = nw::hypergraph::relabel_x_parallel<ExecutionPolicy, BFSV11, vertex_id_t>(std::execution::par_unseq, num_realedges, num_realnodes, v11, g, g_t, source, num_bins, alpha, beta);
                 if (num_realnodes < num_realedges) {
                   //for all the parent of hyperN, substract the offset
@@ -351,16 +353,71 @@ int main(int argc, char* argv[]) {
                   }); 
                 }
                 return std::tuple(N, E);
+                }
+                else {
+                  //verify the original result before split
+                  auto labeling = nw::graph::bfs_v11<Graph, Transpose>(g, g_t, source, num_bins, alpha, beta);
+                  BFSVerifier(g, g_t, source, labeling);
+                  auto&& [N, E] = splitLabeling<ExecutionPolicy, vertex_id_t>(std::execution::par_unseq, labeling, num_realedges, num_realnodes);
+                  if (num_realnodes < num_realedges) {
+                  //for all the parent of hyperN, substract the offset
+                  std::for_each(std::execution::par_unseq, tbb::counting_iterator(0ul), tbb::counting_iterator(N.size()), [&](auto i) {
+                    N[i] -= num_realedges;
+                  }); 
+                }
+                else {
+                  //for all the parent of hyperE, substract the offset
+                   std::for_each(std::execution::par_unseq, tbb::counting_iterator(0ul), tbb::counting_iterator(E.size()), [&](auto i) {
+                    E[i] -= num_realnodes;
+                  }); 
+                }
+                return std::tuple(N, E);
+                }
+              }
+              case 1: {
+                auto td = nw::graph::bfs_top_down<Graph>;
+                using TOPDOWN = decltype(td);
+                if (!verify) {
+                auto&& [N, E] = nw::hypergraph::relabel_x_parallel<ExecutionPolicy, TOPDOWN, vertex_id_t>(std::execution::par_unseq, num_realedges, num_realnodes, td, std::move(g), source);
+                if (num_realnodes < num_realedges) {
+                  //for all the parent of hyperN, substract the offset
+                  std::for_each(std::execution::par_unseq, tbb::counting_iterator(0ul), tbb::counting_iterator(N.size()), [&](auto i) {
+                    N[i] -= num_realedges;
+                  }); 
+                }
+                else {
+                  //for all the parent of hyperE, substract the offset
+                   std::for_each(std::execution::par_unseq, tbb::counting_iterator(0ul), tbb::counting_iterator(E.size()), [&](auto i) {
+                    E[i] -= num_realnodes;
+                  }); 
+                }
+                return std::tuple(N, E);
+                }
+                else {
+                  //verify the original result before split
+                  auto labeling = nw::graph::bfs_top_down<Graph>(std::move(g), source);
+                  BFSVerifier(g, g_t, source, labeling);
+                  auto&& [N, E] = splitLabeling<ExecutionPolicy, vertex_id_t>(std::execution::par_unseq, labeling, num_realedges, num_realnodes);
+                  if (num_realnodes < num_realedges) {
+                  //for all the parent of hyperN, substract the offset
+                  std::for_each(std::execution::par_unseq, tbb::counting_iterator(0ul), tbb::counting_iterator(N.size()), [&](auto i) {
+                    N[i] -= num_realedges;
+                  }); 
+                }
+                else {
+                  //for all the parent of hyperE, substract the offset
+                   std::for_each(std::execution::par_unseq, tbb::counting_iterator(0ul), tbb::counting_iterator(E.size()), [&](auto i) {
+                    E[i] -= num_realnodes;
+                  }); 
+                }
+                return std::tuple(N, E);
+                }
               }
               default:
                 std::cerr << "Unknown version " << id << "\n";
                 return std::make_tuple(std::vector<vertex_id_t>(), std::vector<vertex_id_t>());
             }
           });
-
-          if (verify) {
-            hyperBFSVerifier(g, g_t, source, std::get<0>(parents), std::get<1>(parents));
-          }
 
           times.append(file, id, thread, time, source);
         }

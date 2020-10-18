@@ -112,6 +112,57 @@ const size_t n0, const size_t m0, const size_t n1, const size_t m1) {
   return std::tuple(adjacency<0>(std::move(v0), std::move(e0)),
   adjacency<1>(std::move(v1), std::move(e1)));
 }
+/*
+* combine biadjacency into adjacency. Return g and its transpose
+* Transform a bipartite graph into a general graph
+*/
+auto adj_hypergraph_pair_fill_and_relabel_v1(std::istream& inputStream,
+const size_t n0, const size_t m0, const size_t n1, const size_t m1) {
+  vertex_id_t tmp;
+  size_t N = n0 + n1;
+  size_t M = m0 + m1;
+  //v0-e0 is graph
+  //v1-e1 is transpose
+  std::vector<vertex_id_t> v0(N + 1), v1(N + 1);
+  std::vector<vertex_id_t> e0(M), e1(M);
+  for (size_t i = 0, j = n1; i < n0; ++i, ++j)
+  {
+    inputStream >> tmp;
+    v0[i] = tmp;
+    //increment each index of hypernodes
+    //by m1 (the last index of first adjacency)
+    v1[j] = tmp + m1;
+  }
+  for (size_t i = 0, j = m1; i < m0; ++i, ++j)
+  {
+    inputStream >> tmp;
+    //increment each neighbor of hypernodes
+    //by n0 (num of hypernodes)
+    e0[i] = tmp + n0;
+    e1[j] = tmp;
+  }
+  for (size_t i = n0, j = 0, e = N; i < e; ++i, ++j)
+  {
+    inputStream >> tmp;
+    //increment each index of hyperedges
+    //by m0 (the last index of first adjacency)
+    v0[i] = tmp + m0;
+    v1[j] = tmp;
+  }
+  for (size_t i = m0, j = 0, e = M; i < e; ++i, ++j)
+  {
+    inputStream >> tmp;
+    e0[i] = tmp;
+    //increment each neighbor of hypernodes
+    //by n1 (num of hyperedges)
+    e1[j] = tmp + n1;
+  }
+  v0[N] = M;
+  v1[N] = M;
+  //create use move constructor
+  return std::tuple(adjacency<0>(std::move(v0), std::move(e0)),
+  adjacency<1>(std::move(v1), std::move(e1)));
+}
 
 /*
 * combine biadjacency into an adjacency
@@ -208,7 +259,7 @@ auto read_and_relabel_adj_hypergraph_pair(std::istream& inputStream, size_t& nre
   inputStream >> m1;
   //std::cout << nreal_nodes << " " << m0 << " " << nreal_edges << " " << m1 << std::endl;
 
-  return adj_hypergraph_pair_fill_and_relabel(inputStream, nreal_nodes, m0, nreal_edges, m1);
+  return adj_hypergraph_pair_fill_and_relabel_v1(inputStream, nreal_nodes, m0, nreal_edges, m1);
 }
 
 auto read_and_relabel_adj_hypergraph(std::istream& inputStream, size_t& nreal_edges, size_t& nreal_nodes) {
@@ -308,7 +359,7 @@ auto read_weighted_adj_hypergraph(const std::string& filename) {
 
 auto write_adj_hypergraph(const std::string& filename, adjacency<0>& E, adjacency<1>& N) {
   nw::util::life_timer _(__func__);
-  std::ofstream file(filename, std::ifstream::out);
+  std::ofstream file(filename, std::ios::out | std::ios::binary);
   if (!file.is_open()) {
     std::cerr << "Can not open file: " << filename << std::endl;
     return false;
