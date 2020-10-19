@@ -48,3 +48,6 @@ target_link_libraries(sbfs.exe bench)
 
 add_executable(mm2adj.exe mmio_to_hyadj.cpp)
 target_link_libraries(mm2adj.exe bench)
+
+add_executable(hystat.exe hyperstats.cpp)
+target_link_libraries(hystat.exe bench)
