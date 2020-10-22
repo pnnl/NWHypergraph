@@ -22,9 +22,10 @@ add_library(NW_HYPERGRAPH INTERFACE)
 target_sources(NW_HYPERGRAPH
   INTERFACE
   edge_list_hy.hpp
-  hypergraph_io.hpp
-  mmio_hy.hpp
+  io/hypergraph_io.hpp
+  io/mmio.hpp
   s_overlap.hpp
+  algorithms/relabel_x.hpp
   algorithms/hyper_connected_components.hpp
   algorithms/hyper_breadth_first_search.hpp
   algorithms/s_connected_components.hpp

@@ -118,7 +118,7 @@ auto lpCC(GraphN& hypernodes, GraphE& hyperedges) {
     frontierN.clear();
   }    //while
 
-  return std::tuple{N, E};
+  return std::tuple(N, E);
 }
 
 template<typename GraphN, typename GraphE>
@@ -177,7 +177,7 @@ auto lpCCv2(GraphN& hypernodes, GraphE& hyperedges) {
     frontierE.clear();
   }    //while
 
-  return std::tuple{N, E};
+  return std::tuple(N, E);
 }
 
 inline bool updateAtomic(std::vector<vertex_id_t>& dest, std::vector<vertex_id_t>& source, std::vector<vertex_id_t>& prevDest,
@@ -271,7 +271,7 @@ auto lpCC_parallelv1(ExecutionPolicy&& ep, GraphN& hypernodes, GraphE& hyperedge
     visitedE.clear();
     frontierN.clear();
   }    //while
-  return std::tuple{N, E};
+  return std::tuple(N, E);
 }
 
 
@@ -352,7 +352,7 @@ auto lpCC_parallelv2(ExecutionPolicy&& ep, GraphN& hypernodes, GraphE& hyperedge
     visitedE.clear();
     frontierN.clear();
   }    //while
-  return std::tuple{N, E};
+  return std::tuple(N, E);
 }
 
 
@@ -417,7 +417,7 @@ auto lpaNoFrontierCC(ExecutionPolicy&& ep, GraphN& hypernodes, GraphE& hyperedge
     });
   }    //while
 
-  return std::tuple{N, E};
+  return std::tuple(N, E);
 }
 
 

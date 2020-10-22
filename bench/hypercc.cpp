@@ -26,7 +26,7 @@ static constexpr const char USAGE[] =
     R"(hycc.exe: hypergraph connected components benchmark driver.
   Usage:
       hycc.exe (-h | --help)
-      hycc.exe [-f FILE...] [-a FILE...] [--version ID...] [-B NUM] [-n NUM] [--direction DIR] [-cdrV] [--log FILE] [--log-header] [THREADS]...
+      hycc.exe [-f FILE...] [-a FILE...] [--version ID...] [-B NUM] [-n NUM] [--direction DIR] [--relabel NUM] [-cdV] [--log FILE] [--log-header] [THREADS]...
 
   Options:
       -h, --help            show this screen
@@ -35,7 +35,7 @@ static constexpr const char USAGE[] =
       -a FILE               hypergraph adjacency fils paths (can have multiples)
       -n NUM                number of trials [default: 1]
       -B NUM                number of bins [default: 32]
-      -r, --relabel         relabel the graph or not
+      --relabel NUM         relabel the graph - 0(hyperedge)/1(hypernode) [default: -1]
       -c, --clean           clean the graph or not
       --direction DIR       graph relabeling direction - ascending/descending [default: descending]
       --log FILE            log times to a file
@@ -76,58 +76,55 @@ int main(int argc, char* argv[]) {
       auto aos_a   = load_graph<directed>(file);
       if (0 == aos_a.size()) {
         auto&& [hyperedges, hypernodes] = load_adjacency<>(file);
-        auto hyperedgedegrees = hyperedges.degrees();
-        /*
-        aos_a.open_for_push_back();
-        for (vertex_id_t i = 0, e = hyperedges.size(); i < e; ++i) {
-        std::for_each (hyperedges[i].begin(), hyperedges[i].end(), [&](auto&& j) {
-          aos_a.push_back(i, std::get<0>(j));
-        });
+        auto hyperedge_degrees = hyperedges.degrees();
+        // Run relabeling. This operates directly on the incoming edglist.
+        const long idx = args["--relabel"].asLong();
+        if (-1 != idx) {
+          //relabel the column with smaller size
+          if (0 == idx) {
+            auto iperm = hyperedges.sort_by_degree(args["--direction"].asString());
+            hypernodes.permute(iperm);
+            std::cout << "relabeling hyperedge adjacency by degree..." << std::endl;
+          }
+          else {
+            auto iperm = hypernodes.sort_by_degree(args["--direction"].asString());
+            hyperedges.permute(iperm);
+            std::cout << "relabeling hypernodes adjacency by degree..." << std::endl;
+          }
         }
-        for (vertex_id_t i = 0, e = hypernodes.size(); i < e; ++i) {
-        std::for_each (hypernodes[i].begin(), hypernodes[i].end(), [&](auto&& j) {
-          aos_a.push_back(i, std::get<0>(j));
-        });
-        }
-        aos_a.close_for_push_back();
-        */
+        //may need to update the degree vector, if we relabel the graph
+        hyperedge_degrees = hyperedges.degrees();
         std::cout << "num_hyperedges = " << hyperedges.size() << " num_hypernodes = " << hypernodes.size() << std::endl;
-        return std::tuple(aos_a, hyperedges, hypernodes, hyperedgedegrees);
+        return std::tuple(aos_a, hyperedges, hypernodes, hyperedge_degrees);
       }
-      auto hyperedgedegrees = aos_a.degrees<0>();
-
+      std::vector<index_t> hyperedge_degrees =  aos_a.degrees<0>();
       // Run relabeling. This operates directly on the incoming edglist.
-      if (args["--relabel"].asBool()) {
+      const long idx = args["--relabel"].asLong();
+      if (-1 != idx) {
         //relabel the column with smaller size
-        if (aos_a.max()[0] > aos_a.max()[1]) {
-          auto hypernodedegrees = aos_a.degrees<1>();
-          std::cout << "relabeling hypernodes..." << std::endl;
-          //TODO NOT WORKING
-          nw::hypergraph::relabel_by_degree_bipartite<1>(aos_a, args["--direction"].asString(), hypernodedegrees);
+        std::vector<index_t> degrees;
+        if (0 == idx) {
+          degrees = hyperedge_degrees;
+          std::cout << "relabeling hyperedges by degree..." << std::endl;
+          nw::hypergraph::relabel_by_degree_bipartite<0>(aos_a, args["--direction"].asString(), degrees);
         }
         else {
-          std::cout << "relabeling hyperedges..." << std::endl;
-          //TODO NOT WORKING
-          nw::hypergraph::relabel_by_degree_bipartite<1>(aos_a, args["--direction"].asString(), hyperedgedegrees);
+          degrees = aos_a.degrees<1>();
+          std::cout << "relabeling hypernodes by degree..." << std::endl;
+          nw::hypergraph::relabel_by_degree_bipartite<1>(aos_a, args["--direction"].asString(), degrees);
         }
       }
-      // Clean up the edgelist to deal with the normal issues related to
-      // undirectedness.
-      if (args["--clean"].asBool()) {
-        aos_a.swap_to_triangular<0>(args["--succession"].asString());
-        aos_a.lexical_sort_by<0>();
-        aos_a.uniq();
-        aos_a.remove_self_loops();
-      }
-
+      //we may need to get the new degrees 
+      //if we relabel the edge list
+      hyperedge_degrees = aos_a.degrees<0>();
       adjacency<0> hyperedges(aos_a);
       adjacency<1> hypernodes(aos_a);
       if (verbose) {
         hypernodes.stream_stats();
         hyperedges.stream_stats();
       }
-      std::cout << "num_hyperedges = " << aos_a.max()[0] + 1 << " num_hypernodes = " << aos_a.max()[1] + 1 << std::endl;
-      return std::tuple(aos_a, hyperedges, hypernodes, hyperedgedegrees);
+      std::cout << "num_hyperedges = " << hyperedges.size() << " num_hypernodes = " << hypernodes.size() << std::endl;
+      return std::tuple(aos_a, hyperedges, hypernodes, hyperedge_degrees);
     };
 
     auto&&[ aos_a, hyperedges, hypernodes, hyperedgedegrees ] = reader(file, verbose);
@@ -146,25 +143,16 @@ int main(int argc, char* argv[]) {
 
         auto verifier = [&](auto&& result) {
           auto&& [N, E] = result;
-          if (verbose) {
-            //This returns the subgraph of each component.
-            std::map<vertex_id_t, edge_list<>> comps;
-            std::for_each(aos_a.begin(), aos_a.end(), [&](auto&& elt) {
-              auto&& [edge, node] = elt;
-              vertex_id_t key     = E[edge];
-              comps[key].push_back(elt);
-            });
-
-            for (auto&& j : comps) {
-              auto& [k, v] = j;
-              v.close_for_push_back();
-            }
-            std::cout << comps.size() << " subgraphs and" << std::endl;
-          }
           std::unordered_set<vertex_id_t> uni_comps(E.begin(), E.end());
-          std::cout << uni_comps.size() << " components found" << std::endl;
-
-          
+          std::cout << uni_comps.size() << " components found" ;
+          if (verbose) {
+            std::cout << ":";
+            for(auto it = uni_comps.begin(); it != uni_comps.end(); ++it)
+              std::cout << *it << std::endl;
+            for(size_t i = 0, e = E.size(); i < e; ++i)
+              std::cout << i << " " << E[i] << std::endl;
+          }
+          std::cout << std::endl;
         };
 
         auto record = [&](auto&& op) { times.record(file, id, thread, std::forward<decltype(op)>(op), verifier, true); };

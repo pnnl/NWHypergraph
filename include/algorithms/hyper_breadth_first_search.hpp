@@ -16,6 +16,15 @@
 namespace nw {
 namespace hypergraph {
 
+template<class T>
+inline bool writeMin(T& old, T& next) {
+  T    prev;
+  bool success = false;
+  do
+    prev = old;
+  while (prev > next && !(success = nw::graph::cas(old, prev, next)));
+  return success;
+}
 /*
 * Topdown bfs in serial.
 */
@@ -113,6 +122,85 @@ auto hyperBFS_topdown_serial_v1(vertex_id_t source_hyperedge, GraphN& hypernodes
   return std::tuple{parentN, parentE};
 }
 
+template<class ExecutionPolicy, typename GraphN, typename GraphE>
+auto hyperBFS_topdown_parallel_v0(ExecutionPolicy&& ep, const vertex_id_t source_hyperedge, GraphN& hypernodes, GraphE& hyperedges, int num_bins = 32) {
+  nw::util::life_timer _(__func__);
+  size_t     num_hypernodes = hypernodes.max() + 1;    // number of hypernodes
+  size_t     num_hyperedges = hyperedges.max() + 1;    // number of hyperedges
+
+  std::vector<vertex_id_t> parentE(num_hyperedges);
+  std::vector<vertex_id_t> parentN(num_hypernodes);
+
+  nw::graph::AtomicBitVector   visitedN(num_hypernodes);
+  nw::graph::AtomicBitVector   visitedE(num_hyperedges);
+  std::vector<vertex_id_t> frontierN, frontierE;
+  frontierN.reserve(num_hypernodes);
+  frontierE.reserve(num_hyperedges);
+  //initial edge frontier includes every node
+  //or use a parallel for loop
+  std::for_each(ep, counting_iterator<vertex_id_t>(0), counting_iterator<vertex_id_t>(num_hyperedges), [&](auto i) {
+    parentE[i] = std::numeric_limits<vertex_id_t>::max();
+  });
+  std::for_each(ep, counting_iterator<vertex_id_t>(0), counting_iterator<vertex_id_t>(num_hypernodes), [&](auto i) {
+    parentN[i] = std::numeric_limits<vertex_id_t>::max();
+  });
+  frontierE.push_back(source_hyperedge);
+  parentE[source_hyperedge] = source_hyperedge; //parent of root is itself
+
+
+  auto nodes = hypernodes.begin();
+  auto edges = hyperedges.begin();
+  std::vector<vertex_id_t> frontier[num_bins];
+  auto traverse = [&](auto& g, auto& cur, auto& bitmap, auto& parents) {
+    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0ul, cur.size()), [&](tbb::blocked_range<vertex_id_t>& r) {
+      int worker_index = tbb::task_arena::current_thread_index();
+      for (auto i = r.begin(), e = r.end(); i < e; ++i) {
+        vertex_id_t x = cur[i];
+        //all neighbors of hyperedges are hypernode, vice versa
+        std::for_each(g[x].begin(), g[x].end(), [&](auto&& j) {
+          auto y = std::get<0>(j);
+          if (writeMin(parents[y], x)) {
+            if (0 == bitmap.atomic_get(y) && 0 == bitmap.atomic_set(y)) {
+              frontier[worker_index].push_back(y);
+            }
+          }
+        });
+      } //for
+    }, tbb::auto_partitioner());
+  };
+
+  std::vector<size_t> size_array(num_bins);
+  auto curtonext = [&](auto& next) {
+    size_t size = 0;
+    for (int i = 0; i < num_bins; ++i) {
+      //calculate the size of each thread-local frontier
+      size_array[i] = size;
+      //accumulate the total size of all thread-local frontiers
+      size += frontier[i].size();
+    }
+    //resize next frontier
+    next.resize(size); 
+    std::for_each(ep, tbb::counting_iterator(0), tbb::counting_iterator(num_bins), [&](auto i) {
+      //copy each thread-local frontier to next frontier based on their size offset
+      auto begin = std::next(next.begin(), size_array[i]);
+      std::copy(ep, frontier[i].begin(), frontier[i].end(), begin);
+      frontier[i].clear();
+    });
+  };
+
+  while (false == (frontierE.empty() && frontierN.empty())) {
+    traverse(edges, frontierE, visitedN, parentN);
+    curtonext(frontierN);
+    visitedN.clear();
+    frontierE.clear();
+    traverse(nodes, frontierN, visitedE, parentE);
+    curtonext(frontierE);
+    visitedE.clear();
+    frontierN.clear();
+  } 
+  return std::tuple(parentN, parentE);
+}
+
 /*
 * Bottomup bfs in serial.
 */
@@ -149,6 +237,55 @@ auto hyperBFS_bottomup_serial_v0(vertex_id_t source_hyperedge, GraphN& hypernode
   }
 
   return std::tuple{parentN, parentE};
+}
+
+template<class ExecutionPolicy, typename GraphN, typename GraphE>
+auto hyperBFS_bottomup_parallel_v0(ExecutionPolicy&& ep, const vertex_id_t source_hyperedge, GraphN& hypernodes, GraphE& hyperedges, int num_bins = 32) {
+  nw::util::life_timer _(__func__);
+  size_t     num_hypernodes = hypernodes.max() + 1;    // number of hypernodes
+  size_t     num_hyperedges = hyperedges.max() + 1;    // number of hyperedges
+
+  std::vector<vertex_id_t> parentE(num_hyperedges);
+  std::vector<vertex_id_t> parentN(num_hypernodes);
+  //initial edge frontier includes every node
+  //or use a parallel for loop
+  std::for_each(ep, counting_iterator<vertex_id_t>(0), counting_iterator<vertex_id_t>(num_hyperedges), [&](auto i) {
+    parentE[i] = std::numeric_limits<vertex_id_t>::max();
+  });
+  std::for_each(ep, counting_iterator<vertex_id_t>(0), counting_iterator<vertex_id_t>(num_hypernodes), [&](auto i) {
+    parentN[i] = std::numeric_limits<vertex_id_t>::max();
+  });
+  parentE[source_hyperedge] = source_hyperedge; //parent of root is itself
+
+  tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0ul, num_hyperedges), [&](tbb::blocked_range<vertex_id_t>& r) {
+    int worker_index = tbb::task_arena::current_thread_index();
+    for (vertex_id_t hyperE = r.begin(), e = r.end(); hyperE < e; ++hyperE) {
+      if (std::numeric_limits<vertex_id_t>::max() == parentE[hyperE]) {
+      //all neighbors of hyperedges are hypernode
+        std::for_each(hyperedges.begin()[hyperE].begin(), hyperedges.begin()[hyperE].end(), [&](auto&& x) {
+            auto hyperN = std::get<0>(x);
+            parentE[hyperE] = hyperN;
+            return;    //return once found the first valid parent
+        });
+      }
+    }
+  }, tbb::auto_partitioner());
+  tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0ul, num_hypernodes), [&](tbb::blocked_range<vertex_id_t>& r) {
+    int worker_index = tbb::task_arena::current_thread_index();
+    for (vertex_id_t hyperN = r.begin(), e = r.end(); hyperN < e; ++hyperN) {
+    if (std::numeric_limits<vertex_id_t>::max() == parentN[hyperN]) {
+    //all neighbors of hypernodes are hyperedges
+        std::for_each(hypernodes.begin()[hyperN].begin(), hypernodes.begin()[hyperN].end(), [&](auto&& x) {
+        //so we check compid of each hyperedge
+            auto hyperE = std::get<0>(x);
+            parentN[hyperN] = hyperE;
+            return;
+        });
+    }
+    }
+  }, tbb::auto_partitioner());
+
+  return std::tuple(parentN, parentE);
 }
 
 template<typename Graph>

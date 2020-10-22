@@ -31,17 +31,29 @@ target_link_libraries(bench INTERFACE NW_HYPERGRAPH docopt date::date std::files
 add_executable(hybfs.exe hyperbfs.cpp)
 target_link_libraries(hybfs.exe bench)
 
-add_executable(hybfsrelabel.exe hyperbfsrelabel.cpp)
-target_link_libraries(hybfsrelabel.exe bench)
+add_executable(relabelbfs.exe relabelbfs.cpp)
+target_link_libraries(relabelbfs.exe bench)
 
 add_executable(hycc.exe hypercc.cpp)
 target_link_libraries(hycc.exe bench)
 
-add_executable(hyccrelabel.exe hyperccrelabel.cpp)
-target_link_libraries(hyccrelabel.exe bench)
+add_executable(relabelcc.exe relabelcc.cpp)
+target_link_libraries(relabelcc.exe bench)
 
 add_executable(scc.exe soverlapcc.cpp)
 target_link_libraries(scc.exe bench)
 
 add_executable(sbfs.exe soverlapbfs.cpp)
 target_link_libraries(sbfs.exe bench)
+
+add_executable(ssssp.exe soverlapsssp.cpp)
+target_link_libraries(ssssp.exe bench)
+
+add_executable(sbc.exe soverlapbc.cpp)
+target_link_libraries(sbc.exe bench)
+
+add_executable(mm2adj.exe mmio_to_hyadj.cpp)
+target_link_libraries(mm2adj.exe bench)
+
+add_executable(hystat.exe hyperstats.cpp)
+target_link_libraries(hystat.exe bench)
