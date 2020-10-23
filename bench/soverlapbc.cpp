@@ -5,24 +5,28 @@
 // Licensed under Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License
 // https://creativecommons.org/licenses/by-nc-sa/4.0/
 //
-// Author: Jesun Firoz
+// Author: Jesun Firoz, Xu Tony Liu
 //
 
 static constexpr const char USAGE[] =
- R"(bc2.exe : BGL17 betweenness centrality benchmark driver.
+ R"(sbc.exe : NWhy soverlap betweenness centrality benchmark driver.
   Usage:
-      bc2.exe (-h | --help)
-      bc2.exe -f FILE [-r NODE | -s FILE ] [-i NUM] [-n NUM] [--seed NUM] [--version ID...] [--log FILE] [--log-header] [-dvV] [THREADS]...
+      sbc.exe (-h | --help)
+      sbc.exe [-f FILE...] [-r NODE | --sources FILE ] [-i NUM] [-n NUM] [-B NUM] [-s NUM] [--relabel NUM] [--loader-version ID] [--seed NUM] [--version ID...] [--log FILE] [--log-header] [-dvV] [THREADS]...
 
   Options:
       -h, --help              show this screen
-      -f FILE                 input file path
+      -f FILE                 input file paths (can have multiples and different file format)
       -i NUM                  number of iteration [default: 1]
       -n NUM                  number of trials [default: 1]
       -r NODE                 start from node r (default is random)
-      -s, --sources FILE      sources file
+      -B NUM                  number of bins [default: 32]
+      -s NUM                  s value of soverlap [default: 1]
+      --relabel NUM           relabel the graph - 0(hyperedge)/1(hypernode) [default: -1]
+      --sources FILE          sources file
       --seed NUM              random seed [default: 27491095]
       --version ID            algorithm version to run [default: 0]
+      --loader-version ID     soverlap computation loader kernal version [default: 0]
       --log FILE              log times to a file
       --log-header            add a header to the log file
       -d, --debug             run in debug mode
@@ -44,6 +48,8 @@ using namespace nw::hypergraph::bench;
 using namespace nw::hypergraph;
 using namespace nw::util;
 
+using score_t = float;
+using accum_t = double;
 
 int main(int argc, char* argv[]) {
   std::vector strings = std::vector<std::string>(argv + 1, argv + argc);
@@ -55,7 +61,6 @@ int main(int argc, char* argv[]) {
   bool       debug = args["--debug"].asBool();
   long      trials = args["-n"].asLong() ?: 1;
   long  iterations = args["-i"].asLong() ?: 1;
-   std::string  file = args["-f"].asString();
   long num_bins= args["-B"].asLong() ?: 32;
   size_t s     = args["-s"].asLong() ?: 1;
   long loader_version = args["--loader-version"].asLong() ?: 0;
@@ -68,32 +73,64 @@ int main(int argc, char* argv[]) {
     files.emplace_back(file);
   }
 
-  Times<bool> times;
+  Times times;
 
   for (auto&& file : files) {
     auto reader = [&](std::string file, bool verbose) {
       auto aos_a   = load_graph<directed>(file);
-      auto hyperedgedegrees = aos_a.degrees<0>();
-
-      // Clean up the edgelist to deal with the normal issues related to
-      // undirectedness.
-      if (args["--clean"].asBool()) {
-        aos_a.swap_to_triangular<0>(args["--succession"].asString());
-        aos_a.lexical_sort_by<0>();
-        aos_a.uniq();
-        aos_a.remove_self_loops();
+      if (0 == aos_a.size()) {
+        auto&& [hyperedges, hypernodes] = load_adjacency<>(file);
+        auto hyperedge_degrees = hyperedges.degrees();
+        // Run relabeling. This operates directly on the incoming edglist.
+        const long idx = args["--relabel"].asLong();
+        if (-1 != idx) {
+          //relabel the column with smaller size
+          if (0 == idx) {
+            auto iperm = hyperedges.sort_by_degree(args["--direction"].asString());
+            hypernodes.permute(iperm);
+            std::cout << "relabeling hyperedge adjacency by degree..." << std::endl;
+          }
+          else {
+            auto iperm = hypernodes.sort_by_degree(args["--direction"].asString());
+            hyperedges.permute(iperm);
+            std::cout << "relabeling hypernodes adjacency by degree..." << std::endl;
+          }
+        }
+        //may need to update the degree vector, if we relabel the graph
+        hyperedge_degrees = hyperedges.degrees();
+        std::cout << "num_hyperedges = " << hyperedges.size() << " num_hypernodes = " << hypernodes.size() << std::endl;
+        return std::tuple(hyperedges, hypernodes, hyperedge_degrees);
       }
-
+      std::vector<index_t> hyperedge_degrees =  aos_a.degrees<0>();
+      // Run relabeling. This operates directly on the incoming edglist.
+      const long idx = args["--relabel"].asLong();
+      if (-1 != idx) {
+        //relabel the column with smaller size
+        std::vector<index_t> degrees;
+        if (0 == idx) {
+          degrees = hyperedge_degrees;
+          std::cout << "relabeling hyperedges by degree..." << std::endl;
+          nw::hypergraph::relabel_by_degree_bipartite<0>(aos_a, args["--direction"].asString(), degrees);
+        }
+        else {
+          degrees = aos_a.degrees<1>();
+          std::cout << "relabeling hypernodes by degree..." << std::endl;
+          nw::hypergraph::relabel_by_degree_bipartite<1>(aos_a, args["--direction"].asString(), degrees);
+        }
+      }
+      //we may need to get the new degrees 
+      //if we relabel the edge list
+      hyperedge_degrees = aos_a.degrees<0>();
       adjacency<0> hyperedges(aos_a);
       adjacency<1> hypernodes(aos_a);
       if (verbose) {
         hypernodes.stream_stats();
         hyperedges.stream_stats();
       }
-      std::cout << "num_hyperedges = " << aos_a.max()[0] + 1 << " num_hypernodes = " << aos_a.max()[1] + 1 << std::endl;
-      return std::tuple(aos_a, hyperedges, hypernodes, hyperedgedegrees);
+      std::cout << "num_hyperedges = " << hyperedges.size() << " num_hypernodes = " << hypernodes.size() << std::endl;
+      return std::tuple(hyperedges, hypernodes, hyperedge_degrees);
     };
-    auto&&[ aos_a, hyperedges, hypernodes, hyperedgedegrees ] = reader(file, verbose);
+    auto&&[ hyperedges, hypernodes, hyperedgedegrees ] = reader(file, verbose);
 
     //all sources are hyperedges
     std::vector<vertex_id_t> sources;
@@ -114,19 +151,19 @@ int main(int argc, char* argv[]) {
       {
           nw::graph::edge_list<undirected> &&linegraph = to_two_graph_efficient_parallel_clean<undirected>(std::execution::par_unseq, hyperedges, hypernodes, hyperedgedegrees, s, num_bins);
           //where when an empty edge list is passed in, an adjacency still have two elements
-          if (0 == linegraph.size()) return nw::graph::adjacency<0>(0);
-          nw::graph::adjacency<0> s_adj(linegraph);
+          if (0 == linegraph.size()) return nw::graph::adjacency<1>(0);
+          nw::graph::adjacency<1> s_adj(linegraph);
           std::cout << "line:" << linegraph.size() << " adjacency: " << s_adj.size() << std::endl;
           return s_adj;
       }
       default:
       {
           std::cerr << "unknown soverlap computation loader" << std::endl;
-          return nw::graph::adjacency<0>(0);
+          return nw::graph::adjacency<1>(0);
       }
       }
     };
-    auto&& s_adj = twograph_reader(hyperedges, hypernodes, hyperedgedegrees, s, num_bins);
+    auto&& graph = twograph_reader(hyperedges, hypernodes, hyperedgedegrees, s, num_bins);
 
     if (debug) {
       hypernodes.stream_indices();
@@ -138,33 +175,34 @@ int main(int argc, char* argv[]) {
       for (auto&& id : ids) {
         for (auto&& source : sources) {
           if (verbose) std::cout << "version " << id << std::endl;
-
-          auto&& [time, distance] = time_op([&] {
-	      switch (id) {
-	      case 0:
-	       	return true;
-		// return delta_stepping_v10<distance_t>(s_adj, source, delta); 
-		// s_sssp_v0(s_adj, source, delta);
-	      default:
-		// return delta_stepping_v10<distance_t>(s_adj, source, delta);
-                // std::cerr << "Unknown version " << id << "\n";
-                // return std::make_tuple(std::vector<std::atomic<long unsigned int>, std::allocator<std::atomic<long unsigned int> > >());
-		return true;
-		// return std::tuple(0.0);
-		// return std::make_tuple(std::vector<vertex_id_t>());
-	      }
-	    });
-	  times.append(file, id, thread, time, source);
-        }
-      }
-    }
-  }
+          for (int i = 0; i < trials; ++i) {
+            std::vector<vertex_id_t> trial_sources(&sources[iterations * i], &sources[iterations * (i + 1)]);
+            auto&& [centrality] = times.record(file, id, thread, [&]() -> std::vector<score_t> {
+            switch (id)
+            {
+             case 0: return bc2_v0<decltype(graph), score_t, accum_t>(graph, trial_sources);
+             case 1: return bc2_v1<decltype(graph), score_t, accum_t>(graph, trial_sources);
+             case 2: return bc2_v2<decltype(graph), score_t, accum_t>(graph, trial_sources);
+             case 3: return bc2_v3<decltype(graph), score_t, accum_t>(graph, trial_sources);
+             case 4: return bc2_v4<score_t, accum_t>(graph, trial_sources, thread);
+             case 5: return bc2_v5<score_t, accum_t>(graph, trial_sources, thread);
+             default:
+              std::cerr << "Invalid BC version " << id << "\n";
+              return {};
+            }
+            });
+            if (verify) BCVerifier<score_t, accum_t>(graph, trial_sources, centrality);
+          } // trial
+        } //source
+      } //id
+    }//thread
+  }//file
   times.print(std::cout);
 
   if (args["--log"]) {
-    auto file   = args["--log"].asString();
+    auto   file = args["--log"].asString();
     bool header = args["--log-header"].asBool();
-    log("cc", file, times, header, "Time(s)");
+    log("bc", file, times, header, "Time(s)", "Iterations");
   }
   return 0;
 }
