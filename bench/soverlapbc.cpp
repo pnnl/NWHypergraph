@@ -52,6 +52,7 @@ using score_t = float;
 using accum_t = double;
 
 int main(int argc, char* argv[]) {
+  tbb::task_scheduler_init init(std::stol(argv[argc - 1]));
   std::vector strings = std::vector<std::string>(argv + 1, argv + argc);
   std::map       args = docopt::docopt(USAGE, strings, true);
 
@@ -82,8 +83,9 @@ int main(int argc, char* argv[]) {
         auto&& [hyperedges, hypernodes] = load_adjacency<>(file);
         auto hyperedge_degrees = hyperedges.degrees();
         // Run relabeling. This operates directly on the incoming edglist.
-        const long idx = args["--relabel"].asLong();
-        if (-1 != idx) {
+        const long idx = args["--relabel"].asLong(); // TODO:
+	std::cout << "relabel: " << idx << std::endl;
+	if (-1 != idx) {
           //relabel the column with smaller size
           if (0 == idx) {
             auto iperm = hyperedges.sort_by_degree(args["--direction"].asString());
@@ -132,17 +134,6 @@ int main(int argc, char* argv[]) {
     };
     auto&&[ hyperedges, hypernodes, hyperedgedegrees ] = reader(file, verbose);
 
-    //all sources are hyperedges
-    std::vector<vertex_id_t> sources;
-    if (args["--sources"]) {
-      sources = load_sources_from_file(hyperedges, args["--sources"].asString());
-      trials  = sources.size();
-    } else if (args["-r"]) {
-      sources.resize(trials);
-      std::fill(sources.begin(), sources.end(), args["-r"].asLong());
-    } else {
-      sources = build_random_sources(hyperedges, trials, args["--seed"].asLong());
-    }
 
     auto twograph_reader = [&](adjacency<0>& edges, adjacency<1>& nodes, std::vector<nw::graph::index_t>& edgedegrees, 
     size_t s = 1, int num_bins = 32) {
@@ -170,6 +161,18 @@ int main(int argc, char* argv[]) {
       hyperedges.stream_indices();
     }
 
+    //Source should be selected/generated based on line graph
+    std::vector<vertex_id_t> sources;
+    if (args["--sources"]) {
+      sources = load_sources_from_file(hyperedges, args["--sources"].asString());
+      trials  = sources.size();
+    } else if (args["-r"]) {
+      sources.resize(trials);
+      std::fill(sources.begin(), sources.end(), args["-r"].asLong());
+    } else {
+      sources = build_random_sources(graph, trials, args["--seed"].asLong()); // TODO: set source based on line graph vertex max ID
+    }
+
     for (auto&& thread : threads) {
       auto _ = set_n_threads(thread);
       for (auto&& id : ids) {
@@ -177,6 +180,7 @@ int main(int argc, char* argv[]) {
           if (verbose) std::cout << "version " << id << std::endl;
           for (int i = 0; i < trials; ++i) {
             std::vector<vertex_id_t> trial_sources(&sources[iterations * i], &sources[iterations * (i + 1)]);
+	    // for (auto&& src: trial_sources) std::cout << src << std::endl;
             auto&& [centrality] = times.record(file, id, thread, [&]() -> std::vector<score_t> {
             switch (id)
             {

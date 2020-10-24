@@ -25,7 +25,7 @@ static constexpr const char USAGE[] =
     R"(scc.exe: s-overlap connected components benchmark driver.
   Usage:
       scc.exe (-h | --help)
-      scc.exe [-f FILE...] [--version ID...] [--feature ID...] [--loader-version ID] [-n NUM] [-B NUM] [-s NUM] [--relabel NUM] [--direction DIR] [-dvV] [--log FILE] [--log-header] [THREADS]...
+      scc.exe [-f FILE...] [--version ID...] [--feature ID...] [--loader-version ID] [-n NUM] [-B NUM] [-s NUM...] [--relabel NUM] [--direction DIR] [-dvV] [--log FILE] [--log-header] [THREADS]...
 
   Options:
       -h, --help            show this screen
