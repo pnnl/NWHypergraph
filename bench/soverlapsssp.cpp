@@ -53,6 +53,7 @@ using namespace nw::hypergraph;
 using distance_t = std::uint64_t;
 
 int main(int argc, char* argv[]) {
+  tbb::task_scheduler_init init(std::stol(argv[argc - 1]));
   std::vector<std::string> strings(argv + 1, argv + argc);
   auto args = docopt::docopt(USAGE, strings, true);
 
@@ -134,19 +135,6 @@ int main(int argc, char* argv[]) {
     };
     auto&&[ hyperedges, hypernodes, hyperedgedegrees ] = reader(file, verbose);
 
-
-    //all sources are hyperedges
-    std::vector<vertex_id_t> sources;
-    if (args["--sources"]) {
-      sources = load_sources_from_file(hyperedges, args["--sources"].asString());
-      trials  = sources.size();
-    } else if (args["-r"]) {
-      sources.resize(trials);
-      std::fill(sources.begin(), sources.end(), args["-r"].asLong());
-    } else {
-      sources = build_random_sources(hyperedges, trials, args["--seed"].asLong());
-    }
-
     auto twograph_reader = [&](adjacency<0>& edges, adjacency<1>& nodes, std::vector<nw::graph::index_t>& edgedegrees, 
     size_t s = 1, int num_bins = 32) {
       switch (loader_version) {
@@ -173,6 +161,18 @@ int main(int argc, char* argv[]) {
     if (debug) {
       hypernodes.stream_indices();
       hyperedges.stream_indices();
+    }
+
+    //Source should be selected/generated based on line graph
+    std::vector<vertex_id_t> sources;
+    if (args["--sources"]) {
+      sources = load_sources_from_file(hyperedges, args["--sources"].asString());
+      trials  = sources.size();
+    } else if (args["-r"]) {
+      sources.resize(trials);
+      std::fill(sources.begin(), sources.end(), args["-r"].asLong());
+    } else {
+      sources = build_random_sources(s_adj, trials, args["--seed"].asLong()); // TODO: set source based on line graph vertex max ID
     }
 
     for (auto&& thread : threads) {

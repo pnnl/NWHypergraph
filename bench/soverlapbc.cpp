@@ -84,7 +84,6 @@ int main(int argc, char* argv[]) {
         auto hyperedge_degrees = hyperedges.degrees();
         // Run relabeling. This operates directly on the incoming edglist.
         const long idx = args["--relabel"].asLong(); // TODO:
-	std::cout << "relabel: " << idx << std::endl;
 	if (-1 != idx) {
           //relabel the column with smaller size
           if (0 == idx) {
@@ -180,7 +179,6 @@ int main(int argc, char* argv[]) {
           if (verbose) std::cout << "version " << id << std::endl;
           for (int i = 0; i < trials; ++i) {
             std::vector<vertex_id_t> trial_sources(&sources[iterations * i], &sources[iterations * (i + 1)]);
-	    // for (auto&& src: trial_sources) std::cout << src << std::endl;
             auto&& [centrality] = times.record(file, id, thread, [&]() -> std::vector<score_t> {
             switch (id)
             {
