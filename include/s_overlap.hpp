@@ -16,7 +16,11 @@
 #include <tbb/concurrent_hash_map.h>
 #include <util/AtomicBitVector.hpp>
 #include <mutex>
+#include <bitset>
+#include <map>
 #include "tbb/task_scheduler_init.h"
+
+using namespace nw::graph;
 
 namespace nw {
 namespace hypergraph {
@@ -105,7 +109,7 @@ bool is_intersection_size_s(A i, B&& ie, C j, D&& je, size_t s = 1) {
 /*
 * Squeeze the edge lists such that the ids are consecutive in the new edge list
 */
-template<directedness edge_directedness = undirected>
+template<directedness edge_directedness = nw::graph::undirected>
 auto squeeze_edgelist(std::vector<std::vector<std::pair<vertex_id_t, vertex_id_t>>> &two_graphs) {
     nw::util::life_timer _(__func__);
     nw::graph::edge_list<edge_directedness> result(0);
@@ -141,7 +145,7 @@ auto squeeze_edgelist(std::vector<std::vector<std::pair<vertex_id_t, vertex_id_t
 * Squeeze the edge lists such that the ids are consecutive in the new edge list.
 * Here the edge list is weighted.
 */
-template<directedness edge_directedness = undirected, class T>
+template<directedness edge_directedness = nw::graph::undirected, class T>
 auto squeeze_weighted_edgelist(std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t, T>>> &two_graphs) {
     nw::util::life_timer _(__func__);
     nw::graph::edge_list<edge_directedness, T> result(0);
@@ -177,7 +181,7 @@ auto squeeze_weighted_edgelist(std::vector<std::vector<std::tuple<vertex_id_t, v
 /*
 * Parallel naive version, clean version, for perf testing
 */
-template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
+template<directedness edge_directedness = nw::graph::undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_naive_parallel(ExecutionPolicy&& ep, HyperEdge& e_nbs, HyperNode& n_nbs, size_t s = 1, int num_bins = 32) {
   size_t M = e_nbs.size();
   std::vector<std::vector<std::pair<vertex_id_t, vertex_id_t>>> two_graphs(num_bins);
@@ -200,7 +204,7 @@ auto to_two_graph_naive_parallel(ExecutionPolicy&& ep, HyperEdge& e_nbs, HyperNo
 /*
 * Parallel naive version with statistic counters, for benchmarking
 */
-template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
+template<directedness edge_directedness = nw::graph::undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_naive_parallel_with_counter(ExecutionPolicy&& ep, HyperEdge& e_nbs, HyperNode& n_nbs, size_t s = 1, int num_bins = 32) {
 
   size_t M = e_nbs.size();
@@ -229,7 +233,7 @@ auto to_two_graph_naive_parallel_with_counter(ExecutionPolicy&& ep, HyperEdge& e
 /*
 * TODO Have not squeeze.
 */
-template<directedness edge_directedness = undirected, class HyperEdge, class HyperNode>
+template<directedness edge_directedness = nw::graph::undirected, class HyperEdge, class HyperNode>
 auto to_two_graph_naive_serial(HyperEdge& e_nbs, HyperNode& n_nbs, size_t s = 1) {
   nw::util::life_timer _(__func__);
   nw::graph::edge_list<edge_directedness> two_graph(0);
@@ -253,7 +257,7 @@ auto to_two_graph_naive_serial(HyperEdge& e_nbs, HyperNode& n_nbs, size_t s = 1)
 /*
 * clean without counter. All features on. Fastest version.
 */
-template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
+template<directedness edge_directedness = nw::graph::undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_efficient_parallel_clean(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
 std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
   size_t M = edges.size();
@@ -332,7 +336,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
 * clean without counter. All features on. Fastest version.
 * Store s value as edge weight.
 */
-template<directedness edge_directedness = undirected, class T, class ExecutionPolicy, class HyperEdge, class HyperNode>
+template<directedness edge_directedness = nw::graph::undirected, class T, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_weighted_efficient_parallel_clean(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
 std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
   size_t M = edges.size();
@@ -405,7 +409,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
      
     }, tbb::auto_partitioner());
     }
-    return squeeze_weighted_edgelist<undirected, T>(two_graphs);
+    return squeeze_weighted_edgelist<nw::graph::undirected, T>(two_graphs);
   }//else
 }
 
@@ -413,7 +417,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
 /*
 * Clean without counter, optional feature.
 */
-template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
+template<directedness edge_directedness = nw::graph::undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_efficient_parallel_optional_features_clean(std::bitset<8>& features, ExecutionPolicy&& ep, HyperEdge& e_nbs, HyperNode& n_nbs, 
 std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
   size_t M = e_nbs.size();
@@ -505,7 +509,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
 /*
 * With counter, all features on.
 */
-template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
+template<directedness edge_directedness = nw::graph::undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_efficient_parallel_with_counter(ExecutionPolicy&& ep, HyperEdge& e_nbs, HyperNode& n_nbs, 
 std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
   size_t M = e_nbs.size();
@@ -610,7 +614,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
 /*
 * With counter, optional feature.
 */
-template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
+template<directedness edge_directedness = nw::graph::undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_efficient_parallel_optional_features_with_counter(std::bitset<8>& features, ExecutionPolicy&& ep, HyperEdge& e_nbs, HyperNode& n_nbs, 
 std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
   size_t M = e_nbs.size();
@@ -713,7 +717,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
   }//else
 }
 
-template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
+template<directedness edge_directedness = nw::graph::undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_with_map_parallel(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
 std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
   std::vector<std::vector<std::pair<vertex_id_t, vertex_id_t>>> two_graphs(num_bins);
@@ -770,7 +774,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
   return squeeze_edgelist(two_graphs);
 }
 
-template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
+template<directedness edge_directedness = nw::graph::undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_naive_parallel_portal(bool verbose, ExecutionPolicy&& ep, HyperEdge& e_nbs, HyperNode& n_nbs, size_t s = 1, int num_bins = 32) {
   if(!verbose)
     return to_two_graph_naive_parallel(ep, e_nbs, n_nbs, s, num_bins);
@@ -778,7 +782,7 @@ auto to_two_graph_naive_parallel_portal(bool verbose, ExecutionPolicy&& ep, Hype
     return to_two_graph_naive_parallel_with_counter(ep, e_nbs, n_nbs, s, num_bins);
 }
 
-template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
+template<directedness edge_directedness = nw::graph::undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_efficient_parallel_portal(bool verbose, std::bitset<8>& features, ExecutionPolicy&& ep, HyperEdge& e_nbs, HyperNode& n_nbs, 
 std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
   //if none feature selected, then default to turn all on

@@ -63,6 +63,7 @@ endif (NW_HYPERGRAPH_SANITIZE)
 
 option(NW_HYPERGRAPH_EXECUTION_POLICY "with(out) C++ parallel execution policy" ON)
 option(NW_HYPERGRAPH_BUILD_BENCH "Determines whether to build performance benchmarks." ON)
+option(NW_HYPERGRAPH_BUILD_PYBIND "Determines whether to build python binding modules." ON)
 option(NW_HYPERGRAPH_USE_TBBMALLOC "Link to tbbmalloc" OFF)
 
 add_subdirectory(include)
@@ -80,4 +81,6 @@ if (NW_HYPERGRAPH_BUILD_BENCH)
   add_subdirectory(bench)
 endif()
 
-
+if (NW_HYPERGRAPH_BUILD_PYBIND)
+  add_subdirectory(python)
+endif()
