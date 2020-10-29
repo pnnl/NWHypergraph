@@ -37,15 +37,9 @@ size_t s = 1) {
     size_t n_x = x.shape(0);
     size_t n_y = y.shape(0);
     //assume there are n_x pairs
+    std::cout << "n_col=" << n_x << " n_row=" << n_y << std::endl;
     assert(n_x == n_y);
     size_t n_data = data.shape(0);
-    //init return arrays
-    py::array_t<Index_t> newx({1}), newy({1}), oldx({1}), oldy({1}); 
-    auto rnewx = newx.template mutable_unchecked<1>();
-    auto rnewy = newy.template mutable_unchecked<1>(); 
-    auto roldx = oldx.template mutable_unchecked<1>();
-    auto roldy = oldy.template mutable_unchecked<1>();
-
     //create edge list 
     if (0 == n_data) {
         std::cout << "unweighted hypergraph" << std::endl;
@@ -66,8 +60,11 @@ size_t s = 1) {
         if (1 == s) {
             nw::graph::edge_list<nw::graph::undirected> &&linegraph = create_edgelist_without_squeeze<nw::graph::undirected>(two_graphs);
             //where when an empty edge list is passed in, an adjacency still have two elements
-            size_t n = linegraph.size();
+            pybind11::ssize_t n = linegraph.size();
             std::cout << "linegraph has " << n << " edges" << std::endl;
+            py::array_t<Index_t, py::array::c_style> newx({n}), newy({n}); 
+            auto rnewx = newx.template mutable_unchecked<1>();
+            auto rnewy = newy.template mutable_unchecked<1>(); 
             if (0 != n) {
                 size_t i = 0;
                 for (auto &&[u, v] : linegraph) {
@@ -75,18 +72,24 @@ size_t s = 1) {
                     rnewy(i) = v;
                     ++i;
                 }
-                return std::make_tuple(newx, newy, py::array_t<Data_t>(0), oldx, oldy, py::array_t<Data_t>(0));
+                return std::make_tuple(newx, newy, py::array_t<Data_t>(0), 
+                py::array_t<Index_t>(0), py::array_t<Index_t>(0), py::array_t<Data_t>(0));
             }
             else
-                return std::make_tuple(py::array_t<Data_t>(0), py::array_t<Data_t>(0), py::array_t<Data_t>(0),
-                py::array_t<Data_t>(0), py::array_t<Data_t>(0), py::array_t<Data_t>(0));
+                return std::make_tuple(py::array_t<Index_t>(0), py::array_t<Index_t>(0), py::array_t<Data_t>(0),
+                py::array_t<Index_t>(0), py::array_t<Index_t>(0), py::array_t<Data_t>(0));
         }
         else {
             nw::graph::edge_list<nw::graph::undirected> &&linegraph = create_edgelist_with_squeeze<nw::graph::undirected>(two_graphs);
             nw::graph::edge_list<nw::graph::undirected> &&raw_linegraph = create_edgelist_without_squeeze<nw::graph::undirected>(two_graphs);           
             //where when an empty edge list is passed in, an adjacency still have two elements
-            size_t n = linegraph.size();
+            pybind11::ssize_t n = linegraph.size();
             std::cout << "linegraph has " << n << " edges" << std::endl;
+            py::array_t<Index_t, py::array::c_style> newx({n}), newy({n}), oldx({n}), oldy({n}); 
+            auto rnewx = newx.template mutable_unchecked<1>();
+            auto rnewy = newy.template mutable_unchecked<1>(); 
+            auto roldx = oldx.template mutable_unchecked<1>();
+            auto roldy = oldy.template mutable_unchecked<1>();
             if (0 != n) {
                 size_t i = 0;
                 for (auto &&[u, v] : linegraph) {
@@ -103,15 +106,12 @@ size_t s = 1) {
                 return std::make_tuple(newx, newy, py::array_t<Data_t>(0), oldx, oldy, py::array_t<Data_t>(0));
             }
             else
-                return std::make_tuple(py::array_t<Data_t>(0), py::array_t<Data_t>(0), py::array_t<Data_t>(0),
-                py::array_t<Data_t>(0), py::array_t<Data_t>(0), py::array_t<Data_t>(0));
+                return std::make_tuple(py::array_t<Index_t>(0), py::array_t<Index_t>(0), py::array_t<Data_t>(0),
+                py::array_t<Index_t>(0), py::array_t<Index_t>(0), py::array_t<Data_t>(0));
         }//else 1 == s
     }
     else {
         std::cout << "weighted hypergraph" << std::endl;
-        py::array_t<Data_t> newdata({1}), olddata({1});
-        auto rnewdata = newdata.template mutable_unchecked<1>();
-        auto rolddata = olddata.template mutable_unchecked<1>();
 
         nw::graph::edge_list<nw::graph::directed, Data_t> aos_a(0); 
         aos_a.open_for_push_back();
@@ -129,8 +129,14 @@ size_t s = 1) {
         to_two_graph_weighted_efficient_parallel_clean_without_squeeze<nw::graph::undirected, Data_t>(std::execution::par_unseq, hyperedges, hypernodes, hyperedge_degrees, s, num_bins);
         if (1 == s) {
             nw::graph::edge_list<nw::graph::undirected, Data_t> &&linegraph = create_edgelist_without_squeeze<nw::graph::undirected, Data_t>(two_graphs);
-            size_t n = linegraph.size();
+            pybind11::ssize_t n = linegraph.size();
             std::cout << "linegraph has " << n << " edges" << std::endl;
+            //create results
+            py::array_t<Index_t, py::array::c_style> newx({n}), newy({n});
+            auto rnewx = newx.template mutable_unchecked<1>();
+            auto rnewy = newy.template mutable_unchecked<1>(); 
+            py::array_t<Data_t, py::array::c_style> newdata({n}); 
+            auto rnewdata = newdata.template mutable_unchecked<1>(); 
             if (0 != n) {
                 size_t i = 0;
                 for (auto &&[u, v, weight] : linegraph) {
@@ -139,17 +145,26 @@ size_t s = 1) {
                     rnewdata(i) = weight;
                     ++i;
                 }
-                return std::make_tuple(newx, newy, newdata, oldx, oldy, olddata);
+                return std::make_tuple(newx, newy, newdata, 
+                py::array_t<Index_t>(0), py::array_t<Index_t>(0), py::array_t<Index_t>(0));
             }
             else
-                return std::make_tuple(py::array_t<Data_t>(0), py::array_t<Data_t>(0), py::array_t<Data_t>(0),
-                py::array_t<Data_t>(0), py::array_t<Data_t>(0), py::array_t<Data_t>(0));   
+                return std::make_tuple(py::array_t<Index_t>(0), py::array_t<Index_t>(0), py::array_t<Data_t>(0),
+                py::array_t<Index_t>(0), py::array_t<Index_t>(0), py::array_t<Data_t>(0));   
         }
         else {
             nw::graph::edge_list<nw::graph::undirected, Data_t> &&linegraph = create_edgelist_with_squeeze<nw::graph::undirected, Data_t>(two_graphs);
             nw::graph::edge_list<nw::graph::undirected, Data_t> &&raw_linegraph = create_edgelist_without_squeeze<nw::graph::undirected, Data_t>(two_graphs);           
-            size_t n = linegraph.size();
+            pybind11::ssize_t n = linegraph.size();
             std::cout << "linegraph has " << n << " edges" << std::endl;
+            py::array_t<Index_t, py::array::c_style> newx({n}), newy({n}), oldx({n}), oldy({n}); 
+            auto rnewx = newx.template mutable_unchecked<1>();
+            auto rnewy = newy.template mutable_unchecked<1>(); 
+            auto roldx = oldx.template mutable_unchecked<1>();
+            auto roldy = oldy.template mutable_unchecked<1>();
+            py::array_t<Data_t, py::array::c_style> newdata({n}), olddata({n}); 
+            auto rnewdata = newdata.template mutable_unchecked<1>(); 
+            auto rolddata = olddata.template mutable_unchecked<1>(); 
             if (0 != n) {
                 size_t i = 0;
                 for (auto &&[u, v, weight] : linegraph) {
@@ -168,8 +183,8 @@ size_t s = 1) {
                 return std::make_tuple(newx, newy, newdata, oldx, oldy, olddata);                  
             }
             else
-                return std::make_tuple(py::array_t<Data_t>(0), py::array_t<Data_t>(0), py::array_t<Data_t>(0),
-                py::array_t<Data_t>(0), py::array_t<Data_t>(0), py::array_t<Data_t>(0));         
+                return std::make_tuple(py::array_t<Index_t>(0), py::array_t<Index_t>(0), py::array_t<Data_t>(0),
+                py::array_t<Index_t>(0), py::array_t<Index_t>(0), py::array_t<Data_t>(0));         
         }//else 1 == s
     }//else 0 == n_data
 }

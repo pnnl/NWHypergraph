@@ -1,9 +1,9 @@
 import numpy as np
 import nwhy
 
-col = np.array([0, 3, 1, 0])
-row = np.array([0, 3, 1, 2])
-data = np.array([4, 5, 7, 9])
+col = np.array([0, 3, 1, 0, 3])
+row = np.array([0, 3, 1, 2, 1])
+data = np.array([4, 5, 7, 9, 2])
 
 # test weighted line graph
 newx, newy, newz, oldx, oldy, oldz = nwhy.convert_to_s_overlap(row, col, data, 1)

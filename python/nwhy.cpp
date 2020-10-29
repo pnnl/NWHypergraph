@@ -28,10 +28,10 @@ PYBIND11_MODULE(nwhy, m) {
     m.doc() = "NWhy pybind11 module plugin"; // optional module docstring
 
     //register version information in a module as below
-    py::object version = py::cast("0.0.1");
+    py::object version = py::cast("0.0.2");
     m.attr("_version") = version;
 
     //define function, its argument list, and with default argument for s
     m.def("convert_to_s_overlap", &convert_to_s_overlap<Index_t, Data_t>, "A function which converts a hypergraph to its s line graph",
-    py::arg("x"), py::arg("y"), py::arg("data"), py::arg("s") = 1, py::return_value_policy::reference);
+    py::arg("x"), py::arg("y"), py::arg("data"), py::arg("s") = 1);
 }
