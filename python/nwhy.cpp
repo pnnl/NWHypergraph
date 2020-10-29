@@ -20,8 +20,8 @@
 namespace py = pybind11;
 using namespace nw::hypergraph;
 
-using T = int;
-
+using Index_t = int;
+using Data_t = int;
 //PYBIND11_MAKE_OPAQUE(py::array_t<T, py::array::c_style | py::array::forcecast>);
 
 PYBIND11_MODULE(nwhy, m) {
@@ -32,6 +32,6 @@ PYBIND11_MODULE(nwhy, m) {
     m.attr("_version") = version;
 
     //define function, its argument list, and with default argument for s
-    m.def("convert_to_s_overlap", &convert_to_s_overlap<T>, "A function which converts a hypergraph to its s line graph",
+    m.def("convert_to_s_overlap", &convert_to_s_overlap<Index_t, Data_t>, "A function which converts a hypergraph to its s line graph",
     py::arg("x"), py::arg("y"), py::arg("data"), py::arg("s") = 1, py::return_value_policy::reference);
 }
