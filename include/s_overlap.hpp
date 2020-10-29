@@ -352,13 +352,15 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
       for (auto hyperE = r.begin(), e = r.end(); hyperE < e; ++hyperE) {
         std::fill(visitedE.begin(), visitedE.end(), false);
         //all neighbors of hyperedges are hypernode
-        for (auto &&[hyperN] : edges[hyperE]) {
-          for (auto &&[anotherhyperE] : nodes[hyperN]) {
-            if (hyperE >= anotherhyperE) continue;
-            if (visitedE[anotherhyperE]) continue; else visitedE[anotherhyperE] = true;  
+        std::for_each(edges[hyperE].begin(), edges[hyperE].end(), [&](auto &&x) {
+          auto hyperN = std::get<0>(x);
+          std::for_each(nodes[hyperN].begin(), nodes[hyperN].end(), [&](auto &&y) {
+            auto anotherhyperE = std::get<0>(y);
+            if (hyperE >= anotherhyperE) return;
+            if (visitedE[anotherhyperE]) return; else visitedE[anotherhyperE] = true;  
             two_graphs[worker_index].push_back(std::make_pair<vertex_id_t, vertex_id_t>(std::forward<vertex_id_t>(hyperE), std::forward<vertex_id_t>(anotherhyperE)));
-          }
-        }
+          });
+        });
       } //for
     }, tbb::auto_partitioner());
     nw::graph::edge_list<edge_directedness, T> result(0);
@@ -387,24 +389,26 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
         std::fill(visitedE.begin(), visitedE.end(), false);
         if (hyperedgedegrees[hyperE] < s) continue;
         //all neighbors of hyperedges are hypernode
-        for (auto &&[hyperN] : edges[hyperE]) {
-          for (auto &&[anotherhyperE] : nodes[hyperN]) {
+        std::for_each(edges[hyperE].begin(), edges[hyperE].end(), [&](auto &&x) {
+          auto hyperN = std::get<0>(x);
+          std::for_each(nodes[hyperN].begin(), nodes[hyperN].end(), [&](auto &&y) {
+            auto anotherhyperE = std::get<0>(y);
             //so we check compid of each hyperedge        
             //travese upper triangluar with lhs > rhs
             //avoid self edge with lhs == rhs
-            if (hyperE >= anotherhyperE) continue;
+            if (hyperE >= anotherhyperE) return;
             //filter edges deg(e) < s
-            if (hyperedgedegrees[anotherhyperE] < s) continue;
+            if (hyperedgedegrees[anotherhyperE] < s) return;
             //avoid duplicate intersections
-            if (visitedE[anotherhyperE]) continue; else visitedE[anotherhyperE] = true;         
+            if (visitedE[anotherhyperE]) return; else visitedE[anotherhyperE] = true;         
             //O(average degree of hyperedges)
             size_t s_value = nw::graph::intersection_size(edges[hyperE], edges[anotherhyperE]);
             if (s <= s_value) {
               auto e = std::make_tuple<vertex_id_t, vertex_id_t, T>(std::forward<vertex_id_t>(hyperE), std::forward<vertex_id_t>(anotherhyperE), std::forward<T>(s_value));
               two_graphs[worker_index].push_back(e);
             }
-          }//each neighbor of hyperN
-        }//each neighbor of hyperE
+          });//each neighbor of hyperN
+        });//each neighbor of hyperE
       } //for each hyperE
      
     }, tbb::auto_partitioner());
