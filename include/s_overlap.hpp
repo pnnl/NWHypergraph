@@ -141,6 +141,42 @@ auto create_edgelist_with_squeeze(std::vector<std::vector<std::tuple<vertex_id_t
 
     return result;
 }
+
+/*
+* Squeeze the edge lists such that the ids are consecutive in the new edge list.
+*/
+template<directedness edge_directedness = nw::graph::undirected, class... T>
+auto create_edgelist_with_squeeze(std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t, T...>>> &two_graphs, std::unordered_map<vertex_id_t, vertex_id_t> &relabel_map) {
+    nw::util::life_timer _(__func__);
+    nw::graph::edge_list<edge_directedness, T...> result(0);
+    result.open_for_push_back();
+    //do this in serial
+    vertex_id_t index = 0;
+    int num_bins = two_graphs.size();
+    std::for_each(tbb::counting_iterator<int>(0), tbb::counting_iterator<int>(num_bins), [&](auto i) {
+      std::for_each(two_graphs[i].begin(), two_graphs[i].end(), [&](auto &&elt) {
+        std::apply([&](vertex_id_t x, vertex_id_t y, T... w) {
+          if (relabel_map.end() == relabel_map.find(x)) {
+          //if x has not been relabeled
+          relabel_map[x] = index;
+          ++index;
+          }
+          auto newx = relabel_map[x];
+          if (relabel_map.end() == relabel_map.find(y)) {
+          //if y has not been relabeled
+            relabel_map[y] = index;
+            ++index;
+          }
+          auto newy = relabel_map[y];
+          result.push_back(newx, newy, w...);
+        }, elt);
+      });
+    });
+    result.close_for_push_back();
+
+    return result;
+}
+
 /*
 * Do NOT squeeze the edge lists and combine them in the new edge list.
 */
@@ -874,7 +910,6 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
           }
         }
         for (auto &&[anotherhyperE, val] : K) {
-          if (val >= s) 
             two_graphs[worker_index].push_back(std::make_tuple<vertex_id_t, vertex_id_t>(std::forward<vertex_id_t>(hyperE), std::forward<vertex_id_t>(anotherhyperE)));
         }
       }
@@ -891,6 +926,25 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
     return result;
   }
   return create_edgelist_with_squeeze(two_graphs);
+}
+
+template<directedness edge_directedness = nw::graph::undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
+auto to_two_graph_count_neighbors_parallel(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes) {
+  size_t M = edges.size();
+  size_t N = nodes.size();
+  std::vector<std::map<size_t, size_t>> two_graphs(M, std::map<size_t, size_t>());
+  nw::util::life_timer _(__func__);
+  tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M), [&](tbb::blocked_range<vertex_id_t>& r) {
+      int worker_index = tbb::task_arena::current_thread_index();    
+      for (auto hyperE = r.begin(), e = r.end(); hyperE != e; ++hyperE) {
+        for (auto &&[hyperN, w] : edges[hyperE]) {
+          for (auto &&[anotherhyperE, anotherw] : nodes[hyperN]) {
+            if (hyperE < anotherhyperE) ++two_graphs[hyperE][anotherhyperE];
+          }
+        }
+      }
+    }, tbb::auto_partitioner());
+    return two_graphs;
 }
 
 template<directedness edge_directedness = nw::graph::undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
