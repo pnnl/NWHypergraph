@@ -19,7 +19,7 @@ add_library(dep INTERFACE)
 target_sources(dep INTERFACE
   config.h)
 target_include_directories(dep INTERFACE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
-target_link_libraries(dep INTERFACE NW_HYPERGRAPH docopt date::date std::filesystem)
+target_link_libraries(dep INTERFACE NW_HYPERGRAPH)
 
 # -----------------------------------------------------------------------------
 # Config Python and Pybind11 for the benchmarks to depend on.
