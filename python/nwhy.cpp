@@ -21,6 +21,14 @@ namespace py = pybind11;
 using namespace nw::hypergraph;
 
 using Index_t = int;
+/*
+* About weight, it is complicated.
+* It has multiple different scenarios.
+* Scenario 1: unweighted multi-hypergraph collapse into weighted simple hypergraph
+* Scenario 2: weighted simple hypergraph
+* Scenario 3: weighted simple hypergraph into unweighted slinegraph
+* Scenario 4: unweighted simple hypergraph into weighted slinegraph
+*/
 using Data_t = int;
 //PYBIND11_MAKE_OPAQUE(py::array_t<T, py::array::c_style | py::array::forcecast>);
 
@@ -28,18 +36,22 @@ using Data_t = int;
 PYBIND11_MODULE(nwhy, m) {
     m.doc() = "NWhy pybind11 module plugin"; // optional module docstring
 
+    //define NWHypergraph python object
     py::class_<NWHypergraph<Index_t, Data_t>> hypergraph_class(m, "NWHypergraph");
     hypergraph_class
-
+    //constuctor
     .def(py::init<>([](py::array_t<Index_t, py::array::c_style | py::array::forcecast> &x, 
     py::array_t<Index_t, py::array::c_style | py::array::forcecast> &y) {
         return new NWHypergraph<Index_t, Data_t>(x, y);
     }))
     .def(py::init<>([](py::array_t<Index_t, py::array::c_style | py::array::forcecast> &x, 
     py::array_t<Index_t, py::array::c_style | py::array::forcecast> &y,
-    py::array_t<Data_t, py::array::c_style | py::array::forcecast> &data) {
-        return new NWHypergraph<Index_t, Data_t>(x, y, data);
-    }))
+    py::array_t<Data_t, py::array::c_style | py::array::forcecast> &data,
+    bool collapse = false) {
+        return new NWHypergraph<Index_t, Data_t>(x, y, data, collapse);
+    }),
+    py::arg("x"), py::arg("y"), py::arg("data"), py::arg("collapse") = false)
+    //create slinegraph from nwhypergraph
     .def("s_linegraph", &NWHypergraph<Index_t, Data_t>::s_linegraph, "A function which converts a hypergraph to its s line graph",
     py::arg("s") = 1, py::arg("edges") = true)
     //s_connected_component
@@ -64,6 +76,7 @@ PYBIND11_MODULE(nwhy, m) {
     "A function which finds the neighbors for vertex v of its s line graph",
     py::arg("v"), py::arg("s") = 1, py::arg("edges") = true);
 
+    //define Slinegraph python object
     py::class_<Slinegraph<Index_t, Data_t>> slinegraph_class(m, "Slinegraph");
     slinegraph_class
     .def(py::init<>([](NWHypergraph<Index_t, Data_t>& g, int s, bool edges) {
@@ -87,5 +100,4 @@ PYBIND11_MODULE(nwhy, m) {
     //define function, its argument list, and with default argument for s
     m.def("convert_to_s_overlap", &convert_to_s_overlap<Index_t, Data_t>, "A function which converts a hypergraph to its s line graph",
     py::arg("x"), py::arg("y"), py::arg("data"), py::arg("s") = 1);
-    //m.def("connected_component", &nw::graph::cc);
 }

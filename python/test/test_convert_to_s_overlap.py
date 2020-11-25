@@ -1,9 +1,9 @@
 import numpy as np
 import nwhy
 
-col = np.array([0, 3, 1, 0, 3])
-row = np.array([0, 3, 1, 2, 1])
-data = np.array([4, 5, 7, 9, 2])
+col = np.array([0, 3, 1, 0, 3, 3, 3])
+row = np.array([0, 3, 1, 2, 1, 1, 1])
+data = np.array([4, 5, 7, 9, 2, 2, 2])
 '''
 # test weighted line graph
 newx, newy, newz, oldx, oldy, oldz = nwhy.convert_to_s_overlap(row, col, data, 1)
@@ -25,7 +25,7 @@ print("oldv:", oldv)
 print("olds:", olds)
 '''
 # declare NWHypergraph
-g = nwhy.NWHypergraph(row, col, data)
+g = nwhy.NWHypergraph(row, col, data, collapse=True)
 #print(g)
 # 
 print("=====s_connected_component=====")
@@ -55,7 +55,7 @@ dist2 = s1linegraph.s_distance(src=source, dest=destination)
 print("dist from", source, "to", destination, "is", dist2)
 #dis1 = infy or a value
 
-# s_neighbo
+# s_neighbor
 print("=====s_neighbor=====")
 vertex=0
 neighborsofv0 = g.s_neighbor(s1linegraph, v=vertex)

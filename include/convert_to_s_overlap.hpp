@@ -71,7 +71,8 @@ public:
     }
     NWHypergraph(py::array_t<Index_t, py::array::c_style | py::array::forcecast> &x, 
     py::array_t<Index_t, py::array::c_style | py::array::forcecast> &y,
-    py::array_t<Attributes..., py::array::c_style | py::array::forcecast> &data) {
+    py::array_t<Attributes..., py::array::c_style | py::array::forcecast> &data,
+    bool collapse = false) {
         nw::graph::edge_list<nw::graph::directed, Attributes...> g(0);
         //sanitize check
         auto rx = x.template mutable_unchecked<1>();
@@ -93,6 +94,15 @@ public:
                 g.push_back({rx(i), ry(i), rdata(i)});
         }
         g.close_for_push_back();
+        
+        if(collapse) {
+            //Remove duplicate edges
+            std::cout << "before collapse: " << g.size() << " edges" << std::endl;
+            g.template lexical_sort_by<0>();
+            g.uniq();
+            std::cout << "after collapse: " << g.size() << " edges" << std::endl;
+        }
+        
         edges_ = nw::graph::adjacency<0, Attributes...>(g);
         nodes_ = nw::graph::adjacency<1, Attributes...>(g);
     }
@@ -209,18 +219,6 @@ private:
                 to_two_graph_weighted_efficient_parallel_clean_without_squeeze<nw::graph::undirected, Attributes...>(std::execution::par_unseq, hyperedges, hypernodes, hyperedge_degrees, s_, num_bins);
             linegraph = create_edgelist_without_squeeze<nw::graph::undirected, Attributes...>(two_graphs);
             std::cout << "linegraph has " << linegraph.size() << " edges" << std::endl;
-            /*         
-            if (1 == s_) {
-                linegraph = create_edgelist_without_squeeze<nw::graph::undirected, Attributes...>(two_graphs);
-                std::cout << "linegraph has " << linegraph.size() << " edges" << std::endl;
-            }
-            else {
-                std::unordered_map<vertex_id_t, vertex_id_t> relabel_map;
-                linegraph = create_edgelist_with_squeeze<nw::graph::undirected, Attributes...>(two_graphs, relabel_map);
-                std::cout << "linegraph has " << linegraph.size() << " edges" << std::endl;
-                populate_mapping(relabel_map);
-            }
-            */
         }
         else {
             std::vector<nw::graph::index_t> hypernode_degrees = hypernodes.degrees();
@@ -229,31 +227,36 @@ private:
                 to_two_graph_weighted_efficient_parallel_clean_without_squeeze<nw::graph::undirected, Attributes...>(std::execution::par_unseq, hypernodes, hyperedges, hypernode_degrees, s_, num_bins);
             linegraph = create_edgelist_without_squeeze<nw::graph::undirected, Attributes...>(two_graphs);
             std::cout << "linegraph has " << linegraph.size() << " edges" << std::endl;
-            /*
-            if (1 == s_) {
-                linegraph = create_edgelist_without_squeeze<nw::graph::undirected, Attributes...>(two_graphs);
-                std::cout << "linegraph has " << linegraph.size() << " edges" << std::endl;
-            }
-            else {
-                std::unordered_map<vertex_id_t, vertex_id_t> relabel_map;
-                linegraph = create_edgelist_with_squeeze<nw::graph::undirected, Attributes...>(two_graphs, relabel_map);
-                std::cout << "linegraph has " << linegraph.size() << " edges" << std::endl;
-                populate_mapping(relabel_map);
-            }
-            */
         }
         //toAdjacency
-        g_ = nw::graph::adjacency<0, Attributes...>(linegraph);
-        g_t_ = nw::graph::adjacency<1, Attributes...>(linegraph);
+        populate_adjacency(linegraph);
     }
     void populate_mapping(std::unordered_map<vertex_id_t, vertex_id_t> &relabel_map) {
         for (auto &&[key, value] : relabel_map) {
             auto tmp = std::to_string(key).c_str();
         }
     }
+    void populate_adjacency(nw::graph::edge_list<nw::graph::undirected, Attributes...>& linegraph) {
+        size_t nedges = linegraph.size();
+        std::cout << "linegraph size: " << nedges << std::endl;
+
+        //instantiate empty adjacency
+        size_t m = edges_ ? hyperg_.edges_.size() : hyperg_.nodes_.size();
+        if (0 == nedges) {
+            //create an adjacency where each list is empty
+            g_ = nw::graph::adjacency<0, Attributes...>(m, 0);
+            g_t_ = nw::graph::adjacency<1, Attributes...>(m, 0);
+        }
+        //fill adjacency with edges
+        else {
+            g_ = nw::graph::adjacency<0, Attributes...>(m, linegraph);
+            g_t_ = nw::graph::adjacency<1, Attributes...>(m, linegraph);
+        }
+    }
 public:
     //constructor
     Slinegraph(NWHypergraph<Index_t, Attributes...>&g, int s = 1, bool edges = true) : hyperg_(g), s_(s), edges_(edges) {
+        //extract linegraph from its neighbor counts
         nw::graph::edge_list<nw::graph::undirected, Attributes...> linegraph;
         if (edges_) {
             //if neighbors have not been counted
@@ -268,35 +271,21 @@ public:
             }
             linegraph = hyperg_.populate_node_linegraph(s);         
         }
-        size_t nedges = linegraph.size();
-        //std::cout << "linegraph size: " << nedges << std::endl;
-        if (0 == nedges) {
-            size_t m = edges_ ? hyperg_.edges_.size() : hyperg_.nodes_.size();
-            g_ = nw::graph::adjacency<0, Attributes...>(m, nedges);
-            g_t_ = nw::graph::adjacency<1, Attributes...>(m, nedges);
-        }
-        else {
-        //toAdjacency
-            g_ = nw::graph::adjacency<0, Attributes...>(linegraph);
-            g_t_ = nw::graph::adjacency<1, Attributes...>(linegraph);
-        }
+        populate_adjacency(linegraph);
     }
     /*
     * Return a list of sets which
     * each set is a component.
     */
     py::list s_connected_component(bool return_singleton = false) {
-        //std::cout << "size: " << g_.size() << " " << g_t_.size() << std::endl;
         auto E = nw::graph::ccv1(g_);
-        //std::cout << E.size() << std::endl;
         // This returns the subgraph of each component.
         std::map<Index_t, py::set> comps;
         for (size_t i = 0, e = E.size(); i < e; ++i) {
-            //std::cout << E[i] << " ";
             auto label = E[i];
             comps[label].add(i);
         }
-        //std::cout << std::endl;
+        std::cout << std::endl;
         py::list l;
         for (auto it = comps.begin(); it != comps.end(); ++it) {
             auto s = it->second;
@@ -321,6 +310,8 @@ public:
         size_t delta = 1;
         auto dist = nw::graph::delta_stepping_v12<distance_t>(g_t_, src, delta);
         Index_t dist_of_dest = dist[dest];
+        if (dist_of_dest == std::numeric_limits<Index_t>::max() - 1)
+            return -1;
         return dist_of_dest;
     }
     /*
