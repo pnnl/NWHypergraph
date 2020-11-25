@@ -152,7 +152,8 @@ int main(int argc, char* argv[]) {
               record([&] { 
                 auto lpf = nw::graph::lpcc<ExecutionPolicy, Graph>;
                 using LabelPropagationF = decltype(lpf);
-                return nw::hypergraph::relabel_x_parallel<ExecutionPolicy, LabelPropagationF, vertex_id_t>(std::execution::par_unseq, num_realedges, num_realnodes, lpf, std::execution::par_unseq, g); });
+                int num_bins = 32;
+                return nw::hypergraph::relabel_x_parallel<ExecutionPolicy, LabelPropagationF, vertex_id_t>(std::execution::par_unseq, num_realedges, num_realnodes, lpf, std::execution::par_unseq, g, num_bins); });
               break;
             default:
               std::cout << "Unknown version v" << id << "\n";
