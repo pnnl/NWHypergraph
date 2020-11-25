@@ -73,12 +73,12 @@ int main(int argc, char* argv[]) {
   for (auto&& file : files) {
     auto reader = [&](std::string file, bool verbose, size_t& nrealedges, size_t& nrealnodes) {
       //auto aos_a   = load_graph<directed>(file);
-      auto aos_a   = read_mm_relabeling<nw::graph::directed>(file, nrealedges, nrealnodes);
+      auto aos_a   = read_mm_relabeling<nw::graph::undirected>(file, nrealedges, nrealnodes);
       if (0 == aos_a.size()) {
         return read_and_relabel_adj_hypergraph_pair(file, nrealedges, nrealnodes);
       }
-      nw::graph::adjacency<0> g(nrealedges + nrealnodes, aos_a);
-      nw::graph::adjacency<1> g_t(nrealedges + nrealnodes, aos_a);
+      nw::graph::adjacency<0> g(aos_a);
+      nw::graph::adjacency<1> g_t(aos_a);
       if (verbose) {
         g.stream_stats();
       }
