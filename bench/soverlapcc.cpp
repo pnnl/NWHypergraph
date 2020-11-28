@@ -144,6 +144,15 @@ int main(int argc, char* argv[]) {
           std::cout << "line graph edges = " << linegraph.size() << ", adjacency size = " << s_adj.size() << std::endl;
           return s_adj;
       }
+      case 3:
+      {
+        nw::graph::edge_list<undirected> &&linegraph = to_two_graph_with_map_parallel2d<undirected>(std::execution::par_unseq, hyperedges, hypernodes, edgedegrees, s, num_bins);
+          //where when an empty edge list is passed in, an adjacency still have two elements
+          if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
+          nw::graph::adjacency<0> s_adj(linegraph);
+          std::cout << "line graph edges = " << linegraph.size() << ", adjacency size = " << s_adj.size() << std::endl;
+          return s_adj;
+      }      
       default:
       {
           std::cerr << "unknown soverlap computation loader" << std::endl;

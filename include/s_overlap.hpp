@@ -751,11 +751,70 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
           }
         }
         for (auto &&[anotherhyperE, val] : K) {
-          if (val >= s) 
             two_graphs[worker_index].push_back(std::make_pair<vertex_id_t, vertex_id_t>(std::forward<vertex_id_t>(hyperE), std::forward<vertex_id_t>(anotherhyperE)));
         }
       }
     }, tbb::auto_partitioner());  
+    nw::graph::edge_list<edge_directedness> result(0);
+    result.open_for_push_back();
+    //do this in serial
+    std::for_each(tbb::counting_iterator<int>(0), tbb::counting_iterator<int>(num_bins), [&](auto i) {
+      std::for_each(two_graphs[i].begin(), two_graphs[i].end(), [&](auto&& e){
+        result.push_back(e);
+      });
+    });
+    result.close_for_push_back();
+    return result;
+  }
+  return squeeze_edgelist(two_graphs);
+}
+
+template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
+auto to_two_graph_with_map_parallel2d(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
+std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
+  std::vector<std::vector<std::pair<vertex_id_t, vertex_id_t>>> two_graphs(num_bins);
+  size_t M = edges.size();
+  size_t N = nodes.size();
+  if (1 < s) {
+    nw::util::life_timer _(__func__);
+    tbb::parallel_for(tbb::blocked_range2d<vertex_id_t>(0, M / N, num_bins, 0, N, num_bins), [&](tbb::blocked_range2d<vertex_id_t>& r) {
+      int worker_index = tbb::task_arena::current_thread_index();
+      for (auto i = r.rows().begin(), ie = r.rows().end(); i != ie; ++i) {
+        for (auto hyperE = r.cols().begin(), e = r.cols().end(); hyperE != e; ++hyperE) {
+          if (hyperedgedegrees[hyperE] < s) continue;
+          std::map<size_t, size_t> K;
+          for (auto &&[hyperN] : edges[hyperE]) {
+            for (auto &&[anotherhyperE] : nodes[hyperN]) {
+              if (hyperedgedegrees[anotherhyperE] < s) continue;
+              if (hyperE < anotherhyperE) ++K[anotherhyperE];
+            }
+          }
+          for (auto &&[anotherhyperE, val] : K) {
+            if (val >= s) 
+              two_graphs[worker_index].push_back(std::make_pair<vertex_id_t, vertex_id_t>(std::forward<vertex_id_t>(hyperE), std::forward<vertex_id_t>(anotherhyperE)));
+          }
+        }//for cols
+      }//for rows
+    }, tbb::auto_partitioner());
+  }
+  else {
+    nw::util::life_timer _(__func__);
+    tbb::parallel_for(tbb::blocked_range2d<vertex_id_t>(0, M / N, num_bins, 0, N, num_bins), [&](tbb::blocked_range2d<vertex_id_t>& r) {
+      int worker_index = tbb::task_arena::current_thread_index();
+      for (auto i = r.rows().begin(), ie = r.rows().end(); i != ie; ++i) {
+        for (auto hyperE = r.cols().begin(), e = r.cols().end(); hyperE != e; ++hyperE) {
+          std::map<size_t, size_t> K;
+          for (auto &&[hyperN] : edges[hyperE]) {
+            for (auto &&[anotherhyperE] : nodes[hyperN]) {
+              if (hyperE < anotherhyperE) ++K[anotherhyperE];
+            }
+          }
+          for (auto &&[anotherhyperE, val] : K) {
+              two_graphs[worker_index].push_back(std::make_pair<vertex_id_t, vertex_id_t>(std::forward<vertex_id_t>(hyperE), std::forward<vertex_id_t>(anotherhyperE)));
+          }
+        }//for cols
+      }//for rows
+    }, tbb::auto_partitioner());
     nw::graph::edge_list<edge_directedness> result(0);
     result.open_for_push_back();
     //do this in serial
