@@ -10,7 +10,8 @@
 
 #include "Log.hpp"
 #include "common.hpp"
-#include "edge_list_hy.hpp"
+#include "containers/edge_list_hy.hpp"
+#include "containers/compressed_hy.hpp"
 #include "s_overlap.hpp"
 #include "algorithms/hyper_breadth_first_search.hpp"
 #include "algorithms/s_breadth_first_search.hpp"
@@ -97,12 +98,12 @@ int main(int argc, char* argv[]) {
           auto hypernodedegrees = aos_a.degrees<1>();
           std::cout << "relabeling hypernodes..." << std::endl;
           //TODO NOT WORKING
-          nw::hypergraph::relabel_by_degree_bipartite<1>(aos_a, args["--direction"].asString(), hypernodedegrees);
+          nw::hypergraph::relabel_by_degree<1>(aos_a, args["--direction"].asString(), hypernodedegrees);
         }
         else {
           std::cout << "relabeling hyperedges..." << std::endl;
           //TODO NOT WORKING
-          nw::hypergraph::relabel_by_degree_bipartite<1>(aos_a, args["--direction"].asString(), hyperedgedegrees);
+          nw::hypergraph::relabel_by_degree<1>(aos_a, args["--direction"].asString(), hyperedgedegrees);
         }
       }
       // Clean up the edgelist to deal with the normal issues related to

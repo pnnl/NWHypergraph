@@ -10,7 +10,7 @@
 
 #include "Log.hpp"
 #include "common.hpp"
-#include "edge_list_hy.hpp"
+#include "containers/edge_list_hy.hpp"
 #include "s_overlap.hpp"
 #include "algorithms/hyper_breadth_first_search.hpp"
 #include "algorithms/s_breadth_first_search.hpp"
