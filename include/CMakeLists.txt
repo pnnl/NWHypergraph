@@ -21,7 +21,8 @@ add_library(NW_HYPERGRAPH INTERFACE)
 # Extend this as needed.
 target_sources(NW_HYPERGRAPH
   INTERFACE
-  edge_list_hy.hpp
+  containers/edge_list_hy.hpp
+  containers/compressed_hy.hpp
   io/hypergraph_io.hpp
   io/mmio.hpp
   s_overlap.hpp

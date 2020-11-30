@@ -73,7 +73,7 @@ int main(int argc, char* argv[]) {
   for (auto&& file : files) {
     auto reader = [&](std::string file, bool verbose, size_t& nrealedges, size_t& nrealnodes) {
       //auto aos_a   = load_graph<directed>(file);
-      auto aos_a   = read_mm_relabeling<nw::graph::directed>(file, nrealedges, nrealnodes);
+      auto aos_a   = read_mm_relabeling<nw::graph::undirected>(file, nrealedges, nrealnodes);
       if (0 == aos_a.size()) {
         return read_and_relabel_adj_hypergraph_pair(file, nrealedges, nrealnodes);
       }
@@ -94,7 +94,7 @@ int main(int argc, char* argv[]) {
       for (auto&& id : ids) {
         auto verifier = [&](auto&& result) {
           auto&& [N, E] = result;
-          std::unordered_set<vertex_id_t> uni_comps(E.begin(), E.end());
+          std::unordered_set<vertex_id_t> uni_comps(N.begin(), N.end());
           std::cout << uni_comps.size() << " components found" ;
           if (verbose) {
             std::cout << ":" << std::endl;
@@ -150,9 +150,10 @@ int main(int argc, char* argv[]) {
               break;
             case 6:
               record([&] { 
-                auto lpf = nw::graph::ccv1<Graph>;
+                auto lpf = nw::graph::lpcc<ExecutionPolicy, Graph>;
                 using LabelPropagationF = decltype(lpf);
-                return nw::hypergraph::relabel_x_parallel<ExecutionPolicy, LabelPropagationF, vertex_id_t>(std::execution::par_unseq, num_realedges, num_realnodes, lpf, g); });
+                int num_bins = 32;
+                return nw::hypergraph::relabel_x_parallel<ExecutionPolicy, LabelPropagationF, vertex_id_t>(std::execution::par_unseq, num_realedges, num_realnodes, lpf, std::execution::par_unseq, g, num_bins); });
               break;
             default:
               std::cout << "Unknown version v" << id << "\n";

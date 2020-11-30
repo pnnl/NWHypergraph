@@ -40,9 +40,9 @@ static constexpr const char USAGE[] =
 #include <edge_list.hpp>
 #include "Log.hpp"
 #include "common.hpp"
-#include "edge_list_hy.hpp"
+#include "containers/edge_list_hy.hpp"
+#include "containers/compressed_hy.hpp"
 #include "s_overlap.hpp"
-
 #include <algorithms/delta_stepping.hpp>
 // #include "algorithms/s_shortest_paths.hpp"
 
@@ -79,61 +79,41 @@ int main(int argc, char* argv[]) {
   Times times;
 
   for (auto&& file : files) {
-    auto reader = [&](std::string file, bool verbose) {
-      auto aos_a   = load_graph<directed>(file);
+    auto reader = [&](std::string file) {
+      auto aos_a = load_graph<directed>(file);
+      const long idx = args["--relabel"].asLong();
       if (0 == aos_a.size()) {
         auto&& [hyperedges, hypernodes] = load_adjacency<>(file);
-        auto hyperedge_degrees = hyperedges.degrees();
         // Run relabeling. This operates directly on the incoming edglist.
-        const long idx = args["--relabel"].asLong();
         if (-1 != idx) {
-          //relabel the column with smaller size
-          if (0 == idx) {
-            auto iperm = hyperedges.sort_by_degree(args["--direction"].asString());
-            hypernodes.permute(iperm);
-            std::cout << "relabeling hyperedge adjacency by degree..." << std::endl;
-          }
-          else {
-            auto iperm = hypernodes.sort_by_degree(args["--direction"].asString());
-            hyperedges.permute(iperm);
-            std::cout << "relabeling hypernodes adjacency by degree..." << std::endl;
-          }
+          nw::hypergraph::relabel_by_degree(hyperedges, hypernodes, idx, args["--direction"].asString());
         }
-        //may need to update the degree vector, if we relabel the graph
-        hyperedge_degrees = hyperedges.degrees();
         std::cout << "num_hyperedges = " << hyperedges.size() << " num_hypernodes = " << hypernodes.size() << std::endl;
-        return std::tuple(hyperedges, hypernodes, hyperedge_degrees);
+        return std::tuple(hyperedges, hypernodes);
       }
-      std::vector<index_t> hyperedge_degrees =  aos_a.degrees<0>();
-      // Run relabeling. This operates directly on the incoming edglist.
-      const long idx = args["--relabel"].asLong();
-      if (-1 != idx) {
-        //relabel the column with smaller size
-        std::vector<index_t> degrees;
-        if (0 == idx) {
-          degrees = hyperedge_degrees;
-          std::cout << "relabeling hyperedges by degree..." << std::endl;
-          nw::hypergraph::relabel_by_degree_bipartite<0>(aos_a, args["--direction"].asString(), degrees);
+      else {
+        // Run relabeling. This operates directly on the incoming edglist.
+        if (-1 != idx) {
+          std::cout << "relabeling edge_list by degree..." << std::endl;
+          if (1 == idx)
+            nw::hypergraph::relabel_by_degree<1>(aos_a, args["--direction"].asString());
+          else
+            nw::hypergraph::relabel_by_degree<0>(aos_a, args["--direction"].asString());
         }
-        else {
-          degrees = aos_a.degrees<1>();
-          std::cout << "relabeling hypernodes by degree..." << std::endl;
-          nw::hypergraph::relabel_by_degree_bipartite<1>(aos_a, args["--direction"].asString(), degrees);
-        }
+        adjacency<0> hyperedges(aos_a);
+        adjacency<1> hypernodes(aos_a); 
+      
+        std::cout << "num_hyperedges = " << hyperedges.size() << " num_hypernodes = " << hypernodes.size() << std::endl;
+        return std::tuple(hyperedges, hypernodes);
       }
-      //we may need to get the new degrees 
-      //if we relabel the edge list
-      hyperedge_degrees = aos_a.degrees<0>();
-      adjacency<0> hyperedges(aos_a);
-      adjacency<1> hypernodes(aos_a);
-      if (verbose) {
-        hypernodes.stream_stats();
-        hyperedges.stream_stats();
-      }
-      std::cout << "num_hyperedges = " << hyperedges.size() << " num_hypernodes = " << hypernodes.size() << std::endl;
-      return std::tuple(hyperedges, hypernodes, hyperedge_degrees);
     };
-    auto&&[ hyperedges, hypernodes, hyperedgedegrees ] = reader(file, verbose);
+    auto&&[ hyperedges, hypernodes] = reader(file);
+    auto&& hyperedge_degrees = hyperedges.degrees(std::execution::par_unseq);
+
+    if (verbose) {
+      hypernodes.stream_stats();
+      hyperedges.stream_stats();
+    }
 
     auto twograph_reader = [&](adjacency<0>& edges, adjacency<1>& nodes, std::vector<nw::graph::index_t>& edgedegrees, 
     size_t s = 1, int num_bins = 32) {
@@ -142,7 +122,7 @@ int main(int argc, char* argv[]) {
       {
           nw::graph::edge_list<undirected, int> &&linegraph = 
           to_two_graph_weighted_efficient_parallel_clean<undirected, int>
-          (std::execution::par_unseq, hyperedges, hypernodes, hyperedgedegrees, s, num_bins);
+          (std::execution::par_unseq, hyperedges, hypernodes, edgedegrees, s, num_bins);
           //where when an empty edge list is passed in, an adjacency still have two elements
           if (0 == linegraph.size()) return nw::graph::adjacency<0, int>(0);
           nw::graph::adjacency<0, int> s_adj(linegraph);
@@ -156,7 +136,7 @@ int main(int argc, char* argv[]) {
       }
       }
     };
-    auto&& s_adj = twograph_reader(hyperedges, hypernodes, hyperedgedegrees, s, num_bins);
+    auto&& s_adj = twograph_reader(hyperedges, hypernodes, hyperedge_degrees, s, num_bins);
 
     if (debug) {
       hypernodes.stream_indices();

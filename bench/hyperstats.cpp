@@ -12,8 +12,8 @@
 #include <edge_list.hpp>
 #include "Log.hpp"
 #include "common.hpp"
-#include "edge_list_hy.hpp"
-
+#include "containers/edge_list_hy.hpp"
+#include "containers/compressed_hy.hpp"
 
 using namespace nw::hypergraph::bench;
 using namespace nw::hypergraph;

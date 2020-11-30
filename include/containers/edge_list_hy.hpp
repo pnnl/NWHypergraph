@@ -15,7 +15,7 @@ namespace nw {
 namespace hypergraph {
 
 template<int idx, class Vector = std::vector<int>>
-void relabel_by_degree_bipartite(nw::graph::edge_list<directed>& aos_a, std::string direction = "descending", Vector&& degree = std::vector<int>(0)) {
+void relabel_by_degree(nw::graph::edge_list<directed>& aos_a, std::string direction = "descending", Vector&& degree = std::vector<int>(0)) {
   nw::util::life_timer _(__func__);
   int status = -4;
   aos_a.prv.push_back(nw::graph::demangle(typeid(*&aos_a).name(), nullptr, nullptr, &status) + "::" + __func__,
