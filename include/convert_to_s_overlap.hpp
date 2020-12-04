@@ -267,11 +267,31 @@ public:
     /*
     * Get the degree of a node in the hypergraph
     * */
-    Index_t degree(Index_t node) {
-        if (node >= max_node_)
-            return -1;
-        else
-            return nodes_[node].size();
+    Index_t degree(Index_t node, size_t s = 1, py::list edges = py::list(0)) {
+        if (edges.empty()) {
+            if (node >= max_node_)
+                return -1;
+            else
+                return nodes_[node].size();
+        }
+        else {
+            if (node >= max_node_)
+                return -1;
+            py::ssize_t n = edges.size();
+            return nw::graph::parallel_for(
+                tbb::blocked_range<py::ssize_t>(0, n),
+                [&](auto &&i) {
+                    Index_t e = py::cast<Index_t>(edges[i]);
+                    if (s <= edges_[e].size()) {
+                    //only consider the edges whose size is no smaller than s
+                        for (auto&& [v, w] : edges_[e]) {
+                            if (v == node) return true;
+                        }
+                    }
+                    return false;
+                },
+                std::plus{}, 0.0);
+        }
     }
     py::ssize_t number_of_nodes() const { return max_node_; }
     py::ssize_t order() const { return max_node_; }

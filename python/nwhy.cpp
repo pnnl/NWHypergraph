@@ -64,7 +64,7 @@ PYBIND11_MODULE(nwhy, m) {
     .def("node_incidence", &NWHypergraph<Index_t, Data_t>::node_incidence,
     "A function to get the incident edges of a node in the hypergraph", py::arg("node"))
     .def("degree", &NWHypergraph<Index_t, Data_t>::degree,
-    "A function to get the degree of a node in the hypergraph", py::arg("node"))
+    "A function to get the degree of a node in the hypergraph", py::arg("node"), py::arg("s") = 1, py::arg("edges") = py::list(0))
     .def("size", &NWHypergraph<Index_t, Data_t>::size,
     "A function to get the number of nodes that belong to an edge in the hypergraph", py::arg("edge"))
     .def("dim", &NWHypergraph<Index_t, Data_t>::dim,
@@ -124,7 +124,7 @@ PYBIND11_MODULE(nwhy, m) {
     .def("s_neighbor", &Slinegraph<Index_t, Data_t>::s_neighbor,
     "A function to get s neighbors of a vertex", py::arg("v"))
     .def("s_degree", &Slinegraph<Index_t, Data_t>::s_degree,
-    "A function to get s neighbors of a vertex", py::arg("v"));
+    "A function to get the degree of a vertex in the slinegraph", py::arg("v"));
 
     //register version information in a module as below
     py::object version = py::cast("0.0.3");
