@@ -39,6 +39,9 @@ PYBIND11_MODULE(nwhy, m) {
     //define NWHypergraph python object
     py::class_<NWHypergraph<Index_t, Data_t>> hypergraph_class(m, "NWHypergraph");
     hypergraph_class
+    .def_readonly("row", &NWHypergraph<Index_t, Data_t>::row_)
+    .def_readonly("col", &NWHypergraph<Index_t, Data_t>::col_)
+    .def_readonly("data", &NWHypergraph<Index_t, Data_t>::data_)
     //constuctor
     .def(py::init<>([](py::array_t<Index_t, py::array::c_style | py::array::forcecast> &x, 
     py::array_t<Index_t, py::array::c_style | py::array::forcecast> &y) {
@@ -57,21 +60,24 @@ PYBIND11_MODULE(nwhy, m) {
     .def("node_size_dist", &NWHypergraph<Index_t, Data_t>::node_size_dist,
     "A function to get the node size distributation of the hypergraph")
     .def("edge_incidence", &NWHypergraph<Index_t, Data_t>::edge_incidence,
-    "A function to get the incident nodes of an edge in the hypergraph", py::arg("e"))
+    "A function to get the incident nodes of an edge in the hypergraph", py::arg("edge"))
     .def("node_incidence", &NWHypergraph<Index_t, Data_t>::node_incidence,
-    "A function to get the incident edges of a node in the hypergraph", py::arg("n"))
+    "A function to get the incident edges of a node in the hypergraph", py::arg("node"))
     .def("degree", &NWHypergraph<Index_t, Data_t>::degree,
-    "A function to get the degree of an edge or a node in the hypergraph", py::arg("v"),  py::arg("edges") = true)
+    "A function to get the degree of a node in the hypergraph", py::arg("node"))
     .def("size", &NWHypergraph<Index_t, Data_t>::size,
-    "A function to get the number of nodes that belong to edge e in the hypergraph", py::arg("e"))
+    "A function to get the number of nodes that belong to an edge in the hypergraph", py::arg("edge"))
     .def("dim", &NWHypergraph<Index_t, Data_t>::dim,
-    "A function to get the number of nodes that belong to edge e minus 1 in the hypergraph", py::arg("e"))
+    "A function to get the number of nodes that belong to an edge minus 1 in the hypergraph", py::arg("edge"))
     .def("number_of_nodes", &NWHypergraph<Index_t, Data_t>::number_of_nodes,
     "A function to get the number of nodes in the hypergraph")
+    .def("order", &NWHypergraph<Index_t, Data_t>::order,
+    "A function to get the number of nodes in the hypergraph")  
     .def("number_of_edges", &NWHypergraph<Index_t, Data_t>::number_of_edges,
     "A function to get the number of edges in the hypergraph")
     //create slinegraph from nwhypergraph
-    .def("s_linegraph", &NWHypergraph<Index_t, Data_t>::s_linegraph, "A function which converts a hypergraph to its s line graph",
+    .def("s_linegraph", &NWHypergraph<Index_t, Data_t>::s_linegraph, 
+    "A function which converts a hypergraph to its s line graph; if edges is true, then it is an edge linegraph",
     py::arg("s") = 1, py::arg("edges") = true)
     //s_connected_component
     .def("s_connected_component", py::overload_cast<Slinegraph<Index_t, Data_t> &, bool>(&NWHypergraph<Index_t, Data_t>::s_connected_component),
@@ -110,19 +116,15 @@ PYBIND11_MODULE(nwhy, m) {
     .def(py::init<>([](NWHypergraph<Index_t, Data_t>& g, int s, bool edges) {
         return new Slinegraph<Index_t, Data_t>(g, s, edges);
     }), "Init function", py::arg("g"), py::arg("s") = 1, py::arg("edges") = true)
-    .def("_s", &Slinegraph<Index_t, Data_t>::getS)
+    .def_readonly("s", &Slinegraph<Index_t, Data_t>::s_)
     .def("s_connected_component", &Slinegraph<Index_t, Data_t>::s_connected_component,
-     "A function which finds the connected components for its s line graph",
-    py::arg("return_singleton") = false)
+     "A function which finds the connected components for its s line graph", py::arg("return_singleton") = false)
     .def("s_distance", &Slinegraph<Index_t, Data_t>::s_distance,
-    "A function to compute the distance from src to dest",
-    py::arg("src"), py::arg("dest"))
+    "A function to compute the distance from src to dest", py::arg("src"), py::arg("dest"))
     .def("s_neighbor", &Slinegraph<Index_t, Data_t>::s_neighbor,
-    "A function to get s neighbors of a vertex",
-    py::arg("v"))
+    "A function to get s neighbors of a vertex", py::arg("v"))
     .def("s_degree", &Slinegraph<Index_t, Data_t>::s_degree,
-    "A function to get s neighbors of a vertex",
-    py::arg("v"));
+    "A function to get s neighbors of a vertex", py::arg("v"));
 
     //register version information in a module as below
     py::object version = py::cast("0.0.3");
