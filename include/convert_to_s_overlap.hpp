@@ -270,6 +270,19 @@ public:
         return d;
     }
     py::ssize_t number_of_nodes() const { return nodes_.size(); }
+    py::ssize_t order() const { return nodes_.size(); }
+    py::ssize_t size(Index_t e) {
+        if (e >= edges_.size())
+            return -1;
+        else
+            return edges_[e].size();
+    }
+    py::ssize_t dim(Index_t e) {
+        if (e >= edges_.size())
+            return -1;
+        else
+            return edges_[e].size() - 1;
+    }
     py::ssize_t number_of_edges() const { return edges_.size(); }
 };
 
