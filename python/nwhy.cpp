@@ -60,6 +60,12 @@ PYBIND11_MODULE(nwhy, m) {
     "A function to get the incident nodes of an edge in the hypergraph", py::arg("e"))
     .def("node_incidence", &NWHypergraph<Index_t, Data_t>::node_incidence,
     "A function to get the incident edges of a node in the hypergraph", py::arg("n"))
+    .def("degree", &NWHypergraph<Index_t, Data_t>::degree,
+    "A function to get the degree of an edge or a node in the hypergraph", py::arg("v"),  py::arg("edges") = true)
+    .def("number_of_nodes", &NWHypergraph<Index_t, Data_t>::number_of_nodes,
+    "A function to get the number of nodes in the hypergraph")
+    .def("number_of_edges", &NWHypergraph<Index_t, Data_t>::number_of_edges,
+    "A function to get the number of edges in the hypergraph")
     //create slinegraph from nwhypergraph
     .def("s_linegraph", &NWHypergraph<Index_t, Data_t>::s_linegraph, "A function which converts a hypergraph to its s line graph",
     py::arg("s") = 1, py::arg("edges") = true)

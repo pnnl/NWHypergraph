@@ -253,6 +253,24 @@ public:
         });
         return l;
     }
+    Index_t degree(Index_t v, bool edges = true) {
+        Index_t d;
+        if (edges){
+            if (v >= edges_.size())
+                d = -1;
+            else
+                d = edges_[v].size();
+        }
+        else {
+            if (v >= nodes_.size())
+                d = -1;
+            else
+                d = nodes_[v].size();
+        }
+        return d;
+    }
+    py::ssize_t number_of_nodes() const { return nodes_.size(); }
+    py::ssize_t number_of_edges() const { return edges_.size(); }
 };
 
 template<class Index_t, typename... Attributes> 
