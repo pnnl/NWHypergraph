@@ -189,6 +189,13 @@ public:
         Slinegraph<Index_t, Attributes...> lineg(*this, s, edges);
         return lineg.s_neighbor(v);        
     }
+    py::ssize_t s_degree(Index_t v, int s = 1, bool edges = true) {
+        Slinegraph<Index_t, Attributes...> lineg(*this, s, edges);
+        return lineg.s_degree(v);
+    }
+    py::ssize_t s_degree(Slinegraph<Index_t, Attributes...>& linegraph, Index_t v) {
+        return linegraph.s_degree(v);
+    }
     void populate_neighbor_count(bool edges = true) {
         std::cout << "counting neighbors\n";
         if (edges){
@@ -438,6 +445,7 @@ public:
         }
         return l;
     }
+    py::ssize_t s_degree(Index_t v) { return g_[v].size(); }
     int getS() const { return s_; }
     bool isEdgeOverlap() const { return edges_; }
 }; //slinegraph class

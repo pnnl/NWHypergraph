@@ -93,6 +93,12 @@ PYBIND11_MODULE(nwhy, m) {
     py::arg("linegraph"), py::arg("v"))
     .def("s_neighbor", py::overload_cast<Index_t, int, bool>(&NWHypergraph<Index_t, Data_t>::s_neighbor), 
     "A function which finds the neighbors for vertex v of its s line graph",
+    py::arg("v"), py::arg("s") = 1, py::arg("edges") = true)
+    .def("s_degree", py::overload_cast<Slinegraph<Index_t, Data_t> &, Index_t>(&NWHypergraph<Index_t, Data_t>::s_degree),
+     "A function which finds the degree for vertex v of its s line graph",
+    py::arg("linegraph"), py::arg("v"))
+    .def("s_degree", py::overload_cast<Index_t, int, bool>(&NWHypergraph<Index_t, Data_t>::s_degree), 
+    "A function which finds the degree for vertex v of its s line graph",
     py::arg("v"), py::arg("s") = 1, py::arg("edges") = true);
 
     //define Slinegraph python object
@@ -112,6 +118,9 @@ PYBIND11_MODULE(nwhy, m) {
     "A function to compute the distance from src to dest",
     py::arg("src"), py::arg("dest"))
     .def("s_neighbor", &Slinegraph<Index_t, Data_t>::s_neighbor,
+    "A function to get s neighbors of a vertex",
+    py::arg("v"))
+    .def("s_degree", &Slinegraph<Index_t, Data_t>::s_degree,
     "A function to get s neighbors of a vertex",
     py::arg("v"));
 
