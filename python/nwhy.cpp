@@ -51,6 +51,15 @@ PYBIND11_MODULE(nwhy, m) {
         return new NWHypergraph<Index_t, Data_t>(x, y, data, collapse);
     }),
     py::arg("x"), py::arg("y"), py::arg("data"), py::arg("collapse") = false)
+    //stats for hypergraph
+    .def("edge_size_dist", &NWHypergraph<Index_t, Data_t>::edge_size_dist,
+    "A function to get the edge size distributation of the hypergraph")
+    .def("node_size_dist", &NWHypergraph<Index_t, Data_t>::node_size_dist,
+    "A function to get the node size distributation of the hypergraph")
+    .def("edge_incidence", &NWHypergraph<Index_t, Data_t>::edge_incidence,
+    "A function to get the incident nodes of an edge in the hypergraph", py::arg("e"))
+    .def("node_incidence", &NWHypergraph<Index_t, Data_t>::node_incidence,
+    "A function to get the incident edges of a node in the hypergraph", py::arg("n"))
     //create slinegraph from nwhypergraph
     .def("s_linegraph", &NWHypergraph<Index_t, Data_t>::s_linegraph, "A function which converts a hypergraph to its s line graph",
     py::arg("s") = 1, py::arg("edges") = true)
@@ -79,6 +88,9 @@ PYBIND11_MODULE(nwhy, m) {
     //define Slinegraph python object
     py::class_<Slinegraph<Index_t, Data_t>> slinegraph_class(m, "Slinegraph");
     slinegraph_class
+    .def_readonly("row", &Slinegraph<Index_t, Data_t>::row_)
+    .def_readonly("col", &Slinegraph<Index_t, Data_t>::col_)
+    .def_readonly("data", &Slinegraph<Index_t, Data_t>::data_)
     .def(py::init<>([](NWHypergraph<Index_t, Data_t>& g, int s, bool edges) {
         return new Slinegraph<Index_t, Data_t>(g, s, edges);
     }), "Init function", py::arg("g"), py::arg("s") = 1, py::arg("edges") = true)
