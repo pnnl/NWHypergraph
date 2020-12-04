@@ -927,11 +927,12 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
   }
   return create_edgelist_with_squeeze(two_graphs);
 }
-
-template<directedness edge_directedness = nw::graph::undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
-auto to_two_graph_count_neighbors_parallel(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes) {
+/*
+* counts the neighbor hyperedges of the hyperedges
+*/
+template<class HyperEdge, class HyperNode>
+auto to_two_graph_count_neighbors_parallel(HyperEdge& edges, HyperNode& nodes) {
   size_t M = edges.size();
-  size_t N = nodes.size();
   std::vector<std::map<size_t, size_t>> two_graphs(M, std::map<size_t, size_t>());
   nw::util::life_timer _(__func__);
   tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M), [&](tbb::blocked_range<vertex_id_t>& r) {
