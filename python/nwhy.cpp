@@ -30,8 +30,6 @@ using Index_t = int;
 * Scenario 4: unweighted simple hypergraph into weighted slinegraph
 */
 using Data_t = int;
-//PYBIND11_MAKE_OPAQUE(py::array_t<T, py::array::c_style | py::array::forcecast>);
-
 
 PYBIND11_MODULE(nwhy, m) {
     m.doc() = "NWhy pybind11 module plugin"; // optional module docstring
@@ -63,7 +61,7 @@ PYBIND11_MODULE(nwhy, m) {
     "A function to get the incident nodes of an edge in the hypergraph", py::arg("edge"))
     .def("node_incidence", &NWHypergraph<Index_t, Data_t>::node_incidence,
     "A function to get the incident edges of a node in the hypergraph", py::arg("node"))
-    .def("degree", &NWHypergraph<Index_t, Data_t>::degree,
+    .def("degree", py::overload_cast<Index_t, size_t, py::list>(&NWHypergraph<Index_t, Data_t>::degree),
     "A function to get the degree of a node in the hypergraph", py::arg("node"), py::arg("s") = 1, py::arg("edges") = py::list(0))
     .def("size", &NWHypergraph<Index_t, Data_t>::size,
     "A function to get the number of nodes that belong to an edge in the hypergraph", py::arg("edge"))
@@ -87,23 +85,23 @@ PYBIND11_MODULE(nwhy, m) {
     "A function which finds the connected components for its s line graph",
     py::arg("s") = 1, py::arg("edges") = true, py::arg("return_singleton") = false)
     //s_distance
-    .def("s_distance", py::overload_cast<Slinegraph<Index_t, Data_t> &, Index_t, Index_t>(&NWHypergraph<Index_t, Data_t>::s_distance),
+    .def("distance", py::overload_cast<Slinegraph<Index_t, Data_t> &, Index_t, Index_t>(&NWHypergraph<Index_t, Data_t>::distance),
      "A function which computes the distance from src to dest in its s line graph",
     py::arg("linegraph"), py::arg("src"), py::arg("dest"))
-    .def("s_distance", py::overload_cast<Index_t, Index_t, int, bool>(&NWHypergraph<Index_t, Data_t>::s_distance), 
+    .def("distance", py::overload_cast<Index_t, Index_t, int, bool>(&NWHypergraph<Index_t, Data_t>::distance), 
     "A function which computes the distance from src to dest in its s line graph",
     py::arg("src"), py::arg("dest"), py::arg("s") = 1, py::arg("edges") = true)
     //s_neighbor
-    .def("s_neighbor", py::overload_cast<Slinegraph<Index_t, Data_t> &, Index_t>(&NWHypergraph<Index_t, Data_t>::s_neighbor),
+    .def("neighbors", py::overload_cast<Slinegraph<Index_t, Data_t> &, Index_t>(&NWHypergraph<Index_t, Data_t>::neighbors),
      "A function which finds the neighbors for vertex v of its s line graph",
     py::arg("linegraph"), py::arg("v"))
-    .def("s_neighbor", py::overload_cast<Index_t, int, bool>(&NWHypergraph<Index_t, Data_t>::s_neighbor), 
+    .def("neighbors", py::overload_cast<Index_t, int, bool>(&NWHypergraph<Index_t, Data_t>::neighbors), 
     "A function which finds the neighbors for vertex v of its s line graph",
     py::arg("v"), py::arg("s") = 1, py::arg("edges") = true)
-    .def("s_degree", py::overload_cast<Slinegraph<Index_t, Data_t> &, Index_t>(&NWHypergraph<Index_t, Data_t>::s_degree),
+    .def("degree", py::overload_cast<Slinegraph<Index_t, Data_t> &, Index_t>(&NWHypergraph<Index_t, Data_t>::degree),
      "A function which finds the degree for vertex v of its s line graph",
     py::arg("linegraph"), py::arg("v"))
-    .def("s_degree", py::overload_cast<Index_t, int, bool>(&NWHypergraph<Index_t, Data_t>::s_degree), 
+    .def("degree", py::overload_cast<Index_t, int, bool>(&NWHypergraph<Index_t, Data_t>::degree), 
     "A function which finds the degree for vertex v of its s line graph",
     py::arg("v"), py::arg("s") = 1, py::arg("edges") = true);
 

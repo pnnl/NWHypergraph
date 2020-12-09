@@ -179,36 +179,36 @@ public:
     /*
     * Find the distance from the src to dest in its slinegraph
     */
-    Index_t s_distance(Slinegraph<Index_t, Attributes...>& linegraph, Index_t src, Index_t dest) {
+    Index_t distance(Slinegraph<Index_t, Attributes...>& linegraph, Index_t src, Index_t dest) {
         return linegraph.s_distance(src, dest);
     }
     /*
     * Find the distance from the src to dest in its slinegraph
     * The slinegraph is constructed on the fly
     */
-    Index_t s_distance(Index_t src, Index_t dest, int s = 1, bool edges = true) {
+    Index_t distance(Index_t src, Index_t dest, int s = 1, bool edges = true) {
         Slinegraph<Index_t, Attributes...> lineg(*this, s, edges);
         return lineg.s_distance(src, dest);
     }
     /*
     * Find neighbors of a vertex in its slinegraph
     */
-    py::list s_neighbor(Slinegraph<Index_t, Attributes...>& linegraph, Index_t v) {
+    py::list neighbors(Slinegraph<Index_t, Attributes...>& linegraph, Index_t v) {
         return linegraph.s_neighbor(v);
     } 
     /*
     * Find neighbors of a vertex in its slinegraph
     * The slinegraph is constructed on the fly
     */
-    py::list s_neighbor(Index_t v, int s = 1, bool edges = true) {
+    py::list neighbors(Index_t v, int s = 1, bool edges = true) {
         Slinegraph<Index_t, Attributes...> lineg(*this, s, edges);
         return lineg.s_neighbor(v);        
     }
-    py::ssize_t s_degree(Index_t v, int s = 1, bool edges = true) {
+    py::ssize_t degree(Index_t v, int s = 1, bool edges = true) {
         Slinegraph<Index_t, Attributes...> lineg(*this, s, edges);
         return lineg.s_degree(v);
     }
-    py::ssize_t s_degree(Slinegraph<Index_t, Attributes...>& linegraph, Index_t v) {
+    py::ssize_t degree(Slinegraph<Index_t, Attributes...>& linegraph, Index_t v) {
         return linegraph.s_degree(v);
     }
     /*
