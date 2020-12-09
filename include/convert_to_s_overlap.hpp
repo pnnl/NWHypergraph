@@ -265,7 +265,9 @@ public:
         return l;
     }
     /*
-    * Get the degree of a node in the hypergraph
+    * Get the degree of a node in the hypergraph.
+    * where s is the size of an edge.
+    * Value s is used to filter the edges with size s.
     * */
     Index_t degree(Index_t node, size_t s = 1, py::list edges = py::list(0)) {
         if (edges.empty()) {
@@ -308,6 +310,20 @@ public:
             return edges_[edge].size() - 1;
     }
     py::ssize_t number_of_edges() const { return max_edge_; }
+    // a singleton is an edge of size 1 with a node of degree 1
+    py::list singletons() {
+        py::list l;
+        for(Index_t e = 0; e < max_edge_; ++e) {
+            if (1 == edges_[e].size()) {
+                std::for_each(edges_[e].begin(), edges_[e].end(), [&](auto &&x) {
+                    auto hyperN = std::get<0>(x);
+                    if (1 == nodes_[hyperN].size())
+                        l.append(e);
+                });
+            }
+        }
+        return l;
+    }
 };
 
 template<class Index_t, typename... Attributes> 

@@ -54,9 +54,9 @@ PYBIND11_MODULE(nwhy, m) {
     py::arg("x"), py::arg("y"), py::arg("data"), py::arg("collapse") = false)
     //stats for hypergraph
     .def("edge_size_dist", &NWHypergraph<Index_t, Data_t>::edge_size_dist,
-    "A function to get the edge size distributation of the hypergraph")
+    "A function to get the edge size distribution of the hypergraph")
     .def("node_size_dist", &NWHypergraph<Index_t, Data_t>::node_size_dist,
-    "A function to get the node size distributation of the hypergraph")
+    "A function to get the node size distribution of the hypergraph")
     .def("edge_incidence", &NWHypergraph<Index_t, Data_t>::edge_incidence,
     "A function to get the incident nodes of an edge in the hypergraph", py::arg("edge"))
     .def("node_incidence", &NWHypergraph<Index_t, Data_t>::node_incidence,
@@ -73,6 +73,12 @@ PYBIND11_MODULE(nwhy, m) {
     "A function to get the number of nodes in the hypergraph")  
     .def("number_of_edges", &NWHypergraph<Index_t, Data_t>::number_of_edges,
     "A function to get the number of edges in the hypergraph")
+
+    //return singletons 
+    // a singleton is an edge of size 1 with a node of degree 1
+    .def("singletons", &NWHypergraph<Index_t, Data_t>::singletons,
+    "A function to get the list of singletons in the hypergraph")
+
     //create slinegraph from nwhypergraph
     .def("s_linegraph", &NWHypergraph<Index_t, Data_t>::s_linegraph, 
     "A function which converts a hypergraph to its s line graph; if edges is true, then it is an edge linegraph",
@@ -103,7 +109,9 @@ PYBIND11_MODULE(nwhy, m) {
     py::arg("linegraph"), py::arg("v"))
     .def("degree", py::overload_cast<Index_t, int, bool>(&NWHypergraph<Index_t, Data_t>::degree), 
     "A function which finds the degree for vertex v of its s line graph",
-    py::arg("v"), py::arg("s") = 1, py::arg("edges") = true);
+    py::arg("v"), py::arg("s") = 1, py::arg("edges") = true)
+
+    ;
 
     //define Slinegraph python object
     py::class_<Slinegraph<Index_t, Data_t>> slinegraph_class(m, "Slinegraph");
@@ -120,7 +128,7 @@ PYBIND11_MODULE(nwhy, m) {
     .def("s_distance", &Slinegraph<Index_t, Data_t>::s_distance,
     "A function to compute the distance from src to dest", py::arg("src"), py::arg("dest"))
     .def("s_neighbor", &Slinegraph<Index_t, Data_t>::s_neighbor,
-    "A function to get s neighbors of a vertex", py::arg("v"))
+    "A function to get neighbors of a vertex", py::arg("v"))
     .def("s_degree", &Slinegraph<Index_t, Data_t>::s_degree,
     "A function to get the degree of a vertex in the slinegraph", py::arg("v"));
 
