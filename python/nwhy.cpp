@@ -78,6 +78,11 @@ PYBIND11_MODULE(nwhy, m) {
     // a singleton is an edge of size 1 with a node of degree 1
     .def("singletons", &NWHypergraph<Index_t, Data_t>::singletons,
     "A function to get the list of singletons in the hypergraph")
+    
+    // return toplexes
+    // a toplex is an edge where its nodes are not included in another edge
+    .def("toplexes", &NWHypergraph<Index_t, Data_t>::toplexes,
+    "A function to get the list of edges of toplexes in the hypergraph")
 
     //create slinegraph from nwhypergraph
     .def("s_linegraph", &NWHypergraph<Index_t, Data_t>::s_linegraph, 

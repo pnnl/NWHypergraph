@@ -14,6 +14,7 @@
 #include <tuple>
 #include <map>
 #include <edge_list.hpp>
+#include <util/intersection_size.hpp>
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 #include <pybind11/pytypes.h>
@@ -322,6 +323,135 @@ public:
                 });
             }
         }
+        return l;
+    }
+    /*
+        def toplexes(self,name=None,collapse=False,use_reps=False,return_counts=True):
+        """
+        Returns a :term:`simple hypergraph` corresponding to self.
+        Warning
+        -------
+        Collapsing a hypergraph can take a long time. It may be preferable to collapse the graph first and
+        pickle it, then apply the toplexes method separately.
+        Parameters
+        ----------
+        name: str, optional, default: None
+        collapse: boolean, optional, default: False
+            Should the hypergraph be collapsed? This would preserve a link between duplicate maximal sets.
+            If False then only one of these sets will be used and uniqueness will be up to sets of equal size.
+        use_reps: boolean, optional, default: False
+            If collapse=True then each toplex will be named by a representative of the set of
+            equivalent edges, default is False (see collapse_edges).
+        return_counts: boolean, optional, default: True
+            If collapse=True then each toplex will be named by a tuple of the representative
+            of the set of equivalent edges and their count
+        """
+        if collapse:
+            if len(self.edges) > 20:  ### TODO: Determine how big is too big.
+                warnings.warn('Collapsing a hypergraph can take a long time. It may be preferable to collapse the graph first and pickle it then apply the toplex method separately.')
+            temp = self.collapse_edges(use_reps=use_reps,return_counts=return_counts)
+        else:
+            temp = self
+        thdict = dict()
+        for e in temp.edges:
+            thdict[e] = temp.edges[e].uidset
+        tops = dict()
+        for e in temp.edges:
+            flag = True
+            old_tops = dict(tops)
+            for top in old_tops:
+                if thdict[e].issubset(thdict[top]):
+                    flag = False
+                    break
+                elif set(thdict[top]).issubset(thdict[e]):
+                    del tops[top]
+            if flag:
+                tops.update({e : thdict[e]})
+        return Hypergraph(tops,name)
+
+        */
+    py::list toplexes() {
+        std::vector<Index_t> tops;
+        for (Index_t e = 0; e < max_edge_; ++e) {
+            bool flag = true;
+            std::vector<Index_t> old_tops(tops);
+            for (size_t i = 0, end = old_tops.size(); i < end; ++i) {
+                Index_t top = old_tops[i];
+                //TODO is this necessary?
+                if (e == top)
+                    continue;
+                auto lhs = edges_[e].size();
+                auto rhs = edges_[top].size();
+                auto s = nw::graph::intersection_size(edges_[e], edges_[top]);
+                if (s == rhs)
+                    tops.erase(tops.begin() + i);
+                else if (s == lhs) {
+                    flag = false;
+                    break;
+                }
+            }
+            if (flag)
+                tops.push_back(e);
+        }
+
+        auto n = tops.size();
+        py::list l = py::list(n);
+        tbb::parallel_for(
+            tbb::blocked_range<Index_t>(0, n), [&](tbb::blocked_range<Index_t> &r) {
+                for (auto i = r.begin(), e = r.end(); i != e; ++i)
+                    l[i] = tops[i];
+            },
+            tbb::auto_partitioner());
+        return l;
+    }
+    py::list toplexes_v2() {
+        //O(m+n), where m is the size of lhs, n is the size of rhs
+        auto issubset = [&](auto& lhs, auto& rhs) {
+            std::map<Index_t, size_t> frequency;
+            std::for_each (lhs.begin(), lhs.end(), [&](auto&& x) {
+                auto v = std::get<0>(x);
+                ++frequency[v];
+            });
+            bool res = true;
+            std::for_each (rhs.begin(), rhs.end(), [&](auto&& x) {
+                auto v = std::get<0>(x);
+                if (0 < frequency[v])
+                    --frequency[v];
+                else {
+                    res = false;
+                    return;
+                }
+            }); 
+            return res;
+        };
+        std::vector<Index_t> tops;
+        for (Index_t e = 0; e < max_edge_; ++e) {
+            bool flag = true;
+            std::vector<Index_t> old_tops(tops);
+            for (size_t i = 0, end = old_tops.size(); i < end; ++i) {
+                Index_t top = old_tops[i];
+                //TODO is this necessary?
+                if (e == top)
+                    continue;
+                if (issubset(edges_[top], edges_[e]))
+                    tops.erase(tops.begin() + i);
+                else if (issubset(edges_[e], edges_[top])) {
+                    flag = false;
+                    break;
+                }
+            }
+            if (flag)
+                tops.push_back(e);
+        }
+
+        auto n = tops.size();
+        py::list l = py::list(n);
+        tbb::parallel_for(
+            tbb::blocked_range<Index_t>(0, n), [&](tbb::blocked_range<Index_t> &r) {
+                for (auto i = r.begin(), e = r.end(); i != e; ++i)
+                    l[i] = tops[i];
+            },
+            tbb::auto_partitioner());
         return l;
     }
 };
