@@ -166,16 +166,16 @@ public:
     /*
     * Find the connected components for a slinegraph
     */
-    py::list s_connected_component(Slinegraph<Index_t, Attributes...>& linegraph, bool return_singleton = false) {
-        return linegraph.s_connected_component(return_singleton);
+    py::list s_connected_components(Slinegraph<Index_t, Attributes...>& linegraph, bool return_singleton = false) {
+        return linegraph.s_connected_components(return_singleton);
     }
     /*
     * Find the connected components for a slinegraph
     * The slinegraph is constructed on the fly
     */ 
-    py::list s_connected_component(int s = 1, bool edges = true, bool return_singleton = false) {
+    py::list s_connected_components(int s = 1, bool edges = true, bool return_singleton = false) {
         Slinegraph<Index_t, Attributes...> lineg(*this, s, edges);
-        return lineg.s_connected_component(return_singleton);
+        return lineg.s_connected_components(return_singleton);
     }
     /*
     * Find the distance from the src to dest in its slinegraph
@@ -195,7 +195,7 @@ public:
     * Find neighbors of a vertex in its slinegraph
     */
     py::list neighbors(Slinegraph<Index_t, Attributes...>& linegraph, Index_t v) {
-        return linegraph.s_neighbor(v);
+        return linegraph.s_neighbors(v);
     } 
     /*
     * Find neighbors of a vertex in its slinegraph
@@ -203,7 +203,7 @@ public:
     */
     py::list neighbors(Index_t v, int s = 1, bool edges = true) {
         Slinegraph<Index_t, Attributes...> lineg(*this, s, edges);
-        return lineg.s_neighbor(v);        
+        return lineg.s_neighbors(v);        
     }
     py::ssize_t degree(Index_t v, int s = 1, bool edges = true) {
         Slinegraph<Index_t, Attributes...> lineg(*this, s, edges);
@@ -370,8 +370,9 @@ public:
         return Hypergraph(tops,name)
 
         */
-    py::list toplexes() {
+    py::list toplexes_v2() {
         std::vector<Index_t> tops;
+        //std::map<Index_t, bool> tops;
         for (Index_t e = 0; e < max_edge_; ++e) {
             bool flag = true;
             std::vector<Index_t> old_tops(tops);
@@ -404,9 +405,9 @@ public:
             tbb::auto_partitioner());
         return l;
     }
-    py::list toplexes_v2() {
+    py::list toplexes() {
         //O(m+n), where m is the size of lhs, n is the size of rhs
-        auto issubset = [&](auto& lhs, auto& rhs) {
+        auto issubset = []<class A>(A&& lhs, A&& rhs) {
             std::map<Index_t, size_t> frequency;
             std::for_each (lhs.begin(), lhs.end(), [&](auto&& x) {
                 auto v = std::get<0>(x);
@@ -529,7 +530,7 @@ public:
     * Return a list of sets which
     * each set is a component.
     */
-    py::list s_connected_component(bool return_singleton = false) {
+    py::list s_connected_components(bool return_singleton = false) {
         auto E = nw::graph::ccv1(g_);
         // This returns the subgraph of each component.
         std::map<Index_t, py::set> comps;
@@ -569,7 +570,7 @@ public:
     /*
     * Get the neighbors of a vertex in the slinegraph
     */
-    py::list s_neighbor(Index_t v) {
+    py::list s_neighbors(Index_t v) {
         py::list l;
         for (auto u = g_[v].begin(); u != g_[v].end(); ++u) {
             l.append(std::get<0>(*u));

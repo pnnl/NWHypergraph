@@ -89,10 +89,10 @@ PYBIND11_MODULE(nwhy, m) {
     "A function which converts a hypergraph to its s line graph; if edges is true, then it is an edge linegraph",
     py::arg("s") = 1, py::arg("edges") = true)
     //s_connected_component
-    .def("s_connected_component", py::overload_cast<Slinegraph<Index_t, Data_t> &, bool>(&NWHypergraph<Index_t, Data_t>::s_connected_component),
+    .def("s_connected_components", py::overload_cast<Slinegraph<Index_t, Data_t> &, bool>(&NWHypergraph<Index_t, Data_t>::s_connected_components),
      "A function which finds the connected components for its s line graph",
     py::arg("linegraph"), py::arg("return_singleton") = false)
-    .def("s_connected_component", py::overload_cast<int, bool, bool>(&NWHypergraph<Index_t, Data_t>::s_connected_component), 
+    .def("s_connected_components", py::overload_cast<int, bool, bool>(&NWHypergraph<Index_t, Data_t>::s_connected_components), 
     "A function which finds the connected components for its s line graph",
     py::arg("s") = 1, py::arg("edges") = true, py::arg("return_singleton") = false)
     //s_distance
@@ -128,11 +128,11 @@ PYBIND11_MODULE(nwhy, m) {
         return new Slinegraph<Index_t, Data_t>(g, s, edges);
     }), "Init function", py::arg("g"), py::arg("s") = 1, py::arg("edges") = true)
     .def_readonly("s", &Slinegraph<Index_t, Data_t>::s_)
-    .def("s_connected_component", &Slinegraph<Index_t, Data_t>::s_connected_component,
+    .def("s_connected_component", &Slinegraph<Index_t, Data_t>::s_connected_components,
      "A function which finds the connected components for its s line graph", py::arg("return_singleton") = false)
     .def("s_distance", &Slinegraph<Index_t, Data_t>::s_distance,
     "A function to compute the distance from src to dest", py::arg("src"), py::arg("dest"))
-    .def("s_neighbor", &Slinegraph<Index_t, Data_t>::s_neighbor,
+    .def("s_neighbor", &Slinegraph<Index_t, Data_t>::s_neighbors,
     "A function to get neighbors of a vertex", py::arg("v"))
     .def("s_degree", &Slinegraph<Index_t, Data_t>::s_degree,
     "A function to get the degree of a vertex in the slinegraph", py::arg("v"));
