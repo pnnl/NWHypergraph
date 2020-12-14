@@ -61,8 +61,8 @@ PYBIND11_MODULE(nwhy, m) {
     "A function to get the incident nodes of an edge in the hypergraph", py::arg("edge"))
     .def("node_incidence", &NWHypergraph<Index_t, Data_t>::node_incidence,
     "A function to get the incident edges of a node in the hypergraph", py::arg("node"))
-    .def("degree", py::overload_cast<Index_t, size_t, py::list>(&NWHypergraph<Index_t, Data_t>::degree),
-    "A function to get the degree of a node in the hypergraph", py::arg("node"), py::arg("s") = 1, py::arg("edges") = py::list(0))
+    .def("degree", py::overload_cast<Index_t, size_t>(&NWHypergraph<Index_t, Data_t>::degree),
+    "A function to get the degree of a node in the hypergraph", py::arg("node"), py::arg("size") = 1)
     .def("size", &NWHypergraph<Index_t, Data_t>::size,
     "A function to get the number of nodes that belong to an edge in the hypergraph", py::arg("edge"))
     .def("dim", &NWHypergraph<Index_t, Data_t>::dim,
@@ -109,10 +109,10 @@ PYBIND11_MODULE(nwhy, m) {
     .def("neighbors", py::overload_cast<Index_t, int, bool>(&NWHypergraph<Index_t, Data_t>::neighbors), 
     "A function which finds the neighbors for vertex v of its s line graph",
     py::arg("v"), py::arg("s") = 1, py::arg("edges") = true)
-    .def("degree", py::overload_cast<Slinegraph<Index_t, Data_t> &, Index_t>(&NWHypergraph<Index_t, Data_t>::degree),
+    .def("s_degree", py::overload_cast<Slinegraph<Index_t, Data_t> &, Index_t>(&NWHypergraph<Index_t, Data_t>::s_degree),
      "A function which finds the degree for vertex v of its s line graph",
     py::arg("linegraph"), py::arg("v"))
-    .def("degree", py::overload_cast<Index_t, int, bool>(&NWHypergraph<Index_t, Data_t>::degree), 
+    .def("s_degree", py::overload_cast<Index_t, int, bool>(&NWHypergraph<Index_t, Data_t>::s_degree), 
     "A function which finds the degree for vertex v of its s line graph",
     py::arg("v"), py::arg("s") = 1, py::arg("edges") = true)
 

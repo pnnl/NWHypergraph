@@ -205,11 +205,11 @@ public:
         Slinegraph<Index_t, Attributes...> lineg(*this, s, edges);
         return lineg.s_neighbors(v);        
     }
-    py::ssize_t degree(Index_t v, int s = 1, bool edges = true) {
+    py::ssize_t s_degree(Index_t v, int s = 1, bool edges = true) {
         Slinegraph<Index_t, Attributes...> lineg(*this, s, edges);
         return lineg.s_degree(v);
     }
-    py::ssize_t degree(Slinegraph<Index_t, Attributes...>& linegraph, Index_t v) {
+    py::ssize_t s_degree(Slinegraph<Index_t, Attributes...>& linegraph, Index_t v) {
         return linegraph.s_degree(v);
     }
     /*
@@ -267,34 +267,12 @@ public:
     }
     /*
     * Get the degree of a node in the hypergraph.
-    * where s is the size of an edge.
-    * Value s is used to filter the edges with size s.
     * */
-    Index_t degree(Index_t node, size_t s = 1, py::list edges = py::list(0)) {
-        if (edges.empty()) {
-            if (node >= max_node_)
-                return -1;
-            else
-                return nodes_[node].size();
-        }
-        else {
-            if (node >= max_node_)
-                return -1;
-            py::ssize_t n = edges.size();
-            return nw::graph::parallel_for(
-                tbb::blocked_range<py::ssize_t>(0, n),
-                [&](auto &&i) {
-                    Index_t e = py::cast<Index_t>(edges[i]);
-                    if (s <= edges_[e].size()) {
-                    //only consider the edges whose size is no smaller than s
-                        for (auto&& [v, w] : edges_[e]) {
-                            if (v == node) return true;
-                        }
-                    }
-                    return false;
-                },
-                std::plus{}, 0.0);
-        }
+    Index_t degree(Index_t node, size_t size = 1) {
+        if (node >= max_node_)
+            return -1;
+        else
+            return nodes_[node].size();
     }
     py::ssize_t number_of_nodes() const { return max_node_; }
     py::ssize_t order() const { return max_node_; }
