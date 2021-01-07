@@ -117,8 +117,23 @@ PYBIND11_MODULE(nwhy, m) {
     .def_readonly("s", &Slinegraph<Index_t, Data_t>::s_)
     .def("s_connected_components", &Slinegraph<Index_t, Data_t>::s_connected_components,
      "A function which finds the connected components for its s line graph", py::arg("return_singleton") = false)
+    .def("is_s_connected", &Slinegraph<Index_t, Data_t>::is_s_connected,
+    "A function which tests whether its s line graph is connected or not")
     .def("s_distance", &Slinegraph<Index_t, Data_t>::s_distance,
     "A function to compute the distance from src to dest", py::arg("src"), py::arg("dest"))
+    .def("s_diameter", &Slinegraph<Index_t, Data_t>::s_diameter,
+    "A function to compute the diameter of the s line graph")
+    .def("s_path", &Slinegraph<Index_t, Data_t>::s_path,
+    "A function which finds a path from src to dest", py::arg("src"), py::arg("dest")) 
+    .def("s_betweenness_centrality", &Slinegraph<Index_t, Data_t>::s_betweenness_centrality,
+    "A function which computes the betweenness centrality from src to all the other vertices", 
+    py::arg("v"), py::arg("normalized") = true)
+    .def("s_closeness_centrality", &Slinegraph<Index_t, Data_t>::s_closeness_centrality,
+    "A function which computes the closeness centrality of v", py::arg("v"))
+    .def("s_harmonic_closeness_centrality", &Slinegraph<Index_t, Data_t>::s_harmonic_closeness_centrality,
+    "A function which computes the harmonic closeness centrality of v", py::arg("v"))
+    .def("s_eccentricity", &Slinegraph<Index_t, Data_t>::s_eccentricity,
+    "A function which computes the eccentrality of a vertex", py::arg("v"))        
     .def("s_neighbors", &Slinegraph<Index_t, Data_t>::s_neighbors,
     "A function to get neighbors of a vertex", py::arg("v"))
     .def("s_degree", &Slinegraph<Index_t, Data_t>::s_degree,

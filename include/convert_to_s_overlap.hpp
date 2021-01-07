@@ -21,6 +21,7 @@
 #include "s_overlap.hpp"
 #include <algorithms/connected_components.hpp>
 #include <algorithms/delta_stepping.hpp>
+#include <algorithms/betweenness_centrality.hpp>
 using namespace nw::graph;
 namespace py = pybind11;
 
@@ -261,7 +262,7 @@ public:
             return edges_[edge].size() - 1;
     }
     py::ssize_t number_of_edges() const { return max_edge_; }
-    // a singleton is an edge of size 1 with a node of degree 1
+    // a singleton is an edge of size 1
     py::list singletons() {
         py::list l;
         for(Index_t e = 0; e < max_edge_; ++e) {
@@ -505,8 +506,20 @@ public:
         return l;
     }
     /*
+    * Check whether slinegraph is s_connected
+    * Check the neighborhood size of each vertex
+    * As long as there is one non-empty neighborhood, then slinegraph is s_connected
+    */
+    bool is_s_connected() {
+        //if every vertex in g_, if one has neighbor, then g_ is s_connected
+        auto res = nw::graph::parallel_for(tbb::blocked_range<Index_t>(0, g_.size()), [&](auto& i) {            
+            return g_[i].size();
+        }, std::plus{}, 0ul);
+        return (0 < res);
+    }
+    /*
     * Compute the distance from src to dest
-    * TODO -1 if unreachable for now
+    * return -1 if unreachable
     */
     Index_t s_distance(Index_t src, Index_t dest) {
         using distance_t = std::uint64_t;
@@ -516,6 +529,113 @@ public:
         if (dist_of_dest == std::numeric_limits<Index_t>::max() - 1)
             return -1;
         return dist_of_dest;
+    }
+    /*
+    * Compute the distance from src to dest
+    * return -1 if unreachable
+    */
+    Index_t s_diameter() {
+        using distance_t = std::uint64_t;
+        std::size_t delta = 1;
+        std::size_t n = g_.size();
+        std::vector<distance_t> bc(n, std::numeric_limits<distance_t>::max());
+        tbb::parallel_for(tbb::blocked_range<Index_t>(0, n), [&](tbb::blocked_range<Index_t>& r) {
+            for (auto i = r.begin(), e = r.end(); i != e; ++i) {
+                auto dist = nw::graph::delta_stepping_v12<distance_t>(g_t_, i, delta);
+                auto tmp = std::max_element(dist.begin(), dist.end());
+                bc[i] = (*tmp).load(std::memory_order_relaxed);
+            }
+        }, tbb::auto_partitioner());
+        auto result = *std::max_element(bc.begin(), bc.end());
+        if (result == std::numeric_limits<Index_t>::max())
+            return -1;
+        return result;
+    }
+    /*
+    * Compute the path from src to dest
+    * empty list will be returned if unreachable
+    */
+    py::list s_path(Index_t src, Index_t dest) {
+        using distance_t = std::uint64_t;
+        size_t delta = 1;
+        auto dist = nw::graph::delta_stepping_v12<distance_t>(g_t_, src, delta);
+        py::list l;
+        //TODO compute paths
+        return l;
+    }
+    /*
+    * Compute the betweenness centrality of vertex v to any other vertices
+    */
+    py::list s_betweenness_centrality(Index_t v, bool normalized = true) {
+        using score_t=float;
+        using accum_t=double;
+        std::vector<vertex_id_t> sources;
+        sources.push_back(v);
+        int thread = 32;
+        std::vector<score_t> bc = nw::graph::bc2_v5<score_t, accum_t>(g_, sources, thread);
+        std::size_t n = g_.size();
+        float scale = 1.0;
+        if (normalized) {
+            //TODO not sure the scale is correct
+            if (2 < n)
+                scale = 1 / ((n - 1) * (n - 2));
+        }
+        py::list l = py::list(n);
+        tbb::parallel_for(tbb::blocked_range<Index_t>(0, n), [&](tbb::blocked_range<Index_t>& r) {
+            for (auto i = r.begin(), e = r.end(); i != e; ++i) {
+                l[i] = bc[i] * scale;
+            }
+        }, tbb::auto_partitioner());
+        return l;
+    }
+    /*
+    * Closeness centrality of a node `v` is the reciprocal of the
+    * average shortest path distance to `v` over all `n-1` reachable nodes.
+    */
+    auto s_closeness_centrality(Index_t v) {
+        using distance_t = std::uint64_t;
+        size_t delta = 1;
+        auto dist = nw::graph::delta_stepping_v12<distance_t>(g_t_, v, delta);
+        std::size_t n = g_.size();
+        auto sum = nw::graph::parallel_for(tbb::blocked_range<Index_t>(0, n), [&](Index_t& i) {
+            distance_t tmp = dist[i].load(std::memory_order_relaxed);
+            if (tmp == std::numeric_limits<Index_t>::max())
+                return static_cast<distance_t>(0);
+            else
+                return tmp;
+        }, std::plus{}, 0ul);
+        return (n - 1)/sum;
+    }
+    /*
+    * TODO 
+    */
+    auto s_harmonic_closeness_centrality(Index_t v) {
+        using distance_t = std::uint64_t;
+        size_t delta = 1;
+        auto dist = nw::graph::delta_stepping_v12<distance_t>(g_t_, v, delta);
+        std::size_t n = g_.size();
+        auto sum = nw::graph::parallel_for(tbb::blocked_range<Index_t>(0, n), [&](Index_t& i) {
+            distance_t tmp = dist[i].load(std::memory_order_relaxed);
+            if (tmp == std::numeric_limits<Index_t>::max())
+                return static_cast<distance_t>(0);
+            else
+                return tmp;
+        }, std::plus{}, 0ul);
+        return (n - 1)/sum;
+    }
+    /*
+    * Compute the eccentricity of vertex v
+    * return -1 if unreachable
+    */
+    auto s_eccentricity(Index_t v) {
+        using distance_t = std::uint64_t;
+        size_t delta = 1;
+        auto dist = nw::graph::delta_stepping_v12<distance_t>(g_t_, v, delta);
+        auto tmp = std::max_element(dist.begin(), dist.end());
+        distance_t result = (*tmp).load(std::memory_order_relaxed);
+        if (result == std::numeric_limits<Index_t>::max())
+            return static_cast<distance_t>(0);
+        return result;
     }
     /*
     * Get the neighbors of a vertex in the slinegraph
