@@ -532,13 +532,13 @@ public:
     }
     /*
     * Compute the distance from src to dest
-    * return -1 if unreachable
+    * return 0 if every vertex is a singleton
     */
-    Index_t s_diameter() {
+    auto s_diameter() {
         using distance_t = std::uint64_t;
         std::size_t delta = 1;
         std::size_t n = g_.size();
-        std::vector<distance_t> bc(n, std::numeric_limits<distance_t>::max());
+        std::vector<distance_t> bc(n);
         tbb::parallel_for(tbb::blocked_range<Index_t>(0, n), [&](tbb::blocked_range<Index_t>& r) {
             for (auto i = r.begin(), e = r.end(); i != e; ++i) {
                 auto dist = nw::graph::delta_stepping_v12<distance_t>(g_t_, i, delta);
@@ -546,9 +546,9 @@ public:
                 bc[i] = (*tmp).load(std::memory_order_relaxed);
             }
         }, tbb::auto_partitioner());
-        auto result = *std::max_element(bc.begin(), bc.end());
+        distance_t result = *std::max_element(bc.begin(), bc.end());
         if (result == std::numeric_limits<Index_t>::max())
-            return -1;
+            return static_cast<distance_t>(0);
         return result;
     }
     /*
