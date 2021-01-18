@@ -31,6 +31,7 @@ target_sources(NW_HYPERGRAPH
   algorithms/hyper_breadth_first_search.hpp
   algorithms/s_connected_components.hpp
   algorithms/s_breadth_first_search.hpp
+  algorithms/toplexes.hpp
   )
 
 target_include_directories(NW_HYPERGRAPH INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
