@@ -552,15 +552,115 @@ public:
         return result;
     }
     /*
-    * Compute the path from src to dest
-    * empty list will be returned if unreachable
+    * Compute the path from src to dest.
+    * Note empty list will be returned if unreachable from src to dest.
+    * Current impl is in seral. More improvement needs be done (parallelize it).
+    * 
+    * The main idea of this implementation is:
+    * Find the shortest path from src to a node u
+    * Find the shortest path from dest to a node v
+    * when u and v are identical, the shortest path from src to dest can be formed
+    * as [src, u/v, dest]
+    * To identify u and v are the same, use two bitmaps check whether either has been visited
+    * by src or by dest respectively
     */
     py::list s_path(Index_t src, Index_t dest) {
-        using distance_t = std::uint64_t;
-        size_t delta = 1;
-        auto dist = nw::graph::delta_stepping_v12<distance_t>(g_t_, src, delta);
+        //1. create two queue to memorize the paths from src and the paths from dest
+        std::queue<std::tuple<Index_t, std::vector<Index_t>>> srcQ, destQ; //node, path from node
+        //2. add src and dest to its queue respectively
+        srcQ.push(std::make_tuple(src, std::vector<Index_t>{src}));
+        destQ.push(std::make_tuple(dest, std::vector<Index_t>{dest}));
+
+        std::size_t n = g_.size();
+        //3. create a bitmap to memorize which node has been visited
+        nw::graph::AtomicBitVector<Index_t>   srcVisited(n), destVisited(n);
+        srcVisited.atomic_set(src);
+        destVisited.atomic_set(dest);
+
         py::list l;
-        //TODO compute paths
+        //4. continue if both srcQ and destQ are not empty
+        while((!srcQ.empty() && !destQ.empty())) {
+            auto&& [u, uPath] = srcQ.front();
+            srcQ.pop();
+            if (0 == destVisited.atomic_get(u)) {
+                //if u has been visited by dest
+                //bingo we found a path
+                for(auto& v : uPath) {
+                    l.append(v);
+                }
+                while (!destQ.empty()) {
+                    auto& [v, vPath] = destQ.front();
+                    destQ.pop();
+                    if (v == u) {
+                        //we found the path
+                        //by adding reversely from the end of the path to v
+                        for (size_t i = vPath.size(); i >= 0; --i) {
+                            l.append(vPath[i]);
+                        }
+                        break;
+                    }
+                }
+                break;
+            }
+            if (0 == srcVisited.atomic_get(u)) {
+                //if cur_node has not been visited by src, 
+                //we keep extend the path by visited all the neighbors of cur_node
+                std::for_each(g_[u].begin(), g_[u].end(), [&](auto&& i) {
+                    auto v = std::get<0>(i);
+                    if (0 == srcVisited.atomic_get(v)) {
+                        //if this neighbor has not been visited
+                        if (0 == srcVisited.atomic_set(v)) {
+                            uPath.push_back(v);
+                            srcQ.push({v, uPath});
+                        }
+                    }
+                    else {
+                        //ignore the visited neighbors
+                    }
+                });
+            }
+            auto&& [cur_node, cur_path] = destQ.front();
+            destQ.pop();
+            if (0 == srcVisited.atomic_get(cur_node)) {
+                //if cur_node has been visited by src
+                //bingo we found a path
+                while (!srcQ.empty()) {
+                    auto& [node, path] = srcQ.front();
+                    srcQ.pop();
+                    if (node == cur_node) {
+                        //we found the path from src to cur_node
+                        for (size_t i = 0, e = path.size(); i < e; ++i) {
+                            l.append(path[i]);
+                        }
+                        break;
+                    }
+                }
+                for(auto& v : cur_path) {
+                    l.append(v);
+                }
+                break;
+            }
+            if (0 == destVisited.get(cur_node)) {
+                //if cur_node has not been visited by dest, 
+                //we keep extend the path by visited all the neighbors of cur_node
+                std::for_each(g_[cur_node].begin(), g_[cur_node].end(), [&](auto&& i) {
+                    auto v = std::get<0>(i);
+                    if (0 == destVisited.atomic_get(v)) {
+                        //if this neighbor has not been visited
+                        if (0 == destVisited.atomic_set(v)) {
+                            cur_path.push_back(v);
+                            destQ.push({v, cur_path});
+                        }
+                    }
+                    else {
+                        //ignore the visited neighbors
+                    }
+                });
+
+            }
+
+        }//while
+        
         return l;
     }
     /*
@@ -597,14 +697,17 @@ public:
         size_t delta = 1;
         auto dist = nw::graph::delta_stepping_v12<distance_t>(g_t_, v, delta);
         std::size_t n = g_.size();
+        std::atomic<std::size_t> ncomp(0);
         auto sum = nw::graph::parallel_for(tbb::blocked_range<Index_t>(0, n), [&](Index_t& i) {
             distance_t tmp = dist[i].load(std::memory_order_relaxed);
             if (tmp == std::numeric_limits<Index_t>::max())
                 return static_cast<distance_t>(0);
-            else
+            else{
+                ++ncomp;
                 return tmp;
+            }
         }, std::plus{}, 0ul);
-        return (n - 1)/sum;
+        return (ncomp/sum);
     }
     /*
     * TODO 
@@ -614,14 +717,17 @@ public:
         size_t delta = 1;
         auto dist = nw::graph::delta_stepping_v12<distance_t>(g_t_, v, delta);
         std::size_t n = g_.size();
+        //std::atomic<std::size_t> ncomp(0);
         auto sum = nw::graph::parallel_for(tbb::blocked_range<Index_t>(0, n), [&](Index_t& i) {
             distance_t tmp = dist[i].load(std::memory_order_relaxed);
             if (tmp == std::numeric_limits<Index_t>::max())
                 return static_cast<distance_t>(0);
-            else
-                return tmp;
+            else{
+                //++ncomp;
+                return 1/tmp;
+            }
         }, std::plus{}, 0ul);
-        return (n - 1)/sum;
+        return sum/(n - 1);
     }
     /*
     * Compute the eccentricity of vertex v

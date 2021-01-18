@@ -124,7 +124,7 @@ PYBIND11_MODULE(nwhy, m) {
     .def("s_diameter", &Slinegraph<Index_t, Data_t>::s_diameter,
     "A function to compute the diameter of the s line graph")
     .def("s_path", &Slinegraph<Index_t, Data_t>::s_path,
-    "A function which finds a path from src to dest", py::arg("src"), py::arg("dest")) 
+    "A function which finds one shortest path from src to dest (could have multiple, only find one)", py::arg("src"), py::arg("dest")) 
     .def("s_betweenness_centrality", &Slinegraph<Index_t, Data_t>::s_betweenness_centrality,
     "A function which computes the betweenness centrality from src to all the other vertices", 
     py::arg("v"), py::arg("normalized") = true)
