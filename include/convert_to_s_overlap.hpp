@@ -552,13 +552,13 @@ public:
         return result;
     }
     /*
-    * Compute the path from src to dest.
-    * Note empty list will be returned if unreachable from src to dest.
+    * Compute the shortest path from src to dest.
+    * Note an empty list will be returned if unreachable from src to dest.
     * Current impl is in seral. More improvement needs be done (parallelize it).
     * 
     * The main idea of this implementation is:
-    * Find the shortest path from src to a node u
-    * Find the shortest path from dest to a node v
+    * Find the shortest path from src to a node u using BFS
+    * Find the shortest path from dest to a node v using BFS
     * when u and v are identical, the shortest path from src to dest can be formed
     * as [src, u/v, dest]
     * To identify u and v are the same, use two bitmaps check whether either has been visited
