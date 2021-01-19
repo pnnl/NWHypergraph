@@ -18,7 +18,9 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 #include <pybind11/pytypes.h>
-#include "s_overlap.hpp"
+//#include "s_overlap.hpp"
+#include "algorithms/slinegraph_map.hpp"
+#include "algorithms/slinegraph_efficient.hpp"
 #include <algorithms/connected_components.hpp>
 #include <algorithms/delta_stepping.hpp>
 #include <algorithms/betweenness_centrality.hpp>

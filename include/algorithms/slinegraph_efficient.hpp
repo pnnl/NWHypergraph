@@ -8,6 +8,7 @@
 // Author: Xu Tony Liu
 //
 #pragma once
+#include <bitset>
 #include <util/intersection_size.hpp>
 
 #include "util/slinegraph_helper.hpp"
@@ -560,6 +561,158 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
     << nedges << " edges added" << std::endl;
   }
     return squeeze_edgelist(two_graphs);
+  }//else
+}
+
+/*
+* clean without counter. All features on. Fastest version.
+*/
+template<directedness edge_directedness = nw::graph::undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
+auto to_two_graph_efficient_parallel_clean_without_sequeeze(
+  ExecutionPolicy&& ep, 
+  HyperEdge& edges, 
+  HyperNode& nodes, 
+  std::vector<index_t>& hyperedgedegrees, 
+  size_t s = 1, 
+  int num_bins = 32) {
+  size_t M = edges.size();
+  size_t N = nodes.size();
+
+  if (1 == s) {
+    nw::util::life_timer _(__func__);
+    //avoid intersection when s=1
+    std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_bins);
+    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M), [&](tbb::blocked_range<vertex_id_t>& r) {
+      int worker_index = tbb::task_arena::current_thread_index();
+      std::vector<bool> visitedE(M, false);
+      for (auto hyperE = r.begin(), e = r.end(); hyperE < e; ++hyperE) {
+        std::fill(visitedE.begin(), visitedE.end(), false);
+        //all neighbors of hyperedges are hypernode
+        for (auto &&[hyperN] : edges[hyperE]) {
+          for (auto &&[anotherhyperE] : nodes[hyperN]) {
+            if (hyperE >= anotherhyperE) continue;
+            if (visitedE[anotherhyperE]) continue; else visitedE[anotherhyperE] = true;  
+            two_graphs[worker_index].push_back(std::make_tuple<vertex_id_t, vertex_id_t>(std::forward<vertex_id_t>(hyperE), std::forward<vertex_id_t>(anotherhyperE)));
+          }
+        }
+      } //for
+    }, tbb::auto_partitioner());
+    return two_graphs;
+  }
+  else {
+    //when s > 1
+    //create an array of line graphs for each thread
+    std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_bins);
+    {
+    nw::util::life_timer _(__func__);
+    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M), [&](tbb::blocked_range<vertex_id_t>& r) {
+      int worker_index = tbb::task_arena::current_thread_index();
+      std::vector<bool> visitedE(M, false);
+      for (auto hyperE = r.begin(), e = r.end(); hyperE != e; ++hyperE) {
+        std::fill(visitedE.begin(), visitedE.end(), false);
+        if (hyperedgedegrees[hyperE] < s) continue;
+        //all neighbors of hyperedges are hypernode
+        for (auto &&[hyperN] : edges[hyperE]) {
+          for (auto &&[anotherhyperE] : nodes[hyperN]) {
+            //so we check compid of each hyperedge        
+            //travese upper triangluar with lhs > rhs
+            //avoid self edge with lhs == rhs
+            if (hyperE >= anotherhyperE) continue;
+            //filter edges deg(e) < s
+            if (hyperedgedegrees[anotherhyperE] < s) continue;
+            //avoid duplicate intersections
+            if (visitedE[anotherhyperE]) continue; else visitedE[anotherhyperE] = true;         
+            //O(average degree of hyperedges)
+            if (is_intersection_size_s(edges[hyperE].begin(), edges[hyperE].end(),
+            edges[anotherhyperE].begin(), edges[anotherhyperE].end(), s)) {
+              two_graphs[worker_index].push_back(std::make_tuple<vertex_id_t, vertex_id_t>(std::forward<vertex_id_t>(hyperE), std::forward<vertex_id_t>(anotherhyperE)));
+            }
+          }//each neighbor of hyperN
+        }//each neighbor of hyperE
+      } //for each hyperE
+     
+    }, tbb::auto_partitioner());
+    }
+    return two_graphs;
+  }//else
+}
+
+/*
+* clean without counter. All features on. Fastest version.
+* Store s value as edge weight.
+*/
+template<directedness edge_directedness = nw::graph::undirected, class T, class ExecutionPolicy, class HyperEdge, class HyperNode>
+auto to_two_graph_weighted_efficient_parallel_clean_without_squeeze(
+  ExecutionPolicy&& ep, 
+  HyperEdge& edges, 
+  HyperNode& nodes, 
+  std::vector<index_t>& hyperedgedegrees, 
+  size_t s = 1, 
+  int num_bins = 32) {
+  size_t M = edges.size();
+  size_t N = nodes.size();
+
+  if (1 == s) {
+    nw::util::life_timer _(__func__);
+    //avoid intersection when s=1
+    std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t, T>>> two_graphs(num_bins);
+    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M), [&](tbb::blocked_range<vertex_id_t>& r) {
+      int worker_index = tbb::task_arena::current_thread_index();
+      std::vector<bool> visitedE(M, false);
+      for (auto hyperE = r.begin(), e = r.end(); hyperE < e; ++hyperE) {
+        std::fill(visitedE.begin(), visitedE.end(), false);
+        //all neighbors of hyperedges are hypernode
+        std::for_each(edges[hyperE].begin(), edges[hyperE].end(), [&](auto &&x) {
+          auto hyperN = std::get<0>(x);
+          std::for_each(nodes[hyperN].begin(), nodes[hyperN].end(), [&](auto &&y) {
+            auto anotherhyperE = std::get<0>(y);
+            if (hyperE >= anotherhyperE) return;
+            if (visitedE[anotherhyperE]) return; else visitedE[anotherhyperE] = true;  
+            two_graphs[worker_index].push_back(std::make_tuple<vertex_id_t, vertex_id_t>(std::forward<vertex_id_t>(hyperE), std::forward<vertex_id_t>(anotherhyperE), 1));
+          });
+        });
+      } //for
+    }, tbb::auto_partitioner());
+    return two_graphs;
+  }
+  else {
+    //when s > 1
+    //create an array of line graphs for each thread
+    std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t, T>>> two_graphs(num_bins);
+    {
+    nw::util::life_timer _(__func__);
+    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M), [&](tbb::blocked_range<vertex_id_t>& r) {
+      int worker_index = tbb::task_arena::current_thread_index();
+      std::vector<bool> visitedE(M, false);
+      for (auto hyperE = r.begin(), e = r.end(); hyperE != e; ++hyperE) {
+        std::fill(visitedE.begin(), visitedE.end(), false);
+        if (hyperedgedegrees[hyperE] < s) continue;
+        //all neighbors of hyperedges are hypernode
+        std::for_each(edges[hyperE].begin(), edges[hyperE].end(), [&](auto &&x) {
+          auto hyperN = std::get<0>(x);
+          std::for_each(nodes[hyperN].begin(), nodes[hyperN].end(), [&](auto &&y) {
+            auto anotherhyperE = std::get<0>(y);
+            //so we check compid of each hyperedge        
+            //travese upper triangluar with lhs > rhs
+            //avoid self edge with lhs == rhs
+            if (hyperE >= anotherhyperE) return;
+            //filter edges deg(e) < s
+            if (hyperedgedegrees[anotherhyperE] < s) return;
+            //avoid duplicate intersections
+            if (visitedE[anotherhyperE]) return; else visitedE[anotherhyperE] = true;         
+            //O(average degree of hyperedges)
+            size_t s_value = nw::graph::intersection_size(edges[hyperE], edges[anotherhyperE]);
+            if (s <= s_value) {
+              auto e = std::make_tuple<vertex_id_t, vertex_id_t, T>(std::forward<vertex_id_t>(hyperE), std::forward<vertex_id_t>(anotherhyperE), std::forward<T>(s_value));
+              two_graphs[worker_index].push_back(e);
+            }
+          });//each neighbor of hyperN
+        });//each neighbor of hyperE
+      } //for each hyperE
+     
+    }, tbb::auto_partitioner());
+    }
+    return two_graphs;
   }//else
 }
 

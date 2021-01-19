@@ -131,6 +131,26 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
   return squeeze_edgelist(two_graphs);
 }
 
+/*
+* counts the neighbor hyperedges of the hyperedges
+*/
+template<class HyperEdge, class HyperNode>
+auto to_two_graph_count_neighbors_parallel(HyperEdge& edges, HyperNode& nodes) {
+  size_t M = edges.size();
+  std::vector<std::map<size_t, size_t>> two_graphs(M, std::map<size_t, size_t>());
+  nw::util::life_timer _(__func__);
+  tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M), [&](tbb::blocked_range<vertex_id_t>& r) {
+      int worker_index = tbb::task_arena::current_thread_index();    
+      for (auto hyperE = r.begin(), e = r.end(); hyperE != e; ++hyperE) {
+        for (auto &&[hyperN, w] : edges[hyperE]) {
+          for (auto &&[anotherhyperE, anotherw] : nodes[hyperN]) {
+            if (hyperE < anotherhyperE) ++two_graphs[hyperE][anotherhyperE];
+          }
+        }
+      }
+    }, tbb::auto_partitioner());
+    return two_graphs;
+}
 
 }//namespace hypergraph
 }//namespace nw
