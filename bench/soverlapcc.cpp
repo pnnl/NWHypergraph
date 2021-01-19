@@ -13,7 +13,9 @@
 #include <edge_list.hpp>
 #include "Log.hpp"
 #include "common.hpp"
-#include "s_overlap.hpp"
+#include "algorithms/slinegraph_naive.hpp"
+#include "algorithms/slinegraph_efficient.hpp"
+#include "algorithms/slinegraph_map.hpp"
 #include "containers/edge_list_hy.hpp"
 #include "containers/compressed_hy.hpp"
 #include "algorithms/s_connected_components.hpp"

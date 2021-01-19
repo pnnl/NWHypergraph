@@ -25,6 +25,7 @@ target_sources(NW_HYPERGRAPH
   containers/compressed_hy.hpp
   io/hypergraph_io.hpp
   io/mmio.hpp
+  util/slinegraph_helper.hpp
   s_overlap.hpp
   convert_to_s_overlap.hpp
   algorithms/relabel_x.hpp
@@ -33,6 +34,9 @@ target_sources(NW_HYPERGRAPH
   algorithms/s_connected_components.hpp
   algorithms/s_breadth_first_search.hpp
   algorithms/toplexes.hpp
+  algorithms/slinegraph_naive.hpp
+  algorithms/slinegraph_efficient.hpp
+  algorithms/slinegraph_map.hpp
   )
 
 target_include_directories(NW_HYPERGRAPH INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
