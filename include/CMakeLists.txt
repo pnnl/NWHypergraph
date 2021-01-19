@@ -26,6 +26,7 @@ target_sources(NW_HYPERGRAPH
   io/hypergraph_io.hpp
   io/mmio.hpp
   s_overlap.hpp
+  convert_to_s_overlap.hpp
   algorithms/relabel_x.hpp
   algorithms/hyper_connected_components.hpp
   algorithms/hyper_breadth_first_search.hpp
