@@ -34,10 +34,18 @@
 *~
 \#*
 
+#build related
 *.trace
 CMakeFiles
 CMakeCache.txt
 attic
 basement
 build
+
+#editor related
+.vscode
+
+#python related
+dist
+NWhy.egg-info
 
