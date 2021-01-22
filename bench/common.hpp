@@ -63,6 +63,9 @@ std::vector<long> parse_n_threads(const std::vector<std::string>& args) {
   else {
     threads.push_back(1);
   }
+  //if no thread number is given by user, set 1 thread as default
+  if (threads.empty())
+    threads.push_back(1);
   return threads;
 }
 

@@ -1,6 +1,6 @@
 //
 // This file is part of NWHypergraph
-// (c) Pacific Northwest National Laboratory 2018-2020
+// (c) Pacific Northwest National Laboratory 2020-2021
 //
 // Licensed under Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License
 // https://creativecommons.org/licenses/by-nc-sa/4.0/
@@ -18,7 +18,6 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 #include <pybind11/pytypes.h>
-//#include "s_overlap.hpp"
 #include "algorithms/slinegraph_map.hpp"
 #include "algorithms/slinegraph_efficient.hpp"
 #include <algorithms/connected_components.hpp>
