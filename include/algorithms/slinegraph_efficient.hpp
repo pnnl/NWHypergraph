@@ -325,10 +325,11 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
         std::vector<bool> visitedE(M, false);
         for (auto&& j = i.begin(); j != i.end(); ++j) {
         auto&& [hyperE, hyperE_ngh] = *j;
+        std::fill(visitedE.begin(), visitedE.end(), false);
         //all neighbors of hyperedges are hypernode
         for (auto &&[hyperN] : hyperE_ngh) {
           for (auto &&[anotherhyperE] : nodes[hyperN]) {
-            //if (hyperE >= anotherhyperE) continue;
+            //if (hyperE <= anotherhyperE) continue;
             if (visitedE[anotherhyperE]) continue; else visitedE[anotherhyperE] = true;  
             two_graphs[worker_index].push_back(std::make_pair<vertex_id_t, vertex_id_t>(std::forward<vertex_id_t>(hyperE), std::forward<vertex_id_t>(anotherhyperE)));
           }
@@ -352,13 +353,14 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
     //when s > 1
     //create an array of line graphs for each thread
     {
-        nw::util::life_timer _(__func__);
+      nw::util::life_timer _(__func__);
       tbb::parallel_for(nw::graph::cyclic(edges, num_bins), [&](auto& i) {
         int worker_index = tbb::task_arena::current_thread_index();
         std::vector<bool> visitedE(M, false);
         for (auto&& j = i.begin(); j != i.end(); ++j) {
           auto&& [hyperE, hyperE_ngh] = *j;
           if (hyperedgedegrees[hyperE] < s) continue;
+          std::fill(visitedE.begin(), visitedE.end(), false);
             //all neighbors of hyperedges are hypernode
           for (auto &&[hyperN] : hyperE_ngh) {
             for (auto &&[anotherhyperE] : nodes[hyperN]) {
