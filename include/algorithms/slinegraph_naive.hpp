@@ -46,7 +46,7 @@ template<directedness edge_directedness = undirected, class ExecutionPolicy, cla
 auto to_two_graph_naive_parallel_with_counter(ExecutionPolicy&& ep, HyperEdge& e_nbs, HyperNode& n_nbs, size_t s = 1, int num_bins = 32) {
 
   size_t M = e_nbs.size();
-  std::atomic<size_t> counter = 0, nedges = 0;
+  std::vector<size_t> num_visits(num_bins, 0), num_edges(num_bins, 0);
   std::vector<std::vector<std::pair<vertex_id_t, vertex_id_t>>> two_graphs(num_bins);
   {
   nw::util::life_timer _(__func__);
@@ -54,16 +54,22 @@ auto to_two_graph_naive_parallel_with_counter(ExecutionPolicy&& ep, HyperEdge& e
     int worker_index = tbb::task_arena::current_thread_index();
     for (auto i = r.begin(), e = r.end(); i != e; ++i) {
       for (size_t j = i + 1; j < M; ++j) {
-        ++counter;
+        ++num_visits[worker_index];
         if (nw::graph::intersection_size(e_nbs[i], e_nbs[j]) >= s) {
           two_graphs[worker_index].push_back(std::make_pair<vertex_id_t, vertex_id_t>(std::forward<vertex_id_t>(i), std::forward<vertex_id_t>(j)));
-          ++nedges;
+          ++num_edges[worker_index];
         }
       }
     }
   }, tbb::auto_partitioner());
-  std::cout << counter << " intersections performed, " 
-  << nedges << " edges added" << std::endl;
+  std::cout << "#visits for each thread:" << std::endl;
+  for (auto &v : num_visits)
+    std::cout << v << " ";
+  std::cout << std::endl;
+  std::cout << "#edges for each thread:" << std::endl;
+  for (auto &v : num_edges)
+    std::cout << v << " ";
+  std::cout << std::endl;
   }
   return squeeze_edgelist(two_graphs);;
 }
