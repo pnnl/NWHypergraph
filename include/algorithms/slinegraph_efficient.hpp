@@ -210,7 +210,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s) {
                     //so we check compid of each hyperedge        
                     //travese upper triangluar with lhs > rhs
                     //avoid self edge with lhs == rhs
-                    //if (hyperE >= anotherhyperE) continue;
+                    if (hyperE >= anotherhyperE) continue;
                     //filter edges deg(e) < s
                     if (hyperedgedegrees[anotherhyperE] < s) continue;
                     //avoid duplicate intersections
@@ -329,7 +329,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
         //all neighbors of hyperedges are hypernode
         for (auto &&[hyperN] : hyperE_ngh) {
           for (auto &&[anotherhyperE] : nodes[hyperN]) {
-            //if (hyperE <= anotherhyperE) continue;
+            if (hyperE >= anotherhyperE) continue;
             if (visitedE[anotherhyperE]) continue; else visitedE[anotherhyperE] = true;  
             two_graphs[worker_index].push_back(std::make_pair<vertex_id_t, vertex_id_t>(std::forward<vertex_id_t>(hyperE), std::forward<vertex_id_t>(anotherhyperE)));
           }
@@ -367,7 +367,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
               //so we check compid of each hyperedge        
               //travese upper triangluar with lhs > rhs
               //avoid self edge with lhs == rhs
-              //if (hyperE >= anotherhyperE) continue;
+              if (hyperE >= anotherhyperE) continue;
               //filter edges deg(e) < s
               if (hyperedgedegrees[anotherhyperE] < s) continue;
                     //avoid duplicate intersections
@@ -408,7 +408,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
         //all neighbors of hyperedges are hypernode
         for (auto &&[hyperN] : hyperE_ngh) {
           for (auto &&[anotherhyperE] : nodes[hyperN]) {
-            //if (hyperE <= anotherhyperE) continue;
+            if (hyperE >= anotherhyperE) continue;
             ++num_visits[worker_index];
             if (visitedE[anotherhyperE]) continue; else visitedE[anotherhyperE] = true;  
             ++num_edges[worker_index];
@@ -457,9 +457,9 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
               //so we check compid of each hyperedge        
               //travese upper triangluar with lhs > rhs
               //avoid self edge with lhs == rhs
-              //if (hyperE >= anotherhyperE) continue;
-              //filter edges deg(e) < s
               ++num_visits[worker_index];
+              if (hyperE >= anotherhyperE) continue;
+              //filter edges deg(e) < s
               if (hyperedgedegrees[anotherhyperE] < s) continue;
                     //avoid duplicate intersections
               if (visitedE[anotherhyperE]) continue; else visitedE[anotherhyperE] = true;         
