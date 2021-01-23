@@ -17,6 +17,7 @@
 #include "common.hpp"
 #include "containers/edge_list_hy.hpp"
 #include "containers/compressed_hy.hpp"
+#include "io/mmio.hpp"
 
 using namespace nw::hypergraph::bench;
 using namespace nw::hypergraph;
@@ -25,17 +26,19 @@ static constexpr const char USAGE[] =
     R"(hystats.exe: hypergraph stats driver.
   Usage:
       hystats.exe (-h | --help)
-      hystats.exe [-f FILE...] [-o FILE...] [-D NUM] [-dV] [--log FILE] [--log-header]
+      hystats.exe [-f FILE...] [--deg-dist FILE...] [--output FILE...] [-D NUM] [--relabel NUM] [--direction DIR] [-d] [--log FILE] [--log-header]
 
   Options:
       -h, --help            show this screen
-      -f FILE               edge list or matrix market input file paths (can have multiples)
-      -o FILE               output degree distribution of edges/nodes to FILE (must have same num of input files)
-      -D NUM                get degree distribution on either [0](edge) or [1](node) [default: 0]
+      -f FILE               edge list or matrix market input file paths
+      --deg-dist FILE       output degree distribution of edges/nodes to FILE (must have same num of input files)
+      --output FILE         output matrix market file (with/without relabeling by degree)
+      -D NUM                specify column either [0](edge) or [1](node) [default: 0]
+      --relabel NUM         relabel the graph - 0(hyperedge)/1(hypernode) [default: -1]
+      --direction DIR       graph relabeling direction - ascending/descending [default: descending]
       --log FILE            log times to a file
       --log-header          add a header to the log file
       -d, --debug           run in debug mode
-      -V, --verbose         run in verbose mode
 )";
 template<typename T>
 auto counting_sort(std::vector<T>& arr) {
@@ -50,17 +53,21 @@ int main(int argc, char* argv[]) {
   std::vector<std::string> strings(argv + 1, argv + argc);
   auto args = docopt::docopt(USAGE, strings, true);
 
-  bool verbose = args["--verbose"].asBool();
   bool debug   = args["--debug"].asBool();
   long idx     = args["-D"].asLong();
+  long relabelidx     = args["--relabel"].asLong();
 
-  std::vector<std::tuple<std::string, std::string>> files;
+  std::vector<std::tuple<std::string, std::string, std::string>> files;
   for (auto&& file : args["-f"].asStringList()) {
-    files.emplace_back(std::make_tuple(file, ""));
+    files.emplace_back(std::make_tuple(file, "", ""));
   }
-  auto&& tmp = args["-o"].asStringList();
-  for (std::size_t i = 0; i < tmp.size(); ++i) {
-    std::get<1>(files[i]) = tmp[i];
+  auto&& dd = args["--deg-dist"].asStringList();
+  for (std::size_t i = 0; i < dd.size(); ++i) {
+    std::get<1>(files[i]) = dd[i];
+  }
+  auto&& op = args["--output"].asStringList();
+  for (std::size_t i = 0; i < op.size(); ++i) {
+    std::get<2>(files[i]) = op[i];
   }
   Times<bool> times;
 
@@ -70,31 +77,37 @@ int main(int argc, char* argv[]) {
   // they have to be listed as explicit captures (this is according to the 17
   // standard). That's a little bit noisy where it happens, so I just give
   // them real symbols here rather than the local bindings.
-  for (auto&& [input, output] : files) {
-    auto reader = [&](std::string file, bool verbose) {
+  for (auto&& [input, dd_file, output] : files) {
+    
+    auto reader = [&](std::string file) {
       auto aos_a   = load_graph<directed>(file);
       if (0 == aos_a.size()) {
         auto&& [hyperedges, hypernodes] = load_adjacency<>(file);
+        // Run relabeling. This operates directly on the incoming edglist.
+        if (-1 != relabelidx) {
+          nw::hypergraph::relabel_by_degree(hyperedges, hypernodes, idx, args["--direction"].asString());
+        }
         auto hyperedge_degrees = hyperedges.degrees();
         auto hypernode_degrees = hyperedges.degrees();
         return std::tuple(hyperedges, hypernodes, hyperedge_degrees, hypernode_degrees);
       }
-      std::vector<index_t> hyperedge_degrees =  aos_a.degrees<0>();
-      std::vector<index_t> hypernode_degrees =  aos_a.degrees<1>();
-      // Run relabeling. This operates directly on the incoming edglist.
-      //we may need to get the new degrees 
-      //if we relabel the edge list
-      hyperedge_degrees = aos_a.degrees<0>();
-      adjacency<0> hyperedges(aos_a);
-      adjacency<1> hypernodes(aos_a);
-      if (verbose) {
-        hypernodes.stream_stats();
-        hyperedges.stream_stats();
+      else {
+        // Run relabeling. This operates directly on the incoming edglist.
+        if (-1 != relabelidx) {
+          std::cout << "relabeling edge_list by degree..." << std::endl;
+          if (1 == relabelidx)
+            nw::hypergraph::relabel_by_degree<1>(aos_a, args["--direction"].asString());
+          else
+            nw::hypergraph::relabel_by_degree<0>(aos_a, args["--direction"].asString());
+        }
+        adjacency<0> hyperedges(aos_a);
+        adjacency<1> hypernodes(aos_a); 
+        std::vector<index_t> hyperedge_degrees =  aos_a.degrees<0>();
+        std::vector<index_t> hypernode_degrees =  aos_a.degrees<1>();
+        return std::tuple(hyperedges, hypernodes, hyperedge_degrees, hypernode_degrees);
       }
-      std::cout << "num_hyperedges = " << hyperedges.size() << " num_hypernodes = " << hypernodes.size() << std::endl;
-      return std::tuple(hyperedges, hypernodes, hyperedge_degrees, hypernode_degrees);
     };
-    auto&&[ hyperedges, hypernodes, hyperedge_degrees, hypernode_degrees ] = reader(input, verbose);
+    auto&&[ hyperedges, hypernodes, hyperedge_degrees, hypernode_degrees ] = reader(input);
 
     //hyperedges
     std::size_t M = hyperedges.size();
@@ -124,9 +137,11 @@ int main(int argc, char* argv[]) {
       hyperedges.stream_indices();
     }
 
-    if ("" == output) continue;
-    std::ofstream deg_dist(output);
+    if ("" != dd_file) {
+    std::ofstream deg_dist(dd_file);
+    std::cout << "Writing degree distribution file" << std::endl;
     if(deg_dist.is_open()) {
+      std::cout << dd_file <<  " " << idx << std::endl;
       if (0 == idx) {
         auto&& deg_counts = counting_sort<std::size_t>(hyperedge_degrees);
         for (auto&& [k, v] : deg_counts) {
@@ -143,6 +158,16 @@ int main(int argc, char* argv[]) {
         std::cerr << "unrecognized flag" << std::endl;
       }
       deg_dist.close();
+    }
+    }
+    if ("" != output) {
+      std::cout << "Writing mtx file" << std::endl;
+      if (0 == idx)
+        write_mm_hy(output, hyperedges, M, N);
+      else if (1 == idx)
+        write_mm_hy(output, hypernodes, N, M);
+      else
+        std::cerr << "unrecognized flag" << std::endl;
     }
   } //for file
 

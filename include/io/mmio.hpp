@@ -155,3 +155,39 @@ nw::graph::edge_list<sym, Attributes...> read_mm_relabeling(const std::string& f
   
   return A;
 }
+
+template <size_t w_idx, int idx, typename... Attributes>
+void hy_adjacency_stream(std::ofstream& outputStream, nw::graph::adjacency<idx, Attributes...>& A, 
+size_t size_col0, size_t size_col1,
+const std::string& file_symmetry, std::string& w_type) {
+  outputStream << "%%MatrixMarket matrix coordinate " << w_type << " " << file_symmetry << "\n%%\n";
+
+  outputStream << size_col0 << " " << size_col1 << " "
+               << std::accumulate(A.begin(), A.end(), 0, [&](int a, auto b) { return a + (int)(b.end() - b.begin()); })
+               << std::endl;
+
+  for (auto first = A.begin(); first != A.end(); ++first) {
+    for (auto v = (*first).begin(); v != (*first).end(); ++v) {
+      outputStream << first - A.begin() + (1) << " " << std::get<0>(*v) + (1);
+      if (w_idx != 0) outputStream << " " << std::get<w_idx>(*v);
+      outputStream << std::endl;
+    }
+  }
+}
+
+template <size_t w_idx = 0, typename idxtype = void, int idx, typename... Attributes>
+void write_mm_hy(const std::string& filename, nw::graph::adjacency<idx, Attributes...>& A, size_t size_col0, size_t size_col1,
+const std::string& file_symmetry = "general") {
+  /*if (file_symmetry == "symmetric" && sym == directedness::directed) {
+    std::cerr << "cannot save directed matrix as symmetric matrix market" << std::endl;
+  }*/
+
+  std::string w_type = "pattern";
+  if (std::numeric_limits<idxtype>::is_integer)
+    w_type = "integer";
+  else if (std::is_floating_point<idxtype>::value)
+    w_type = "real";
+
+  std::ofstream outputStream(filename);
+  hy_adjacency_stream<w_idx>(outputStream, A, size_col0, size_col1, file_symmetry, w_type);
+}
