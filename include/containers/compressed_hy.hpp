@@ -27,13 +27,13 @@ int idx, std::string direction) {
   if (0 == idx) {
     auto &&iperm = edges.permute_by_degree(direction, std::execution::par_unseq);
     assert(iperm.size() == edges.size());
-    nodes.relabel_to_be_indexed(iperm);
+    nodes.relabel_to_be_indexed(iperm, std::execution::par_unseq);
     std::cout << "relabeling edge adjacency by degree..." << std::endl;
   }
   else {
     auto &&iperm = nodes.permute_by_degree(direction, std::execution::par_unseq);
     assert(iperm.size() == nodes.size());
-    edges.relabel_to_be_indexed(iperm);
+    edges.relabel_to_be_indexed(iperm, std::execution::par_unseq);
     std::cout << "relabeling nodes adjacency by degree..." << std::endl;
   }
 }

@@ -175,7 +175,7 @@ size_t colrange_begin, size_t colrange_end, size_t col_grainsize) {
                 //all neighbors of hyperedges are hypernode
             for (auto &&[hyperN] : edges[hyperE]) {
                 for (auto &&[anotherhyperE] : nodes[hyperN]) {
-                    if (hyperE >= anotherhyperE) continue;
+                    //if (hyperE >= anotherhyperE) continue;
                     if (visitedE[anotherhyperE]) continue; else visitedE[anotherhyperE] = true;  
                     two_graphs[worker_index].push_back(std::make_pair<vertex_id_t, vertex_id_t>(std::forward<vertex_id_t>(hyperE), std::forward<vertex_id_t>(anotherhyperE)));
                 }
@@ -210,7 +210,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s) {
                     //so we check compid of each hyperedge        
                     //travese upper triangluar with lhs > rhs
                     //avoid self edge with lhs == rhs
-                    if (hyperE >= anotherhyperE) continue;
+                    //if (hyperE >= anotherhyperE) continue;
                     //filter edges deg(e) < s
                     if (hyperedgedegrees[anotherhyperE] < s) continue;
                     //avoid duplicate intersections
@@ -266,7 +266,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
 * clean without counter. All features on. Fastest version implemented in block range 2d.
 */
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
-auto to_two_graph_efficient_parallel_cyclic(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
+auto to_two_graph_efficient_parallel_2d(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
 std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
   size_t M = edges.size();
   size_t N = nodes.size();
@@ -302,6 +302,82 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
         hyperedgedegrees, s);
         to_two_graph_block_range(std::forward<linegraph_t>(two_graphs), edges, nodes, num_bins, 
         M / num_bins * num_bins, M, hyperedgedegrees, s);
+    }
+    return squeeze_edgelist(two_graphs);
+  }//else
+}
+
+/*
+* clean without counter. All features on. Fastest version implemented in block range 2d.
+*/
+template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
+auto to_two_graph_efficient_parallel_cyclic(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
+std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
+  size_t M = edges.size();
+  size_t N = nodes.size();
+  using linegraph_t = std::vector<std::vector<std::pair<vertex_id_t, vertex_id_t>>>;
+  linegraph_t two_graphs(num_bins);
+  if (1 == s) {
+    {
+      nw::util::life_timer _(__func__);
+      tbb::parallel_for(nw::graph::cyclic(edges, num_bins), [&](auto& i) {
+        int worker_index = tbb::task_arena::current_thread_index();
+        std::vector<bool> visitedE(M, false);
+        for (auto&& j = i.begin(); j != i.end(); ++j) {
+        auto&& [hyperE, hyperE_ngh] = *j;
+        //all neighbors of hyperedges are hypernode
+        for (auto &&[hyperN] : hyperE_ngh) {
+          for (auto &&[anotherhyperE] : nodes[hyperN]) {
+            //if (hyperE >= anotherhyperE) continue;
+            if (visitedE[anotherhyperE]) continue; else visitedE[anotherhyperE] = true;  
+            two_graphs[worker_index].push_back(std::make_pair<vertex_id_t, vertex_id_t>(std::forward<vertex_id_t>(hyperE), std::forward<vertex_id_t>(anotherhyperE)));
+          }
+        }
+        }
+      }, tbb::auto_partitioner());
+    }
+    nw::graph::edge_list<edge_directedness> result(0);
+    result.open_for_push_back();
+    //do this in serial
+    std::for_each(tbb::counting_iterator<int>(0), tbb::counting_iterator<int>(num_bins), [&](auto i) {
+      std::for_each(two_graphs[i].begin(), two_graphs[i].end(), [&](auto&& e){
+        result.push_back(e);
+      });
+    });
+    result.close_for_push_back();
+
+    return result;
+  }
+  else {
+    //when s > 1
+    //create an array of line graphs for each thread
+    {
+        nw::util::life_timer _(__func__);
+      tbb::parallel_for(nw::graph::cyclic(edges, num_bins), [&](auto& i) {
+        int worker_index = tbb::task_arena::current_thread_index();
+        std::vector<bool> visitedE(M, false);
+        for (auto&& j = i.begin(); j != i.end(); ++j) {
+          auto&& [hyperE, hyperE_ngh] = *j;
+          if (hyperedgedegrees[hyperE] < s) continue;
+            //all neighbors of hyperedges are hypernode
+          for (auto &&[hyperN] : hyperE_ngh) {
+            for (auto &&[anotherhyperE] : nodes[hyperN]) {
+              //so we check compid of each hyperedge        
+              //travese upper triangluar with lhs > rhs
+              //avoid self edge with lhs == rhs
+              //if (hyperE >= anotherhyperE) continue;
+              //filter edges deg(e) < s
+              if (hyperedgedegrees[anotherhyperE] < s) continue;
+                    //avoid duplicate intersections
+              if (visitedE[anotherhyperE]) continue; else visitedE[anotherhyperE] = true;         
+                    //O(average degree of hyperedges)
+              if (is_intersection_size_s(edges[hyperE].begin(), edges[hyperE].end(),
+                edges[anotherhyperE].begin(), edges[anotherhyperE].end(), s)) 
+                two_graphs[worker_index].push_back(std::make_pair<vertex_id_t, vertex_id_t>(std::forward<vertex_id_t>(hyperE), std::forward<vertex_id_t>(anotherhyperE)));
+            }//each neighbor of hyperN
+          }//each neighbor of hyperE
+        }
+      }, tbb::auto_partitioner());
     }
     return squeeze_edgelist(two_graphs);
   }//else

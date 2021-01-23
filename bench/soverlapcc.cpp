@@ -130,7 +130,7 @@ int main(int argc, char* argv[]) {
       }
       case 1:
       {
-          nw::graph::edge_list<undirected> &&linegraph = to_two_graph_efficient_parallel2d<undirected>(std::execution::par_unseq, hyperedges, hypernodes, edgedegrees, s, num_bins);
+          nw::graph::edge_list<undirected> &&linegraph = to_two_graph_efficient_parallel_cyclic<undirected>(std::execution::par_unseq, hyperedges, hypernodes, edgedegrees, s, num_bins);
           //where when an empty edge list is passed in, an adjacency still have two elements
           if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
           nw::graph::adjacency<0> s_adj(linegraph);
@@ -192,9 +192,19 @@ int main(int argc, char* argv[]) {
       auto _ = set_n_threads(thread);
       for (auto&& id : ids) {
         auto verifier = [&](auto&& E) {
-            //only verify #cc in the result    
+            //only verify #cc in the result
+          std::unordered_map<vertex_id_t, size_t> m;
+          for (auto& c : E) {
+            ++m[c];
+          }
+          size_t numc = 0;
+          for (auto& [k, v] : m) {
+            if (1 < v)
+              ++numc;
+          }
           std::unordered_set<vertex_id_t> uni_comps(E.begin(), E.end());
-          std::cout << uni_comps.size() << " components found" << std::endl;
+          std::cout << m.size() << " components found" << std::endl;
+          std::cout << numc << " non-singleton components found" << std::endl;
         };
 
         auto record = [&](auto&& op) { times.record(file, id, thread, s, std::forward<decltype(op)>(op), verifier, true); };
