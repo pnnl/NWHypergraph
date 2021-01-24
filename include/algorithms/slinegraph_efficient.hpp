@@ -408,8 +408,8 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
         //all neighbors of hyperedges are hypernode
         for (auto &&[hyperN] : hyperE_ngh) {
           for (auto &&[anotherhyperE] : nodes[hyperN]) {
-            if (hyperE >= anotherhyperE) continue;
             ++num_visits[worker_index];
+            if (hyperE >= anotherhyperE) continue;
             if (visitedE[anotherhyperE]) continue; else visitedE[anotherhyperE] = true;  
             ++num_edges[worker_index];
             two_graphs[worker_index].push_back(std::make_pair<vertex_id_t, vertex_id_t>(std::forward<vertex_id_t>(hyperE), std::forward<vertex_id_t>(anotherhyperE)));
