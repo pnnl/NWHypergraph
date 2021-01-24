@@ -26,7 +26,7 @@ static constexpr const char USAGE[] =
     R"(hystats.exe: hypergraph stats driver.
   Usage:
       hystats.exe (-h | --help)
-      hystats.exe [-f FILE...] [--deg-dist FILE...] [--output FILE...] [-D NUM] [--relabel NUM] [--direction DIR] [-d] [--log FILE] [--log-header]
+      hystats.exe [-f FILE...] [--deg-dist FILE...] [--output FILE...] [-D NUM] [--degree NUM] [--relabel NUM] [--direction DIR] [-d] [--log FILE] [--log-header]
 
   Options:
       -h, --help            show this screen
@@ -35,6 +35,7 @@ static constexpr const char USAGE[] =
       --output FILE         output matrix market file (with/without relabeling by degree)
       -D NUM                specify column either [0](edge) or [1](node) [default: 0]
       --relabel NUM         relabel the graph - 0(hyperedge)/1(hypernode) [default: -1]
+      --degree NUM          check the percentile above and below degree [NUM] [default: -1]
       --direction DIR       graph relabeling direction - ascending/descending [default: descending]
       --log FILE            log times to a file
       --log-header          add a header to the log file
@@ -56,6 +57,7 @@ int main(int argc, char* argv[]) {
   bool debug   = args["--debug"].asBool();
   long idx     = args["-D"].asLong();
   long relabelidx     = args["--relabel"].asLong();
+  long degree  = args["--degree"].asLong();
 
   std::vector<std::tuple<std::string, std::string, std::string>> files;
   for (auto&& file : args["-f"].asStringList()) {
@@ -135,6 +137,30 @@ int main(int argc, char* argv[]) {
     if (debug) {
       hypernodes.stream_indices();
       hyperedges.stream_indices();
+    }
+    if (-1 != degree) {
+      std::size_t tmp = degree;
+        std::size_t aboveD = 0, belowD = 0;
+        if(0 == idx) {
+          std::for_each(hyperedge_degrees.begin(), hyperedge_degrees.end(), [&](auto deg) {
+            if (deg > tmp)
+              ++aboveD;
+            else
+              ++belowD;
+          });
+        }
+        else {
+          std::for_each(hypernode_degrees.begin(), hypernode_degrees.end(), [&](auto deg) {
+            if (deg > tmp)
+              ++aboveD;
+            else
+              ++belowD;
+          });
+        }
+        std::cout << aboveD << " have degree greater than " << degree << std::endl;
+        std::cout << "the percentile is " << aboveD / (aboveD + belowD) *100 << "%" << std::endl;
+        std::cout << belowD << " have degree not greater than " << degree << std::endl;
+        std::cout << "the percentile is " << belowD / (aboveD + belowD) *100 << "%" << std::endl;
     }
 
     if ("" != dd_file) {
