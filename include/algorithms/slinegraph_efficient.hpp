@@ -739,7 +739,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
             
             //travese upper triangluar with lhs > rhs
             //avoid self edge with lhs == rhs
-
+            if (hyperE >= anotherhyperE) return;
             //filter edges deg(e) < s
             if (hyperedgedegrees[anotherhyperE] < s) return;
             //avoid duplicate intersections
