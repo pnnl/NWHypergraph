@@ -66,7 +66,7 @@ class CMakeBuild(build_ext):
         subprocess.check_call(['cmake', '--build', '.'] + build_args, cwd=self.build_temp)
 
 setup(
-    name='NWhy',
+    name='nwhy',
     version='0.0.4',
     author='Xu Tony Liu',
     author_email='xu.liu2@wsu.edu',
