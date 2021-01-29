@@ -74,10 +74,7 @@ setup(
     long_description='',
     license='3-Clause BSD license',
     ext_modules=[CMakeExtension('covert_to_s_line_graph')],
-    packages=['tbb'],
-    package_data={
-        'tbb':['libtbb.so.2'],
-    },
+    libraries=['tbb'],
     cmdclass=dict(build_ext=CMakeBuild),
     zip_safe=False,
 )
