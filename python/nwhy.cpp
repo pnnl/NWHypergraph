@@ -62,9 +62,11 @@ PYBIND11_MODULE(nwhy, m) {
     .def("node_incidence", &NWHypergraph<Index_t, Data_t>::node_incidence,
     "A function to get the incident edges of a node in the hypergraph", py::arg("node"))
     .def("degree", py::overload_cast<Index_t, size_t>(&NWHypergraph<Index_t, Data_t>::degree),
-    "A function to get the degree of a node in the hypergraph", py::arg("node"), py::arg("size") = 1)
+    "A function to get the degree of a node in the hypergraph", 
+    py::arg("node"), py::arg("min_size") = 1, py::arg("max_size") = py::none())
     .def("size", &NWHypergraph<Index_t, Data_t>::size,
-    "A function to get the number of nodes that belong to an edge in the hypergraph", py::arg("edge"))
+    "A function to get the number of nodes that belong to an edge in the hypergraph", 
+    py::arg("edge"), py::arg("min_degree") = 1, py::arg("max_degree") = py::none())
     .def("dim", &NWHypergraph<Index_t, Data_t>::dim,
     "A function to get the number of nodes that belong to an edge minus 1 in the hypergraph", py::arg("edge"))
     .def("number_of_nodes", &NWHypergraph<Index_t, Data_t>::number_of_nodes,

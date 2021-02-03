@@ -39,8 +39,8 @@ class CMakeBuild(build_ext):
 
         cmake_args = ['-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + extdir,
                       '-DPYTHON_EXECUTABLE=' + sys.executable]
-        cmake_args += ['-DCMAKE_C_COMPILER=gcc-10']
-        cmake_args += ['-DCMAKE_CXX_COMPILER=g++-10']  
+        cmake_args += ['-DCMAKE_C_COMPILER=gcc']
+        cmake_args += ['-DCMAKE_CXX_COMPILER=g++']  
         # for Pybind api, we will not build benchmarks
         cmake_args += ['-DNW_HYPERGRAPH_BUILD_BENCH=OFF']  
         cmake_args += ['-DNW_HYPERGRAPH_BUILD_PYBIND=ON']  
@@ -71,10 +71,11 @@ setup(
     author='Xu Tony Liu',
     author_email='xu.liu2@wsu.edu',
     description='NWhy project using pybind11 and CMake',
-    long_description='',
+    long_description='This is an alpha release',
     license='3-Clause BSD license',
-    ext_modules=[CMakeExtension('covert_to_s_line_graph')],
-    libraries=['tbb'],
+    platforms=["Linux", "Mac OS-X"],
+    ext_modules=[CMakeExtension('covert_to_s_line_graph')], 
     cmdclass=dict(build_ext=CMakeBuild),
+    python_requires='>=3.8',
     zip_safe=False,
 )

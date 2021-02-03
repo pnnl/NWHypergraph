@@ -242,7 +242,7 @@ public:
     /*
     * Get the degree of a node in the hypergraph.
     * */
-    Index_t degree(Index_t node, size_t size = 1) {
+    Index_t degree(Index_t node, std::size_t min_size = 1, std::optional<std::size_t> max_size) {
         if (node >= max_node_)
             return -1;
         else
