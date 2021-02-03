@@ -9,6 +9,7 @@
 //
 
 #pragma once
+#include <optional>
 #include <iostream>
 #include <vector>
 #include <tuple>
@@ -241,20 +242,75 @@ public:
     }
     /*
     * Get the degree of a node in the hypergraph.
+    * If min_size and/or max_size is specified, then either/both are used to filter.
     * */
-    Index_t degree(Index_t node, std::size_t min_size = 1, std::optional<std::size_t> max_size) {
+    Index_t degree(Index_t node, std::size_t min_size = 1, std::optional<std::size_t> max_size = {}) {
+        Index_t deg = -1;
+        // validate the input
         if (node >= max_node_)
-            return -1;
-        else
-            return nodes_[node].size();
+            return deg;
+        if (!max_size.has_value()) {
+            //if no max_size is specified
+            if (1 == min_size)
+                return nodes_[node].size();
+            deg = 0;
+            std::for_each(nodes_[node].begin(), nodes_[node].end(), [&](auto &&x) {
+                auto hyperE = std::get<0>(x);
+                //filter the edges whose size is no less than min_size
+                if (min_size <= edges_[hyperE].size())
+                    ++deg;
+            });
+        }
+        else {
+            //if max_size is specified
+            //and max_size is also 1
+            if (1 == min_size && 1 == max_size)
+                return nodes_[node].size();
+            deg = 0;
+            std::for_each(nodes_[node].begin(), nodes_[node].end(), [&](auto &&x) {
+                auto hyperE = std::get<0>(x);
+                //filter the edges whose size is no less than min_size
+                //and is no greater than max_size
+                if (min_size <= edges_[hyperE].size() && max_size >= edges_[hyperE].size())
+                    ++deg;
+            });
+        }
+        return deg;
     }
     py::ssize_t number_of_nodes() const { return max_node_; }
     py::ssize_t order() const { return max_node_; }
-    py::ssize_t size(Index_t edge) {
+    py::ssize_t size(Index_t edge, std::size_t min_degree = 1, std::optional<std::size_t> max_degree = {}) {
+        Index_t size = -1;
+        // validate the input
         if (edge >= max_edge_)
-            return -1;
-        else
-            return edges_[edge].size();
+            return size;
+        if (!max_degree.has_value()) {
+            //if no max_size is specified
+            if (1 == min_degree)
+                return edges_[edge].size();
+            size = 0;
+            std::for_each(edges_[edge].begin(), edges_[edge].end(), [&](auto &&x) {
+                auto hyperE = std::get<0>(x);
+                //filter the edges whose size is no less than min_degree
+                if (min_degree <= edges_[hyperE].size())
+                    ++size;
+            });
+        }
+        else {
+            //if max_degree is specified
+            //and max_degree is also 1
+            if (1 == min_degree && 1 == max_degree)
+                return edges_[edge].size();
+            size = 0;
+            std::for_each(edges_[edge].begin(), edges_[edge].end(), [&](auto &&x) {
+                auto hyperN = std::get<0>(x);
+                //filter the edges whose size is no less than min_degree
+                //and is no greater than max_degree
+                if (min_degree <= nodes_[hyperN].size() && max_degree >= nodes_[hyperN].size())
+                    ++size;
+            });
+        }
+        return size;
     }
     py::ssize_t dim(Index_t edge) {
         if (edge >= max_edge_)
