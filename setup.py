@@ -67,13 +67,13 @@ class CMakeBuild(build_ext):
 
 setup(
     name='nwhy',
-    version='0.0.4',
+    version='0.0.6',
     author='Xu Tony Liu',
     author_email='xu.liu2@wsu.edu',
     description='NWhy project using pybind11 and CMake',
     long_description='This is an alpha release',
     license='3-Clause BSD license',
-    platforms=["Linux", "Mac OS-X"],
+    platforms=["Linux", "Mac OS-X", "Unix"],
     ext_modules=[CMakeExtension('covert_to_s_line_graph')], 
     cmdclass=dict(build_ext=CMakeBuild),
     python_requires='>=3.8',

@@ -757,23 +757,29 @@ public:
     * Compute the betweenness centrality of vertex v to any other vertices
     */
     py::list s_betweenness_centrality(Index_t v, bool normalized = true) {
+        //validate input
+        if(v >= (Index_t)g_.size())
+            return py::list();
         using score_t=float;
         using accum_t=double;
         std::vector<vertex_id_t> sources;
         sources.push_back(v);
         int thread = 32;
-        std::vector<score_t> bc = nw::graph::bc2_v5<score_t, accum_t>(g_, sources, thread);
-        std::size_t n = g_.size();
+        std::vector<score_t> bc = nw::graph::bc2_v4<score_t, accum_t>(g_t_, sources, thread);
+        std::size_t n = bc.size();
         float scale = 1.0;
         if (normalized) {
             //TODO not sure the scale is correct
             if (2 < n)
-                scale = 1 / ((n - 1) * (n - 2));
+                scale /= ((n - 1) * (n - 2));
         }
         py::list l = py::list(n);
         tbb::parallel_for(tbb::blocked_range<Index_t>(0, n), [&](tbb::blocked_range<Index_t>& r) {
             for (auto i = r.begin(), e = r.end(); i != e; ++i) {
-                l[i] = bc[i] * scale;
+                if (!normalized)
+                    l[i] = bc[i];
+                else
+                    l[i] = scale * bc[i];
             }
         }, tbb::auto_partitioner());
         return l;
@@ -782,7 +788,7 @@ public:
     * Closeness centrality of a node `v` is the reciprocal of the
     * average shortest path distance to `v` over all `n-1` reachable nodes.
     */
-    auto s_closeness_centrality(Index_t v) {
+    float s_closeness_centrality(Index_t v) {
         using distance_t = std::uint64_t;
         size_t delta = 1;
         auto dist = nw::graph::delta_stepping_v12<distance_t>(g_t_, v, delta);
@@ -791,33 +797,36 @@ public:
         auto sum = nw::graph::parallel_for(tbb::blocked_range<Index_t>(0, n), [&](Index_t& i) {
             distance_t tmp = dist[i].load(std::memory_order_relaxed);
             if (tmp == std::numeric_limits<Index_t>::max())
-                return static_cast<distance_t>(0);
+                return std::numeric_limits<distance_t>::infinity();
             else{
                 ++ncomp;
                 return tmp;
             }
         }, std::plus{}, 0ul);
-        return (ncomp/sum);
+        return (1.0 * ncomp /sum);
     }
     /*
     * TODO 
     */
-    auto s_harmonic_closeness_centrality(Index_t v) {
+    float s_harmonic_closeness_centrality(Index_t v) {
         using distance_t = std::uint64_t;
+        //validate input
+        if(v >= (Index_t)g_.size())
+            return std::numeric_limits<distance_t>::infinity();
         size_t delta = 1;
         auto dist = nw::graph::delta_stepping_v12<distance_t>(g_t_, v, delta);
         std::size_t n = g_.size();
         //std::atomic<std::size_t> ncomp(0);
-        auto sum = nw::graph::parallel_for(tbb::blocked_range<Index_t>(0, n), [&](Index_t& i) {
+        float sum = nw::graph::parallel_for(tbb::blocked_range<Index_t>(0, n), [&](Index_t& i) {
             distance_t tmp = dist[i].load(std::memory_order_relaxed);
-            if (tmp == std::numeric_limits<Index_t>::max())
-                return static_cast<distance_t>(0);
+            if (tmp == std::numeric_limits<distance_t>::max())
+                return 0.0;
             else{
                 //++ncomp;
-                return 1/tmp;
+                return 1.0 / tmp;
             }
         }, std::plus{}, 0ul);
-        return sum/(n - 1);
+        return (1.0 * sum/(n - 1));
     }
     /*
     * Compute the eccentricity of vertex v
@@ -825,12 +834,15 @@ public:
     */
     auto s_eccentricity(Index_t v) {
         using distance_t = std::uint64_t;
+        //validate input
+        if(v >= (Index_t)g_.size())
+            return std::numeric_limits<distance_t>::infinity();
         size_t delta = 1;
         auto dist = nw::graph::delta_stepping_v12<distance_t>(g_t_, v, delta);
         auto tmp = std::max_element(dist.begin(), dist.end());
         distance_t result = (*tmp).load(std::memory_order_relaxed);
-        if (result == std::numeric_limits<Index_t>::max())
-            return static_cast<distance_t>(0);
+        if (result == std::numeric_limits<distance_t>::max())
+            return std::numeric_limits<distance_t>::infinity();
         return result;
     }
     /*

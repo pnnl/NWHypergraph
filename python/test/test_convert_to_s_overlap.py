@@ -1,9 +1,12 @@
 import numpy as np
 import nwhy
 
-col = np.array([0, 3, 1, 0, 3, 3, 3])
-row = np.array([0, 3, 1, 2, 1, 1, 1])
-data = np.array([4, 5, 7, 9, 2, 2, 2])
+col = np.array([0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 4,
+         4, 4, 4, 4, 5, 5, 6])
+row = np.array([ 0,  1,  2,  5,  9, 10,  0,  1,  2,  3,  4,  5,  0,  1,  3,  5,  6,
+          7,  1,  2,  5,  0,  1,  2,  3,  5,  4,  8,  5])
+data = np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1])
 '''
 # test weighted line graph
 newx, newy, newz, oldx, oldy, oldz = nwhy.convert_to_s_overlap(row, col, data, 1)
@@ -49,4 +52,13 @@ vertex=0
 neighborsofv2 = s1linegraph.s_neighbors(v=vertex)
 print("neighbors of vertex", vertex, "are:", neighborsofv2)
 
-# TODO s_centrality
+# s_betweenness_centrality
+print("normalized:")
+print(s1linegraph.s_betweenness_centrality(v=vertex, normalized=True))
+print("unnormalized:")
+print(s1linegraph.s_betweenness_centrality(v=vertex, normalized=False))
+
+# s_centrality
+print(s1linegraph.s_closeness_centrality(vertex))
+
+print(s1linegraph.s_harmonic_closeness_centrality(vertex))
