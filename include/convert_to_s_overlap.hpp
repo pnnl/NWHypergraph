@@ -792,12 +792,12 @@ public:
         using distance_t = std::uint64_t;
         //validate input
         if(v >= (Index_t)g_.size())
-            return 0.0;
+            return std::numeric_limits<float>::infinity();
         size_t delta = 1;
         auto dist = nw::graph::delta_stepping_v12<distance_t>(g_t_, v, delta);
         std::size_t n = g_.size();
         std::atomic<std::size_t> ncomp(0);
-        auto sum = nw::graph::parallel_for(tbb::blocked_range<Index_t>(0, n), [&](Index_t& i) {
+        distance_t sum = nw::graph::parallel_for(tbb::blocked_range<Index_t>(0, n), [&](Index_t& i) {
             distance_t tmp = dist[i].load(std::memory_order_relaxed);
             if (tmp == std::numeric_limits<Index_t>::max())
                 return std::numeric_limits<distance_t>::infinity();
@@ -806,7 +806,7 @@ public:
                 return tmp;
             }
         }, std::plus{}, 0ul);
-        return (1.0 * ncomp /sum);
+        return (1.0 * ncomp / sum);
     }
     /*
     * 
@@ -816,7 +816,7 @@ public:
         using distance_t = std::uint64_t;
         //validate input
         if(v >= (Index_t)g_.size())
-            return 0.0;
+            return std::numeric_limits<float>::infinity();
         size_t delta = 1;
         auto dist = nw::graph::delta_stepping_v12<distance_t>(g_t_, v, delta);
         std::size_t n = g_.size();
@@ -834,7 +834,7 @@ public:
     }
     /*
     * Compute the eccentricity of vertex v
-    * return -1 if unreachable
+    * return 0 if unreachable
     */
     auto s_eccentricity(Index_t v) {
         using distance_t = std::uint64_t;

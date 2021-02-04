@@ -53,12 +53,25 @@ neighborsofv2 = s1linegraph.s_neighbors(v=vertex)
 print("neighbors of vertex", vertex, "are:", neighborsofv2)
 
 # s_betweenness_centrality
+print("=====s_betweenness_centrality=====")
 print("normalized:")
 print(s1linegraph.s_betweenness_centrality(v=vertex, normalized=True))
 print("unnormalized:")
 print(s1linegraph.s_betweenness_centrality(v=vertex, normalized=False))
 
-# s_centrality
+# s_closeness_centrality
+print("=====s_closeness_centrality=====")
+outofboundvertex = np.amax(row) + 1
 print(s1linegraph.s_closeness_centrality(vertex))
+print(s1linegraph.s_closeness_centrality(outofboundvertex))
 
+# s_harmonic_closeness_centrality
+print("=====s_harmonic_closeness_centrality=====")
 print(s1linegraph.s_harmonic_closeness_centrality(vertex))
+print(s1linegraph.s_harmonic_closeness_centrality(outofboundvertex))
+
+
+# s_eccentricity
+print("=====s_eccentricity=====")
+print(s1linegraph.s_eccentricity(vertex))
+print(s1linegraph.s_eccentricity(outofboundvertex))
