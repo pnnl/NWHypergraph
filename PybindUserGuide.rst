@@ -33,7 +33,7 @@ For installation:
 
 For upgrade:
 
-	>>> pip install nwhy \\-\\-upgrade
+	>>> pip install nwhy \-\-upgrade
 
 or 
 
