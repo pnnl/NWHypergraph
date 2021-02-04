@@ -790,6 +790,9 @@ public:
     */
     float s_closeness_centrality(Index_t v) {
         using distance_t = std::uint64_t;
+        //validate input
+        if(v >= (Index_t)g_.size())
+            return 0.0;
         size_t delta = 1;
         auto dist = nw::graph::delta_stepping_v12<distance_t>(g_t_, v, delta);
         std::size_t n = g_.size();
@@ -806,13 +809,14 @@ public:
         return (1.0 * ncomp /sum);
     }
     /*
-    * TODO 
+    * 
+    *  
     */
     float s_harmonic_closeness_centrality(Index_t v) {
         using distance_t = std::uint64_t;
         //validate input
         if(v >= (Index_t)g_.size())
-            return std::numeric_limits<distance_t>::infinity();
+            return 0.0;
         size_t delta = 1;
         auto dist = nw::graph::delta_stepping_v12<distance_t>(g_t_, v, delta);
         std::size_t n = g_.size();
