@@ -13,6 +13,7 @@
 #include <util/intersection_size.hpp>
 #include <map>
 #include <vector>
+#include <unordered_set>
 
 
 namespace nw {
@@ -67,20 +68,17 @@ auto toplexes_serial_v0(GraphE& edges) {
         return res;
     };
     std::vector<vertex_id_t> tops;
-    for (vertex_id_t e = 0; e < M; ++e)
-    {
+    for (vertex_id_t e = 0; e < M; ++e) {
         bool flag = true;
         std::vector<vertex_id_t> old_tops(tops);
-        for (size_t i = 0, end = old_tops.size(); i < end; ++i)
-        {
+        for (size_t i = 0, end = old_tops.size(); i < end; ++i) {
             vertex_id_t top = old_tops[i];
-            //TODO is this necessary?
+            //It is necessary to differeniate e from top
             if (e == top)
                 continue;
-            if (issubset(edges[top], edges[e]))
+            if (issubset(edges[e], edges[top]))
                 tops.erase(tops.begin() + i);
-            else if (issubset(edges[e], edges[top]))
-            {
+            else if (issubset(edges[top], edges[e])) {
                 flag = false;
                 break;
             }
@@ -93,6 +91,51 @@ auto toplexes_serial_v0(GraphE& edges) {
 
 template<typename GraphE>
 auto toplexes_serial_v1(GraphE& edges) {
+    nw::util::life_timer _(__func__);
+    size_t M = edges.size();
+    //O(m+n), where m is the size of lhs, n is the size of rhs
+    auto issubset = []<class A>(A &&lhs, A &&rhs) {
+        std::map<vertex_id_t, size_t> frequency;
+        std::for_each(lhs.begin(), lhs.end(), [&](auto &&x) {
+            auto v = std::get<0>(x);
+            ++frequency[v];
+        });
+        bool res = true;
+        std::for_each(rhs.begin(), rhs.end(), [&](auto &&x) {
+            auto v = std::get<0>(x);
+            if (0 < frequency[v])
+                --frequency[v];
+            else
+            {
+                res = false;
+                return;
+            }
+        });
+        return res;
+    };
+    std::unordered_set<vertex_id_t> tops;
+    for (vertex_id_t e = 0; e < M; ++e) {
+        bool flag = true;
+        auto old_tops(tops);
+        for (auto& top : old_tops) {
+            //It is necessary to differeniate e from top
+            if (e == top)
+                continue;
+            if (issubset(edges[e], edges[top]))
+                tops.erase(top);
+            else if (issubset(edges[top], edges[e])) {
+                flag = false;
+                break;
+            }
+        }
+        if (flag)
+            tops.insert(e);
+    }
+    return tops;
+}
+
+template<typename GraphE>
+auto toplexes_serial_v2(GraphE& edges) {
     nw::util::life_timer _(__func__);
     size_t M = edges.size();
     std::vector<vertex_id_t> tops;

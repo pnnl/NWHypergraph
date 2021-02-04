@@ -334,50 +334,8 @@ public:
         return l;
     }
     /*
-        def toplexes(self,name=None,collapse=False,use_reps=False,return_counts=True):
-        """
-        Returns a :term:`simple hypergraph` corresponding to self.
-        Warning
-        -------
-        Collapsing a hypergraph can take a long time. It may be preferable to collapse the graph first and
-        pickle it, then apply the toplexes method separately.
-        Parameters
-        ----------
-        name: str, optional, default: None
-        collapse: boolean, optional, default: False
-            Should the hypergraph be collapsed? This would preserve a link between duplicate maximal sets.
-            If False then only one of these sets will be used and uniqueness will be up to sets of equal size.
-        use_reps: boolean, optional, default: False
-            If collapse=True then each toplex will be named by a representative of the set of
-            equivalent edges, default is False (see collapse_edges).
-        return_counts: boolean, optional, default: True
-            If collapse=True then each toplex will be named by a tuple of the representative
-            of the set of equivalent edges and their count
-        """
-        if collapse:
-            if len(self.edges) > 20:  ### TODO: Determine how big is too big.
-                warnings.warn('Collapsing a hypergraph can take a long time. It may be preferable to collapse the graph first and pickle it then apply the toplex method separately.')
-            temp = self.collapse_edges(use_reps=use_reps,return_counts=return_counts)
-        else:
-            temp = self
-        thdict = dict()
-        for e in temp.edges:
-            thdict[e] = temp.edges[e].uidset
-        tops = dict()
-        for e in temp.edges:
-            flag = True
-            old_tops = dict(tops)
-            for top in old_tops:
-                if thdict[e].issubset(thdict[top]):
-                    flag = False
-                    break
-                elif set(thdict[top]).issubset(thdict[e]):
-                    del tops[top]
-            if flag:
-                tops.update({e : thdict[e]})
-        return Hypergraph(tops,name)
-
-        */
+    * Verified. using intersection_size instead set_intersection
+    * */
     py::list toplexes_v2() {
         std::vector<Index_t> tops;
         //std::map<Index_t, bool> tops;
@@ -413,6 +371,68 @@ public:
             tbb::auto_partitioner());
         return l;
     }
+    /*
+    * Verified. using unordered_set
+    * */
+    py::list toplexes_v1() {
+        //check rhs is a subset of lhs
+        //create a freq table for all the elements of lhs
+        //traverse rhs and search for each element of rhs in the freq table
+        //if element is found , then decrease the frequency, otherwise, return false
+        //if all elements are found, return true
+        //O(m+n), where m is the size of lhs, n is the size of rhs
+        auto issubset = []<class A>(A&& lhs, A&& rhs) {
+            std::map<Index_t, size_t> frequency;
+            std::for_each (lhs.begin(), lhs.end(), [&](auto&& x) {
+                auto v = std::get<0>(x);
+                ++frequency[v];
+            });
+            bool res = true;
+            std::for_each (rhs.begin(), rhs.end(), [&](auto&& x) {
+                auto v = std::get<0>(x);
+                if (0 < frequency[v])
+                    --frequency[v];
+                else {
+                    res = false;
+                    return;
+                }
+            }); 
+            return res;
+        };
+
+        //create an empty toplex set and an empty old toplex set
+        std::unordered_set<Index_t> tops;
+        for (Index_t e = 0; e < max_edge_; ++e) {
+            //for each edge, assume it is a toplex by default
+            bool flag = true;
+            //make a copy of the toplex set as old_tops
+            auto old_tops(tops);
+            //tops.clear();
+            //clear the toplex set
+            //TODO Could be parallized:
+            //1) if the flag can be set atomically
+            //2) once the flag is set, then every thread will exist
+            //3) tops.erase has to be within a critical section
+            for (auto& top : old_tops) {
+                if (e == top)
+                    continue; 
+               if (issubset(edges_[top], edges_[e])) {
+                    //if e is a subset of top, then e is not a toplex
+                    flag = false;
+                    break;
+                } else if (issubset(edges_[e], edges_[top]))
+                    tops.erase(top);
+            }//for old_tops
+            if (flag)
+                tops.insert(e);
+        }//for each e
+
+        py::list l;
+        for (auto& e : tops) {
+            l.append(e);
+        }
+        return l;
+    }
     py::list toplexes() {
         //check rhs is a subset of lhs
         //create a freq table for all the elements of lhs
@@ -440,32 +460,28 @@ public:
         };
 
         //create an empty toplex set and an empty old toplex set
-        std::vector<Index_t> tops, old_tops;
+        std::vector<Index_t> tops;
         for (Index_t e = 0; e < max_edge_; ++e) {
             //for each edge, assume it is a toplex by default
             bool flag = true;
             //make a copy of the toplex set as old_tops
-            old_tops.swap(tops);
+            auto old_tops(tops);
+            //tops.clear();
             //clear the toplex set
-            tops.clear();
             //TODO Could be parallized:
             //1) if the flag can be set atomically
             //2) once the flag is set, then every thread will exist
             //3) tops.erase has to be within a critical section
             for (size_t i = 0, end = old_tops.size(); i < end; ++i) {
                 Index_t top = old_tops[i];
-                //TODO is this necessary?
                 if (e == top)
-                    continue;
-                if (!issubset(edges_[e], edges_[top])) {
-                    //if top is not a subset of e, add top to toplex set
-                    tops.push_back(top);
-                }
-                if (issubset(edges_[top], edges_[e])) {
+                    continue; 
+               if (issubset(edges_[top], edges_[e])) {
                     //if e is a subset of top, then e is not a toplex
                     flag = false;
                     break;
-                }
+                } else if (issubset(edges_[e], edges_[top]))
+                    tops.erase(tops.begin() + i);
             }//for old_tops
             if (flag)
                 tops.push_back(e);
@@ -477,7 +493,7 @@ public:
             tbb::blocked_range<Index_t>(0, n), [&](tbb::blocked_range<Index_t> &r) {
                 for (auto i = r.begin(), e = r.end(); i != e; ++i)
                     l[i] = tops[i];
-            },tbb::auto_partitioner());
+            }, tbb::auto_partitioner());
         return l;
     }
 }; //class NWhypergraph
