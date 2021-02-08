@@ -46,3 +46,5 @@ Quick test with import
 For quick test:
 
 	>>> python -c "import nwhy"
+
+If there is no import error, then installation is done.

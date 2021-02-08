@@ -128,8 +128,8 @@ PYBIND11_MODULE(nwhy, m) {
     .def("s_path", &Slinegraph<Index_t, Data_t>::s_path,
     "A function which finds one shortest path from src to dest (could have multiple, only find one)", py::arg("src"), py::arg("dest")) 
     .def("s_betweenness_centrality", &Slinegraph<Index_t, Data_t>::s_betweenness_centrality,
-    "A function which computes the betweenness centrality from src to all the other vertices", 
-    py::arg("v"), py::arg("normalized") = true)
+    "A function which computes the betweenness centrality from every vertex to all the other vertices", 
+    py::arg("normalized") = true)
     .def("s_closeness_centrality", &Slinegraph<Index_t, Data_t>::s_closeness_centrality,
     "A function which computes the closeness centrality of v", py::arg("v"))
     .def("s_harmonic_closeness_centrality", &Slinegraph<Index_t, Data_t>::s_harmonic_closeness_centrality,

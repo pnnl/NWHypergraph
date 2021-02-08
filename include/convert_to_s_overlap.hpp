@@ -57,12 +57,11 @@ public:
     friend class Slinegraph<Index_t, Attributes...>;
 public:
     void populate_neighbor_count(bool edges = true) {
-        std::cout << "counting neighbors\n";
         if (edges){
-            edge_neighbor_count_ = to_two_graph_count_neighbors_parallel(edges_, nodes_);
+            edge_neighbor_count_ = to_two_graph_count_neighbors_cyclic(edges_, nodes_);
         }
         else {
-            node_neighbor_count_ = to_two_graph_count_neighbors_parallel(nodes_, edges_);
+            node_neighbor_count_ = to_two_graph_count_neighbors_cyclic(nodes_, edges_);
         }
     }
 public:
@@ -142,7 +141,7 @@ public:
             for (auto &&[anotherhyperE, val] : edge_neighbor_count_[hyperE]) {
                 if (val >= s) {
                     //std::cout << hyperE << "-" << anotherhyperE << std::endl;
-                    linegraph.push_back(std::make_tuple<vertex_id_t, vertex_id_t>(std::forward<vertex_id_t>(hyperE), std::forward<vertex_id_t>(anotherhyperE), val));
+                    linegraph.push_back(std::make_tuple<vertex_id_t, vertex_id_t>(std::forward<vertex_id_t>(hyperE), std::forward<vertex_id_t>(anotherhyperE), 1));
                 }
             }
         }
@@ -156,7 +155,7 @@ public:
         for (size_t hyperN = 0; hyperN < N; ++hyperN) {
             for (auto &&[anotherhyperN, val] : node_neighbor_count_[hyperN]) {
                 if (val >= s) 
-                    linegraph.push_back(std::make_tuple<vertex_id_t, vertex_id_t>(std::forward<vertex_id_t>(hyperN), std::forward<vertex_id_t>(anotherhyperN), val));
+                    linegraph.push_back(std::make_tuple<vertex_id_t, vertex_id_t>(std::forward<vertex_id_t>(hyperN), std::forward<vertex_id_t>(anotherhyperN), 1));
             }
         }
         linegraph.close_for_push_back();
@@ -550,22 +549,23 @@ public:
     //constructor
     Slinegraph(NWHypergraph<Index_t, Attributes...>&g, int s = 1, bool edges = true) : hyperg_(g), edges_(edges), s_(s) {
         //extract linegraph from its neighbor counts
-        nw::graph::edge_list<nw::graph::undirected, Attributes...> linegraph;
         if (edges_) {
             //if neighbors have not been counted
             if (0 == hyperg_.edge_neighbor_count_.size()) {
                 hyperg_.populate_neighbor_count(edges_);
             }
-            linegraph = hyperg_.populate_edge_linegraph(s);
+            nw::graph::edge_list<nw::graph::undirected, Attributes...>&& linegraph = hyperg_.populate_edge_linegraph(s);
+            populate_adjacency(linegraph);
+            populate_py_array(linegraph);
         }
         else{
             if (0 == hyperg_.node_neighbor_count_.size()) {
                 hyperg_.populate_neighbor_count(edges_);
             }
-            linegraph = hyperg_.populate_node_linegraph(s);         
+            nw::graph::edge_list<nw::graph::undirected, Attributes...>&& linegraph = hyperg_.populate_node_linegraph(s);         
+            populate_adjacency(linegraph);
+            populate_py_array(linegraph);
         }
-        populate_adjacency(linegraph);
-        populate_py_array(linegraph);
     }
     /*
     * Return a list of sets which
@@ -579,7 +579,6 @@ public:
             auto label = E[i];
             comps[label].add(i);
         }
-        std::cout << std::endl;
         py::list l;
         for (auto it = comps.begin(); it != comps.end(); ++it) {
             auto s = it->second;
@@ -756,20 +755,17 @@ public:
     /*
     * Compute the betweenness centrality of vertex v to any other vertices
     */
-    py::list s_betweenness_centrality(Index_t v, bool normalized = true) {
-        //validate input
-        if(v >= (Index_t)g_.size())
-            return py::list();
+    py::list s_betweenness_centrality(bool normalized = true) {
         using score_t=float;
         using accum_t=double;
-        std::vector<vertex_id_t> sources;
-        sources.push_back(v);
+        std::vector<vertex_id_t> sources(g_t_.size());
+        //std::iota(sources.begin(), sources.end(), 0);
+        sources.push_back(0);
         int thread = 32;
         std::vector<score_t> bc = nw::graph::bc2_v4<score_t, accum_t>(g_t_, sources, thread);
         std::size_t n = bc.size();
         float scale = 1.0;
         if (normalized) {
-            //TODO not sure the scale is correct
             if (2 < n)
                 scale /= ((n - 1) * (n - 2));
         }
@@ -794,18 +790,18 @@ public:
         if(v >= (Index_t)g_.size())
             return std::numeric_limits<float>::infinity();
         size_t delta = 1;
-        auto dist = nw::graph::delta_stepping_v12<distance_t>(g_t_, v, delta);
+        auto dist = nw::graph::delta_stepping_v12<distance_t>(g_, v, delta);
         std::size_t n = g_.size();
         std::atomic<std::size_t> ncomp(0);
         distance_t sum = nw::graph::parallel_for(tbb::blocked_range<Index_t>(0, n), [&](Index_t& i) {
             distance_t tmp = dist[i].load(std::memory_order_relaxed);
-            if (tmp == std::numeric_limits<Index_t>::max())
-                return std::numeric_limits<distance_t>::infinity();
+            if (tmp == std::numeric_limits<Index_t>::max() && 0 == tmp)
+                return 0ull;
             else{
                 ++ncomp;
                 return tmp;
             }
-        }, std::plus{}, 0ul);
+        }, std::plus{}, 0ull);
         return (1.0 * ncomp / sum);
     }
     /*
@@ -818,15 +814,13 @@ public:
         if(v >= (Index_t)g_.size())
             return std::numeric_limits<float>::infinity();
         size_t delta = 1;
-        auto dist = nw::graph::delta_stepping_v12<distance_t>(g_t_, v, delta);
+        auto dist = nw::graph::delta_stepping_v12<distance_t>(g_, v, delta);
         std::size_t n = g_.size();
-        //std::atomic<std::size_t> ncomp(0);
         float sum = nw::graph::parallel_for(tbb::blocked_range<Index_t>(0, n), [&](Index_t& i) {
             distance_t tmp = dist[i].load(std::memory_order_relaxed);
-            if (tmp == std::numeric_limits<distance_t>::max())
+            if (tmp == std::numeric_limits<distance_t>::max() && 0 == tmp)
                 return 0.0;
             else{
-                //++ncomp;
                 return 1.0 / tmp;
             }
         }, std::plus{}, 0ul);
@@ -842,7 +836,7 @@ public:
         if(v >= (Index_t)g_.size())
             return std::numeric_limits<distance_t>::infinity();
         size_t delta = 1;
-        auto dist = nw::graph::delta_stepping_v12<distance_t>(g_t_, v, delta);
+        auto dist = nw::graph::delta_stepping_v12<distance_t>(g_, v, delta);
         auto tmp = std::max_element(dist.begin(), dist.end());
         distance_t result = (*tmp).load(std::memory_order_relaxed);
         if (result == std::numeric_limits<distance_t>::max())
