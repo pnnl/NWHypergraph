@@ -784,64 +784,138 @@ public:
     * Closeness centrality of a node `v` is the reciprocal of the
     * average shortest path distance to `v` over all `n-1` reachable nodes.
     */
-    float s_closeness_centrality(Index_t v) {
+    py::list s_closeness_centrality(std::optional<Index_t> v = {}) {
         using distance_t = std::uint64_t;
-        //validate input
-        if(v >= (Index_t)g_.size())
-            return std::numeric_limits<float>::infinity();
-        size_t delta = 1;
-        auto dist = nw::graph::delta_stepping_v12<distance_t>(g_, v, delta);
+        std::size_t delta = 1;
         std::size_t n = g_.size();
-        std::atomic<std::size_t> ncomp(0);
-        distance_t sum = nw::graph::parallel_for(tbb::blocked_range<Index_t>(0, n), [&](Index_t& i) {
-            distance_t tmp = dist[i].load(std::memory_order_relaxed);
-            if (tmp == std::numeric_limits<Index_t>::max() && 0 == tmp)
-                return 0ull;
-            else{
-                ++ncomp;
-                return tmp;
-            }
-        }, std::plus{}, 0ull);
-        return (1.0 * ncomp / sum);
+        if (v.has_value()) {
+            py::list l;
+            //validate input
+            if (v >= (Index_t)g_.size())
+                return l;
+            auto dist = nw::graph::delta_stepping_v12<distance_t>(g_, v.value(), delta);
+            std::atomic<std::size_t> ncomp(0);
+            distance_t sum = nw::graph::parallel_for(
+                tbb::blocked_range<Index_t>(0, n), [&](Index_t &i) {
+                    distance_t tmp = dist[i].load(std::memory_order_relaxed);
+                    if (tmp == std::numeric_limits<Index_t>::max() && 0 == tmp)
+                        return 0ull;
+                    else {
+                        ++ncomp;
+                        return tmp;
+                    }
+                },
+                std::plus{}, 0ull);
+            l.append<float>(1.0 * ncomp / sum);
+            return l;
+        }
+        else {
+            py::list l = py::list(n);
+            //for each vertex v in the graph
+            tbb::parallel_for(tbb::blocked_range<Index_t>(0, n), [&](auto& r) {
+                for (Index_t v = r.begin(); v != r.end(); ++v) {
+                    //get the distances from v to any other vertices
+                    auto dist = nw::graph::delta_stepping_v12<distance_t>(g_, v, delta);
+                    std::atomic<std::size_t> ncomp(0);
+                    distance_t sum = nw::graph::parallel_for(
+                        tbb::blocked_range<Index_t>(0, n), [&](Index_t &i) {
+                            distance_t tmp = dist[i].load(std::memory_order_relaxed);
+                            if (tmp == std::numeric_limits<Index_t>::max() && 0 == tmp)
+                                return 0ull;
+                            else {
+                                ++ncomp;
+                                return tmp;
+                            }
+                        }, std::plus{}, 0ull);
+                    float res = 1.00 * ncomp / sum;
+                    l[v] = res;
+                }
+            });
+            return l;
+        }
     }
     /*
     * 
     *  
     */
-    float s_harmonic_closeness_centrality(Index_t v) {
+    py::list s_harmonic_closeness_centrality(std::optional<Index_t> v = {}) {
         using distance_t = std::uint64_t;
-        //validate input
-        if(v >= (Index_t)g_.size())
-            return std::numeric_limits<float>::infinity();
-        size_t delta = 1;
-        auto dist = nw::graph::delta_stepping_v12<distance_t>(g_, v, delta);
+        std::size_t delta = 1;
         std::size_t n = g_.size();
-        float sum = nw::graph::parallel_for(tbb::blocked_range<Index_t>(0, n), [&](Index_t& i) {
-            distance_t tmp = dist[i].load(std::memory_order_relaxed);
-            if (tmp == std::numeric_limits<distance_t>::max() && 0 == tmp)
-                return 0.0;
-            else{
-                return 1.0 / tmp;
-            }
-        }, std::plus{}, 0ul);
-        return (1.0 * sum/(n - 1));
+        if (v.has_value()) {
+            py::list l;
+            //validate input
+            if (v >= (Index_t)g_.size())
+                return l;
+            auto dist = nw::graph::delta_stepping_v12<distance_t>(g_, v.value(), delta);
+            float sum = 0;
+            for (auto& d : dist) {
+                distance_t tmp = d.load(std::memory_order_relaxed);
+                if (tmp != std::numeric_limits<distance_t>::max() && 0 != tmp)
+                    sum +=  1.0 / tmp;
+            }  
+            l.append(1.0 * sum / (n - 1));
+            return l;
+        }
+        else {
+            py::list l = py::list(n);
+            //for each vertex v in the graph
+            tbb::parallel_for(tbb::blocked_range<Index_t>(0, n), [&](auto& r) {
+                for (Index_t v = r.begin(); v != r.end(); ++v) {
+                    //get the distances from v to any other vertices
+                    auto dist = nw::graph::delta_stepping_v12<distance_t>(g_, v, delta);
+                    float sum = 0;
+                    for (auto &d : dist) {
+                        distance_t tmp = d.load(std::memory_order_relaxed);
+                        if (tmp != std::numeric_limits<distance_t>::max() && 0 != tmp)
+                            sum += 1.0 / tmp;
+                    }
+                    l[v] = 1.0 * sum / (n - 1);
+                }
+            });
+            return l;
+        }
     }
     /*
     * Compute the eccentricity of vertex v
     * return 0 if unreachable
     */
-    auto s_eccentricity(Index_t v) {
+    py::list s_eccentricity(std::optional<Index_t> v = {}) {
         using distance_t = std::uint64_t;
-        //validate input
-        if(v >= (Index_t)g_.size())
-            return std::numeric_limits<distance_t>::infinity();
-        size_t delta = 1;
-        auto dist = nw::graph::delta_stepping_v12<distance_t>(g_, v, delta);
-        auto tmp = std::max_element(dist.begin(), dist.end());
-        distance_t result = (*tmp).load(std::memory_order_relaxed);
-        if (result == std::numeric_limits<distance_t>::max())
-            return std::numeric_limits<distance_t>::infinity();
-        return result;
+        std::size_t delta = 1;
+        std::size_t n = g_.size();
+        if (v.has_value()) {
+            py::list l;
+            //validate input
+            if (v >= (Index_t)g_.size())
+                return l;
+
+            auto dist = nw::graph::delta_stepping_v12<distance_t>(g_, v.value(), delta);
+            auto tmp = std::max_element(dist.begin(), dist.end());
+            distance_t result = (*tmp).load(std::memory_order_relaxed);
+            if (result == std::numeric_limits<distance_t>::max())
+                l.append(std::numeric_limits<distance_t>::infinity());
+            else
+                l.append(result);
+            return l;
+        }
+        else {
+            py::list l = py::list(n);
+            //for each vertex v in the graph
+            tbb::parallel_for(tbb::blocked_range<Index_t>(0, n), [&](auto& r) {
+                for (Index_t v = r.begin(); v != r.end(); ++v) {
+                    //get the distances from v to any other vertices
+                    auto dist = nw::graph::delta_stepping_v12<distance_t>(g_, v, delta);
+                    auto tmp = std::max_element(dist.begin(), dist.end());
+                    distance_t result = (*tmp).load(std::memory_order_relaxed);
+                    if (result == std::numeric_limits<distance_t>::max())
+                        l[v] = std::numeric_limits<distance_t>::infinity();
+                    else
+                        l[v] = result;
+                }
+            });            
+            return l;
+        }
     }
     /*
     * Get the neighbors of a vertex in the slinegraph

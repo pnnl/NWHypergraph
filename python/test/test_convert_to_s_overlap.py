@@ -65,15 +65,16 @@ print("=====s_closeness_centrality=====")
 outofboundvertex = np.amax(row) + 1
 print(s1linegraph.s_closeness_centrality(vertex))
 print(s1linegraph.s_closeness_centrality(outofboundvertex))
+print(s1linegraph.s_closeness_centrality())
 
 # s_harmonic_closeness_centrality
 print("=====s_harmonic_closeness_centrality=====")
 print(s1linegraph.s_harmonic_closeness_centrality(vertex))
 print(s1linegraph.s_harmonic_closeness_centrality(outofboundvertex))
-
+print(s1linegraph.s_harmonic_closeness_centrality())
 
 # s_eccentricity
 print("=====s_eccentricity=====")
-es = {s1linegraph.s_eccentricity(2)}
-print(es)
+print(s1linegraph.s_eccentricity(2))
 print(s1linegraph.s_eccentricity(outofboundvertex))
+print(s1linegraph.s_eccentricity())

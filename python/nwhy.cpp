@@ -131,18 +131,18 @@ PYBIND11_MODULE(nwhy, m) {
     "A function which computes the betweenness centrality from every vertex to all the other vertices", 
     py::arg("normalized") = true)
     .def("s_closeness_centrality", &Slinegraph<Index_t, Data_t>::s_closeness_centrality,
-    "A function which computes the closeness centrality of v", py::arg("v"))
+    "A function which computes the closeness centrality of v", py::arg("v") = py::none())
     .def("s_harmonic_closeness_centrality", &Slinegraph<Index_t, Data_t>::s_harmonic_closeness_centrality,
-    "A function which computes the harmonic closeness centrality of v", py::arg("v"))
+    "A function which computes the harmonic closeness centrality of v", py::arg("v") = py::none())
     .def("s_eccentricity", &Slinegraph<Index_t, Data_t>::s_eccentricity,
-    "A function which computes the eccentrality of a vertex", py::arg("v"))        
+    "A function which computes the eccentrality of a vertex", py::arg("v") = py::none())        
     .def("s_neighbors", &Slinegraph<Index_t, Data_t>::s_neighbors,
     "A function to get neighbors of a vertex", py::arg("v"))
     .def("s_degree", &Slinegraph<Index_t, Data_t>::s_degree,
     "A function to get the degree of a vertex in the slinegraph", py::arg("v"));
 
     //register version information in a module as below
-    py::object version = py::cast("0.0.4");
+    py::object version = py::cast("0.0.7");
     m.attr("_version") = version;
 
     //define function, its argument list, and with default argument for s
