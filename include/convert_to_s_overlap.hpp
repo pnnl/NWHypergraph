@@ -794,18 +794,15 @@ public:
             if (v >= (Index_t)g_.size())
                 return l;
             auto dist = nw::graph::delta_stepping_v12<distance_t>(g_, v.value(), delta);
-            std::atomic<std::size_t> ncomp(0);
-            distance_t sum = nw::graph::parallel_for(
-                tbb::blocked_range<Index_t>(0, n), [&](Index_t &i) {
-                    distance_t tmp = dist[i].load(std::memory_order_relaxed);
-                    if (tmp == std::numeric_limits<Index_t>::max() && 0 == tmp)
-                        return 0ull;
-                    else {
-                        ++ncomp;
-                        return tmp;
-                    }
-                },
-                std::plus{}, 0ull);
+            distance_t sum = 0ul;
+            std::size_t ncomp = 0;
+            for (auto& d : dist) {
+                distance_t tmp = d.load(std::memory_order_relaxed);
+                if (tmp != std::numeric_limits<distance_t>::max() && 0 != tmp) {
+                    ++ncomp;
+                    sum += tmp;
+                }
+            } 
             l.append<float>(1.0 * ncomp / sum);
             return l;
         }
@@ -816,18 +813,16 @@ public:
                 for (Index_t v = r.begin(); v != r.end(); ++v) {
                     //get the distances from v to any other vertices
                     auto dist = nw::graph::delta_stepping_v12<distance_t>(g_, v, delta);
-                    std::atomic<std::size_t> ncomp(0);
-                    distance_t sum = nw::graph::parallel_for(
-                        tbb::blocked_range<Index_t>(0, n), [&](Index_t &i) {
-                            distance_t tmp = dist[i].load(std::memory_order_relaxed);
-                            if (tmp == std::numeric_limits<Index_t>::max() && 0 == tmp)
-                                return 0ull;
-                            else {
-                                ++ncomp;
-                                return tmp;
-                            }
-                        }, std::plus{}, 0ull);
-                    float res = 1.00 * ncomp / sum;
+                    distance_t sum = 0ul;
+                    std::size_t ncomp = 0;
+                    for (auto &d : dist) {
+                        distance_t tmp = d.load(std::memory_order_relaxed);
+                        if (tmp != std::numeric_limits<distance_t>::max() && 0 != tmp) {
+                            ++ncomp;
+                            sum += tmp;
+                        }
+                    }
+                    float res = 1.0 * ncomp / sum;
                     l[v] = res;
                 }
             });
