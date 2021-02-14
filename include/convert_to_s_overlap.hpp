@@ -76,11 +76,9 @@ public:
         //rx(0) = 1;
         size_t n_x = x.shape(0);
         size_t n_y = y.shape(0);
-        g.open_for_push_back();
         for (size_t i = 0; i < n_x; ++i) {
             g.push_back({rx(i), ry(i), 0});
         }
-        g.close_for_push_back();
         edges_ = nw::graph::adjacency<0, Attributes...>(g);
         max_edge_ = edges_.size();
         nodes_ = nw::graph::adjacency<1, Attributes...>(g);
@@ -99,7 +97,6 @@ public:
         size_t n_x = x.shape(0);
         size_t n_y = y.shape(0);
         size_t n_data = data.shape(0);
-        g.open_for_push_back();
         if (0 == n_data) {
             //when there is no weight passed in, but request a weighted hypergraph
             //we fake a weight
@@ -110,7 +107,6 @@ public:
             for (size_t i = 0; i < n_x; ++i) 
                 g.push_back({rx(i), ry(i), rdata(i)});
         }
-        g.close_for_push_back();
         
         if(collapse) {
             //Remove duplicate edges
@@ -127,40 +123,6 @@ public:
     std::vector<std::map<size_t, size_t>> get_edge_neighbor_counts() const { return edge_neighbor_count_; }
     std::vector<std::map<size_t, size_t>> get_node_neighbor_counts() const { return node_neighbor_count_; }
 
-    nw::graph::edge_list<nw::graph::undirected, Attributes...> populate_edge_linegraph (size_t s) {
-        nw::graph::edge_list<nw::graph::undirected, Attributes...> linegraph;
-        size_t M = edges_.size();
-        linegraph.open_for_push_back();
-        //n is the number of hyperedges, m is the number of hypernodes
-        //time complexity of counting neighbors is same as the efficient: O(n*deg(edges)*deg(nodes)*deg(edges))
-        //time complexity of extract slinegraph from the neighbor counts: O(n*deg(edges)) -> worst is O(n^2)
-        //space complexity: O(n*total_deg(H)) -> worst is O(n^2)
-        //total_deg(H)=sum of deg(each hyperedge)
-        //total_deg(H) >> n?
-        for (size_t hyperE = 0; hyperE < M; ++hyperE) {
-            for (auto &&[anotherhyperE, val] : edge_neighbor_count_[hyperE]) {
-                if (val >= s) {
-                    //std::cout << hyperE << "-" << anotherhyperE << std::endl;
-                    linegraph.push_back(std::make_tuple<vertex_id_t, vertex_id_t>(std::forward<vertex_id_t>(hyperE), std::forward<vertex_id_t>(anotherhyperE), 1));
-                }
-            }
-        }
-        linegraph.close_for_push_back();
-        return linegraph;
-    }
-    nw::graph::edge_list<nw::graph::undirected, Attributes...> populate_node_linegraph (size_t s) {
-        nw::graph::edge_list<nw::graph::undirected, Attributes...> linegraph;
-        size_t N = nodes_.size();
-        linegraph.open_for_push_back();
-        for (size_t hyperN = 0; hyperN < N; ++hyperN) {
-            for (auto &&[anotherhyperN, val] : node_neighbor_count_[hyperN]) {
-                if (val >= s) 
-                    linegraph.push_back(std::make_tuple<vertex_id_t, vertex_id_t>(std::forward<vertex_id_t>(hyperN), std::forward<vertex_id_t>(anotherhyperN), 1));
-            }
-        }
-        linegraph.close_for_push_back();
-        return linegraph;
-    }
     Slinegraph<Index_t, Attributes...> s_linegraph(int s = 1, bool edges = true) {
         Slinegraph<Index_t, Attributes...> slineg(*this, s, edges);
         return slineg;
@@ -495,6 +457,21 @@ public:
             }, tbb::auto_partitioner());
         return l;
     }
+protected:
+    void populate_edge_linegraph (nw::graph::edge_list<nw::graph::undirected, Attributes...>&& linegraph, size_t s) {
+        //if neighbors have not been counted
+        if (0 == edge_neighbor_count_.size()) {
+            edge_neighbor_count_ = to_two_graph_count_neighbors_cyclic(edges_, nodes_);
+        }
+        populate_linegraph_from_neighbor_map<decltype(edges_), Attributes...>(edges_, edge_neighbor_count_, std::move(linegraph), s, false);
+    }
+    auto populate_node_linegraph (nw::graph::edge_list<nw::graph::undirected, Attributes...>&& linegraph, size_t s) {
+        //if neighbors have not been counted
+        if (0 == node_neighbor_count_.size()) {
+            node_neighbor_count_ = to_two_graph_count_neighbors_cyclic(nodes_, edges_);
+        }
+        populate_linegraph_from_neighbor_map<decltype(nodes_), Attributes...>(nodes_, node_neighbor_count_, std::move(linegraph), s, false);
+    }
 }; //class NWhypergraph
 
 template<class Index_t, typename... Attributes> 
@@ -550,19 +527,14 @@ public:
     Slinegraph(NWHypergraph<Index_t, Attributes...>&g, int s = 1, bool edges = true) : hyperg_(g), edges_(edges), s_(s) {
         //extract linegraph from its neighbor counts
         if (edges_) {
-            //if neighbors have not been counted
-            if (0 == hyperg_.edge_neighbor_count_.size()) {
-                hyperg_.populate_neighbor_count(edges_);
-            }
-            nw::graph::edge_list<nw::graph::undirected, Attributes...>&& linegraph = hyperg_.populate_edge_linegraph(s);
+            nw::graph::edge_list<nw::graph::undirected, Attributes...> linegraph;
+            hyperg_.populate_edge_linegraph(std::move(linegraph), s);
             populate_adjacency(linegraph);
             populate_py_array(linegraph);
         }
         else{
-            if (0 == hyperg_.node_neighbor_count_.size()) {
-                hyperg_.populate_neighbor_count(edges_);
-            }
-            nw::graph::edge_list<nw::graph::undirected, Attributes...>&& linegraph = hyperg_.populate_node_linegraph(s);         
+            nw::graph::edge_list<nw::graph::undirected, Attributes...> linegraph;
+            hyperg_.populate_node_linegraph(std::move(linegraph), s);         
             populate_adjacency(linegraph);
             populate_py_array(linegraph);
         }
@@ -758,11 +730,7 @@ public:
     py::list s_betweenness_centrality(bool normalized = true) {
         using score_t=float;
         using accum_t=double;
-        std::vector<vertex_id_t> sources(g_t_.size());
-        //std::iota(sources.begin(), sources.end(), 0);
-        sources.push_back(0);
-        int thread = 32;
-        std::vector<score_t> bc = nw::graph::bc2_v4<score_t, accum_t>(g_t_, sources, thread);
+        std::vector<score_t> bc = nw::graph::betweenness_brandes<decltype(g_), score_t, accum_t>(g_);
         std::size_t n = bc.size();
         float scale = 1.0;
         if (normalized) {
@@ -773,7 +741,7 @@ public:
         tbb::parallel_for(tbb::blocked_range<Index_t>(0, n), [&](tbb::blocked_range<Index_t>& r) {
             for (auto i = r.begin(), e = r.end(); i != e; ++i) {
                 if (!normalized)
-                    l[i] = bc[i];
+                    l[i] = bc[i] / 2;
                 else
                     l[i] = scale * bc[i];
             }
@@ -791,7 +759,7 @@ public:
         if (v.has_value()) {
             py::list l;
             //validate input
-            if (v >= (Index_t)g_.size())
+            if (v.value() >= (Index_t)g_.size())
                 return l;
             auto dist = nw::graph::delta_stepping_v12<distance_t>(g_, v.value(), delta);
             distance_t sum = 0ul;
@@ -927,175 +895,6 @@ public:
     bool isEdgeOverlap() const { return edges_; }
 }; //slinegraph class
 
-
-/*
-* Deprecated
-*/
-template<class Index_t, class Data_t>
-std::tuple<py::array_t<Index_t>, py::array_t<Index_t>, py::array_t<Data_t>, 
-py::array_t<Index_t>, py::array_t<Index_t>, py::array_t<Data_t>> 
-convert_to_s_overlap(py::array_t<Index_t, py::array::c_style | py::array::forcecast> &x, 
-py::array_t<Index_t, py::array::c_style | py::array::forcecast> &y, 
-py::array_t<Data_t, py::array::c_style | py::array::forcecast> &data, 
-size_t s = 1) {
-    //sanitize check
-    auto rx = x.template mutable_unchecked<1>();
-    auto ry = y.template mutable_unchecked<1>();
-    auto rdata = data.template mutable_unchecked<1>();
-    //rx(0) = 1;
-    size_t n_x = x.shape(0);
-    size_t n_y = y.shape(0);
-    //assume there are n_x pairs
-    size_t n_data = data.shape(0);
-    //create edge list 
-    if (0 == n_data) {
-        std::cout << "reading unweighted hypergraph" << std::endl;
-        nw::graph::edge_list<nw::graph::directed> aos_a(0); 
-        aos_a.open_for_push_back();
-        for (size_t i = 0; i < n_x; ++i) {
-            aos_a.push_back(rx(i), ry(i));
-        }
-        aos_a.close_for_push_back();
-
-        nw::graph::adjacency<0> hyperedges(aos_a);
-        nw::graph::adjacency<1> hypernodes(aos_a);
-        std::vector<nw::graph::index_t> hyperedge_degrees = aos_a.degrees<0>();
-
-        int num_bins = 32;
-        auto&& two_graphs = 
-        to_two_graph_efficient_parallel_clean_without_sequeeze<nw::graph::undirected>(std::execution::par_unseq, hyperedges, hypernodes, hyperedge_degrees, s, num_bins);
-        if (1 == s) {
-            nw::graph::edge_list<nw::graph::undirected> &&linegraph = create_edgelist_without_squeeze<nw::graph::undirected>(two_graphs);
-            //where when an empty edge list is passed in, an adjacency still have two elements
-            pybind11::ssize_t n = linegraph.size();
-            std::cout << "linegraph has " << n << " edges" << std::endl;
-            py::array_t<Index_t, py::array::c_style> newx({n}), newy({n}); 
-            auto rnewx = newx.template mutable_unchecked<1>();
-            auto rnewy = newy.template mutable_unchecked<1>(); 
-            if (0 != n) {
-                size_t i = 0;
-                for (auto &&[u, v] : linegraph) {
-                    rnewx(i) = u;
-                    rnewy(i) = v;
-                    ++i;
-                }
-                return std::make_tuple(newx, newy, py::array_t<Data_t>(0), 
-                py::array_t<Index_t>(0), py::array_t<Index_t>(0), py::array_t<Data_t>(0));
-            }
-            else
-                return std::make_tuple(py::array_t<Index_t>(0), py::array_t<Index_t>(0), py::array_t<Data_t>(0),
-                py::array_t<Index_t>(0), py::array_t<Index_t>(0), py::array_t<Data_t>(0));
-        }
-        else {
-            nw::graph::edge_list<nw::graph::undirected> &&linegraph = create_edgelist_with_squeeze<nw::graph::undirected>(two_graphs);
-            nw::graph::edge_list<nw::graph::undirected> &&raw_linegraph = create_edgelist_without_squeeze<nw::graph::undirected>(two_graphs);           
-            //where when an empty edge list is passed in, an adjacency still have two elements
-            pybind11::ssize_t n = linegraph.size();
-            std::cout << "linegraph has " << n << " edges" << std::endl;
-            py::array_t<Index_t, py::array::c_style> newx({n}), newy({n}), oldx({n}), oldy({n}); 
-            auto rnewx = newx.template mutable_unchecked<1>();
-            auto rnewy = newy.template mutable_unchecked<1>(); 
-            auto roldx = oldx.template mutable_unchecked<1>();
-            auto roldy = oldy.template mutable_unchecked<1>();
-            if (0 != n) {
-                size_t i = 0;
-                for (auto &&[u, v] : linegraph) {
-                    rnewx(i) = u;
-                    rnewy(i) = v;
-                    ++i;
-                }
-                i = 0;
-                for (auto &&[u, v] : raw_linegraph) {
-                    roldx(i) = u;
-                    roldy(i) = v;
-                    ++i;
-                }
-                return std::make_tuple(newx, newy, py::array_t<Data_t>(0), oldx, oldy, py::array_t<Data_t>(0));
-            }
-            else
-                return std::make_tuple(py::array_t<Index_t>(0), py::array_t<Index_t>(0), py::array_t<Data_t>(0),
-                py::array_t<Index_t>(0), py::array_t<Index_t>(0), py::array_t<Data_t>(0));
-        }//else 1 == s
-    }
-    else {
-        std::cout << "reading weighted hypergraph" << std::endl;
-
-        nw::graph::edge_list<nw::graph::directed, Data_t> aos_a(0); 
-        aos_a.open_for_push_back();
-        for (size_t i = 0; i < n_x; ++i) {
-            aos_a.push_back(rx(i), ry(i), rdata(i));
-        }
-        aos_a.close_for_push_back();
-
-        nw::graph::adjacency<0, Data_t> hyperedges(aos_a);
-        nw::graph::adjacency<1, Data_t> hypernodes(aos_a);
-        std::vector<nw::graph::index_t> hyperedge_degrees = aos_a.template degrees<0>();
-    
-        int num_bins = 32;
-        auto&& two_graphs = 
-        to_two_graph_weighted_efficient_parallel_clean_without_squeeze<nw::graph::undirected, Data_t>(std::execution::par_unseq, hyperedges, hypernodes, hyperedge_degrees, s, num_bins);
-        if (1 == s) {
-            nw::graph::edge_list<nw::graph::undirected, Data_t> &&linegraph = create_edgelist_without_squeeze<nw::graph::undirected, Data_t>(two_graphs);
-            pybind11::ssize_t n = linegraph.size();
-            std::cout << "linegraph has " << n << " edges" << std::endl;
-            //create results
-            py::array_t<Index_t, py::array::c_style> newx({n}), newy({n});
-            auto rnewx = newx.template mutable_unchecked<1>();
-            auto rnewy = newy.template mutable_unchecked<1>(); 
-            py::array_t<Data_t, py::array::c_style> newdata({n}); 
-            auto rnewdata = newdata.template mutable_unchecked<1>(); 
-            if (0 != n) {
-                size_t i = 0;
-                for (auto &&[u, v, weight] : linegraph) {
-                    rnewx(i) = u;
-                    rnewy(i) = v;
-                    rnewdata(i) = weight;
-                    ++i;
-                }
-                return std::make_tuple(newx, newy, newdata, 
-                py::array_t<Index_t>(0), py::array_t<Index_t>(0), py::array_t<Index_t>(0));
-            }
-            else
-                return std::make_tuple(py::array_t<Index_t>(0), py::array_t<Index_t>(0), py::array_t<Data_t>(0),
-                py::array_t<Index_t>(0), py::array_t<Index_t>(0), py::array_t<Data_t>(0));   
-        }
-        else {
-            nw::graph::edge_list<nw::graph::undirected, Data_t> &&linegraph = create_edgelist_with_squeeze<nw::graph::undirected, Data_t>(two_graphs);
-            nw::graph::edge_list<nw::graph::undirected, Data_t> &&raw_linegraph = create_edgelist_without_squeeze<nw::graph::undirected, Data_t>(two_graphs);           
-            pybind11::ssize_t n = linegraph.size();
-            std::cout << "linegraph has " << n << " edges" << std::endl;
-            std::cout << "rawlinegraph has " << raw_linegraph.size() << " edges" << std::endl;
-            py::array_t<Index_t, py::array::c_style> newx({n}), newy({n}), oldx({n}), oldy({n}); 
-            auto rnewx = newx.template mutable_unchecked<1>();
-            auto rnewy = newy.template mutable_unchecked<1>(); 
-            auto roldx = oldx.template mutable_unchecked<1>();
-            auto roldy = oldy.template mutable_unchecked<1>();
-            py::array_t<Data_t, py::array::c_style> newdata({n}), olddata({n}); 
-            auto rnewdata = newdata.template mutable_unchecked<1>(); 
-            auto rolddata = olddata.template mutable_unchecked<1>(); 
-            if (0 != n) {
-                size_t i = 0;
-                for (auto &&[u, v, weight] : linegraph) {
-                    rnewx(i) = u;
-                    rnewy(i) = v;
-                    rnewdata(i) = weight;
-                    ++i;
-                }
-                i = 0;
-                for (auto &&[u, v, weight] : raw_linegraph) {
-                    roldx(i) = u;
-                    roldy(i) = v;
-                    rolddata(i) = weight;
-                    ++i;
-                }
-                return std::make_tuple(newx, newy, newdata, oldx, oldy, olddata);                  
-            }
-            else
-                return std::make_tuple(py::array_t<Index_t>(0), py::array_t<Index_t>(0), py::array_t<Data_t>(0),
-                py::array_t<Index_t>(0), py::array_t<Index_t>(0), py::array_t<Data_t>(0));         
-        }//else 1 == s
-    }//else 0 == n_data
-}
 
 }//namespace hypergraph
 }//namespace nw
