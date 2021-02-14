@@ -148,7 +148,7 @@ int main(int argc, char* argv[]) {
       }
       case 3:
       {
-        nw::graph::edge_list<undirected> &&linegraph = to_two_graph_with_map_parallel<undirected>(std::execution::par_unseq, hyperedges, hypernodes, edgedegrees, s, num_bins);
+          nw::graph::edge_list<undirected> &&linegraph = to_two_graph_with_map_block<undirected>(std::execution::par_unseq, hyperedges, hypernodes, edgedegrees, s, num_bins);
           //where when an empty edge list is passed in, an adjacency still have two elements
           if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
           nw::graph::adjacency<0> s_adj(linegraph);
@@ -157,13 +157,33 @@ int main(int argc, char* argv[]) {
       }
       case 4:
       {
-        nw::graph::edge_list<undirected> &&linegraph = to_two_graph_with_map_parallel2d<undirected>(std::execution::par_unseq, hyperedges, hypernodes, edgedegrees, s, num_bins);
+          nw::graph::edge_list<undirected> &&linegraph = to_two_graph_with_map_cyclic<undirected>(std::execution::par_unseq, hyperedges, hypernodes, edgedegrees, s, num_bins);
           //where when an empty edge list is passed in, an adjacency still have two elements
           if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
           nw::graph::adjacency<0> s_adj(linegraph);
           std::cout << "line graph edges = " << linegraph.size() << ", adjacency size = " << s_adj.size() << std::endl;
           return s_adj;
-      }      
+      }
+      case 5:
+      {
+          std::vector<std::map<size_t, size_t>> neighbor_count = to_two_graph_count_neighbors_blocked(hyperedges, hypernodes);
+          nw::graph::edge_list<undirected> &&linegraph = populate_linegraph_from_neighbor_map<undirected>(neighbor_count, s);
+          //where when an empty edge list is passed in, an adjacency still have two elements
+          if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
+          nw::graph::adjacency<0> s_adj(linegraph);
+          std::cout << "line graph edges = " << linegraph.size() << ", adjacency size = " << s_adj.size() << std::endl;
+          return s_adj;
+      } 
+      case 6:
+      {
+          std::vector<std::map<size_t, size_t>> neighbor_count = to_two_graph_count_neighbors_cyclic(hyperedges, hypernodes);
+          nw::graph::edge_list<undirected> &&linegraph = populate_linegraph_from_neighbor_map<undirected>(neighbor_count, s);
+          //where when an empty edge list is passed in, an adjacency still have two elements
+          if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
+          nw::graph::adjacency<0> s_adj(linegraph);
+          std::cout << "line graph edges = " << linegraph.size() << ", adjacency size = " << s_adj.size() << std::endl;
+          return s_adj;
+      }       
       default:
       {
           std::cerr << "unknown soverlap computation loader" << std::endl;
