@@ -234,5 +234,27 @@ auto to_two_graph_count_neighbors_blocked(HyperEdge& edges, HyperNode& nodes) {
   return two_graphs;
 }
 
+template<class Hypergraph,  typename... Attributes>
+void populate_linegraph_from_neighbor_map(Hypergraph& g, std::vector<std::map<size_t, size_t>>& neighbor_map, 
+nw::graph::edge_list<nw::graph::undirected, Attributes...>&& linegraph, std::size_t s, bool weighted = false) {
+  size_t M = g.size();
+  //n is the number of hyperedges, m is the number of hypernodes
+  //time complexity of counting neighbors is same as the efficient: O(n*deg(edges)*deg(nodes)*deg(edges))
+  //time complexity of extract slinegraph from the neighbor counts: O(n*deg(edges)) -> worst is O(n^2)
+  //space complexity: O(n*total_deg(H)) -> worst is O(n^2)
+  //total_deg(H)=sum of deg(each hyperedge)
+  //total_deg(H) >> n?
+  for (size_t hyperE = 0; hyperE < M; ++hyperE) {
+    for (auto &&[anotherhyperE, val] : neighbor_map[hyperE]) {
+      if (val >= s) {
+        //std::cout << hyperE << "-" << anotherhyperE << std::endl;
+        if (!weighted)
+          val = 1;
+        linegraph.push_back(std::make_tuple<vertex_id_t, vertex_id_t>(std::forward<vertex_id_t>(hyperE), std::forward<vertex_id_t>(anotherhyperE), val));
+      }
+    }
+  }
+}
+
 }//namespace hypergraph
 }//namespace nw

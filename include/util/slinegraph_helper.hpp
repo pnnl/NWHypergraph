@@ -25,7 +25,7 @@ template<directedness edge_directedness = nw::graph::undirected>
 auto squeeze_edgelist(std::vector<std::vector<std::pair<vertex_id_t, vertex_id_t>>> &two_graphs) {
     nw::util::life_timer _(__func__);
     nw::graph::edge_list<edge_directedness> result(0);
-    result.open_for_push_back();
+    //result.open_for_push_back();
     //do this in serial
     vertex_id_t index = 0;
     std::unordered_map<vertex_id_t, vertex_id_t> relabel_map;
@@ -49,7 +49,7 @@ auto squeeze_edgelist(std::vector<std::vector<std::pair<vertex_id_t, vertex_id_t
         result.push_back(newx, newy);
       });
     });
-    result.close_for_push_back();
+    //result.close_for_push_back();
 
     return result;
 }
@@ -61,7 +61,7 @@ template<directedness edge_directedness = nw::graph::undirected, class T>
 auto squeeze_weighted_edgelist(std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t, T>>> &two_graphs) {
     nw::util::life_timer _(__func__);
     nw::graph::edge_list<edge_directedness, T> result(0);
-    result.open_for_push_back();
+    //result.open_for_push_back();
     //do this in serial
     vertex_id_t index = 0;
     std::unordered_map<vertex_id_t, vertex_id_t> relabel_map;
@@ -85,7 +85,7 @@ auto squeeze_weighted_edgelist(std::vector<std::vector<std::tuple<vertex_id_t, v
         result.push_back(newx, newy, w);
       });
     });
-    result.close_for_push_back();
+    //result.close_for_push_back();
 
     return result;
 }
@@ -97,7 +97,7 @@ template<directedness edge_directedness = nw::graph::undirected, class... T>
 auto create_edgelist_without_squeeze(std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t, T...>>> &two_graphs) {
     nw::util::life_timer _(__func__);
     nw::graph::edge_list<edge_directedness, T...> result(0);
-    result.open_for_push_back();
+    //result.open_for_push_back();
     //do this in serial
     int num_bins = two_graphs.size();
     std::for_each(tbb::counting_iterator<int>(0), tbb::counting_iterator<int>(num_bins), [&](auto i) {
@@ -105,7 +105,7 @@ auto create_edgelist_without_squeeze(std::vector<std::vector<std::tuple<vertex_i
         result.push_back(e);
       });
     });
-    result.close_for_push_back();
+    //result.close_for_push_back();
 
     return result;
 }
@@ -117,7 +117,7 @@ template<directedness edge_directedness = nw::graph::undirected, class... T>
 auto create_edgelist_with_squeeze(std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t, T...>>> &two_graphs) {
     nw::util::life_timer _(__func__);
     nw::graph::edge_list<edge_directedness, T...> result(0);
-    result.open_for_push_back();
+    //result.open_for_push_back();
     //do this in serial
     vertex_id_t index = 0;
     std::unordered_map<vertex_id_t, vertex_id_t> relabel_map;
@@ -141,7 +141,7 @@ auto create_edgelist_with_squeeze(std::vector<std::vector<std::tuple<vertex_id_t
         }, elt);
       });
     });
-    result.close_for_push_back();
+    //result.close_for_push_back();
 
     return result;
 }
