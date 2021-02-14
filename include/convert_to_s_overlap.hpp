@@ -730,7 +730,7 @@ public:
     py::list s_betweenness_centrality(bool normalized = true) {
         using score_t=float;
         using accum_t=double;
-        std::vector<score_t> bc = nw::graph::betweenness_brandes<decltype(g_), score_t, accum_t>(g_);
+        std::vector<score_t> bc = nw::graph::betweenness_brandes<decltype(g_), score_t, accum_t>(g_, false);
         std::size_t n = bc.size();
         float scale = 1.0;
         if (normalized) {
