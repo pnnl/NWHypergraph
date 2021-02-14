@@ -49,7 +49,7 @@ auto squeeze_edgelist(std::vector<std::vector<std::pair<vertex_id_t, vertex_id_t
         result.push_back(newx, newy);
       });
     });
-    //result.close_for_push_back();
+    result.close_for_push_back(false);
 
     return result;
 }
@@ -85,7 +85,7 @@ auto squeeze_weighted_edgelist(std::vector<std::vector<std::tuple<vertex_id_t, v
         result.push_back(newx, newy, w);
       });
     });
-    //result.close_for_push_back();
+    result.close_for_push_back(false);
 
     return result;
 }
@@ -105,7 +105,7 @@ auto create_edgelist_without_squeeze(std::vector<std::vector<std::tuple<vertex_i
         result.push_back(e);
       });
     });
-    //result.close_for_push_back();
+    result.close_for_push_back(false);
 
     return result;
 }
@@ -141,7 +141,7 @@ auto create_edgelist_with_squeeze(std::vector<std::vector<std::tuple<vertex_id_t
         }, elt);
       });
     });
-    //result.close_for_push_back();
+    result.close_for_push_back(false);
 
     return result;
 }

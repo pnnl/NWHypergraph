@@ -56,15 +56,6 @@ public:
     py::array_t<Attributes..., py::array::c_style> data_;
     friend class Slinegraph<Index_t, Attributes...>;
 public:
-    void populate_neighbor_count(bool edges = true) {
-        if (edges){
-            edge_neighbor_count_ = to_two_graph_count_neighbors_cyclic(edges_, nodes_);
-        }
-        else {
-            node_neighbor_count_ = to_two_graph_count_neighbors_cyclic(nodes_, edges_);
-        }
-    }
-public:
     //constructor
     NWHypergraph() {}
     NWHypergraph(py::array_t<Index_t, py::array::c_style | py::array::forcecast> &x, 
@@ -458,19 +449,19 @@ public:
         return l;
     }
 protected:
-    void populate_edge_linegraph (nw::graph::edge_list<nw::graph::undirected, Attributes...>&& linegraph, size_t s) {
+    auto populate_edge_linegraph (size_t s) {
         //if neighbors have not been counted
-        if (0 == edge_neighbor_count_.size()) {
+        if (edge_neighbor_count_.empty()) {
             edge_neighbor_count_ = to_two_graph_count_neighbors_cyclic(edges_, nodes_);
         }
-        populate_linegraph_from_neighbor_map<decltype(edges_), Attributes...>(edges_, edge_neighbor_count_, std::move(linegraph), s, false);
+        return populate_linegraph_from_neighbor_map<nw::graph::undirected, decltype(edges_), Attributes...>(edges_, edge_neighbor_count_, s, false);
     }
-    auto populate_node_linegraph (nw::graph::edge_list<nw::graph::undirected, Attributes...>&& linegraph, size_t s) {
+    auto populate_node_linegraph (size_t s) {
         //if neighbors have not been counted
         if (0 == node_neighbor_count_.size()) {
             node_neighbor_count_ = to_two_graph_count_neighbors_cyclic(nodes_, edges_);
         }
-        populate_linegraph_from_neighbor_map<decltype(nodes_), Attributes...>(nodes_, node_neighbor_count_, std::move(linegraph), s, false);
+        return populate_linegraph_from_neighbor_map<nw::graph::undirected, decltype(nodes_), Attributes...>(nodes_, node_neighbor_count_, s, false);
     }
 }; //class NWhypergraph
 
@@ -527,14 +518,13 @@ public:
     Slinegraph(NWHypergraph<Index_t, Attributes...>&g, int s = 1, bool edges = true) : hyperg_(g), edges_(edges), s_(s) {
         //extract linegraph from its neighbor counts
         if (edges_) {
-            nw::graph::edge_list<nw::graph::undirected, Attributes...> linegraph;
-            hyperg_.populate_edge_linegraph(std::move(linegraph), s);
+            nw::graph::edge_list<nw::graph::undirected, Attributes...> linegraph = hyperg_.populate_edge_linegraph(s);
             populate_adjacency(linegraph);
             populate_py_array(linegraph);
         }
         else{
-            nw::graph::edge_list<nw::graph::undirected, Attributes...> linegraph;
-            hyperg_.populate_node_linegraph(std::move(linegraph), s);         
+            nw::graph::edge_list<nw::graph::undirected, Attributes...> linegraph = 
+            hyperg_.populate_node_linegraph(s);         
             populate_adjacency(linegraph);
             populate_py_array(linegraph);
         }
