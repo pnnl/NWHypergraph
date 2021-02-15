@@ -18,7 +18,7 @@ namespace hypergraph {
 
 
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
-auto to_two_graph_with_map_block(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
+auto to_two_graph_with_map_blocked(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
 std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
   std::vector<std::vector<std::pair<vertex_id_t, vertex_id_t>>> two_graphs(num_bins);
   size_t M = edges.size();
@@ -281,7 +281,7 @@ auto populate_linegraph_from_neighbor_map(std::vector<std::map<size_t, size_t>>&
     }
   }   
   }
-  linegraph.close_for_push_back(false);
+  linegraph.close_for_push_back();
   return linegraph;
 }
 
@@ -307,7 +307,7 @@ std::size_t s, bool weighted = false) {
       }
     }
   }
-  linegraph.close_for_push_back(false);
+  linegraph.close_for_push_back();
   return linegraph;
 }
 
