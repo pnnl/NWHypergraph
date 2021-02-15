@@ -49,7 +49,6 @@ static constexpr const char USAGE[] =
 
 
 int main(int argc, char* argv[]) {
-  tbb::task_scheduler_init init(std::stol(argv[argc - 1]));
   std::vector<std::string> strings(argv + 1, argv + argc);
   auto args = docopt::docopt(USAGE, strings, true);
 
@@ -143,7 +142,7 @@ int main(int argc, char* argv[]) {
           //where when an empty edge list is passed in, an adjacency still have two elements
           if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
           nw::graph::adjacency<0> s_adj(linegraph);
-          std::cout << "line graph edges = " << linegraph.size() << ", adjacency size = " << s_adj.size() << std::endl;
+          std::cout << "line graph edges = " << linegraph.size() << ", adjacency size = " << s_adj.size() << ", max= " << s_adj.max() << std::endl;
           return s_adj;
       }
       case 3:
@@ -152,7 +151,7 @@ int main(int argc, char* argv[]) {
           //where when an empty edge list is passed in, an adjacency still have two elements
           if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
           nw::graph::adjacency<0> s_adj(linegraph);
-          std::cout << "line graph edges = " << linegraph.size() << ", adjacency size = " << s_adj.size() << std::endl;
+          std::cout << "line graph edges = " << linegraph.size() << ", adjacency size = " << s_adj.size() << ", max= " << s_adj.max() << std::endl;
           return s_adj;
       }
       case 4:
@@ -161,7 +160,7 @@ int main(int argc, char* argv[]) {
           //where when an empty edge list is passed in, an adjacency still have two elements
           if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
           nw::graph::adjacency<0> s_adj(linegraph);
-          std::cout << "line graph edges = " << linegraph.size() << ", adjacency size = " << s_adj.size() << std::endl;
+          std::cout << "line graph edges = " << linegraph.size() << ", adjacency size = " << s_adj.size() << ", max= " << s_adj.max() << std::endl;
           return s_adj;
       }
       case 5:
@@ -171,7 +170,7 @@ int main(int argc, char* argv[]) {
           //where when an empty edge list is passed in, an adjacency still have two elements
           if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
           nw::graph::adjacency<0> s_adj(linegraph);
-          std::cout << "line graph edges = " << linegraph.size() << ", adjacency size = " << s_adj.size() << std::endl;
+          std::cout << "line graph edges = " << linegraph.size() << ", adjacency size = " << s_adj.size() << ", max= " << s_adj.max() << std::endl;
           return s_adj;
       } 
       case 6:
@@ -181,7 +180,7 @@ int main(int argc, char* argv[]) {
           //where when an empty edge list is passed in, an adjacency still have two elements
           if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
           nw::graph::adjacency<0> s_adj(linegraph);
-          std::cout << "line graph edges = " << linegraph.size() << ", adjacency size = " << s_adj.size() << std::endl;
+          std::cout << "line graph edges = " << linegraph.size() << ", adjacency size = " << s_adj.size() << ", max= " << s_adj.max() << std::endl;
           return s_adj;
       }       
       default:
