@@ -88,9 +88,9 @@ auto toplexes_serial_v1(GraphE& edges) {
             //It is necessary to differeniate e from top
             if (e == top)
                 continue;
-            if (is_subset(edges[e], edges[top]))
+            if (is_subset(edges[top], edges[e]))
                 tops.erase(top);
-            else if (is_subset(edges[top], edges[e])) {
+            else if (is_subset(edges[e], edges[top])) {
                 flag = false;
                 break;
             }

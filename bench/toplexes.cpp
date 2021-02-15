@@ -123,6 +123,12 @@ int main(int argc, char* argv[]) {
             case 0:
               record([&] { return toplexes_serial_v0(hyperedges); });
               break;
+            case 1:
+              record([&] { return toplexes_serial_v1(hyperedges); });
+              break;
+            case 2:
+              record([&] { return toplexes_serial_v2(hyperedges); });
+              break;
             default:
               std::cout << "Unknown version v" << id << "\n";
           }
