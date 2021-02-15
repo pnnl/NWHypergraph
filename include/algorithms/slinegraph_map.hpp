@@ -241,21 +241,45 @@ auto to_two_graph_count_neighbors_blocked(HyperEdge& edges, HyperNode& nodes) {
 template<directedness edge_directedness = undirected>
 auto populate_linegraph_from_neighbor_map(std::vector<std::map<size_t, size_t>>& neighbor_map, std::size_t s) {
   nw::util::life_timer _(__func__);
-  //n is the number of hyperedges, m is the number of hypernodes
-  //time complexity of counting neighbors is same as the efficient: O(n*deg(edges)*deg(nodes)*deg(edges))
-  //time complexity of extract slinegraph from the neighbor counts: O(n*deg(edges)) -> worst is O(n^2)
-  //space complexity: O(n*total_deg(H)) -> worst is O(n^2)
-  //total_deg(H)=sum of deg(each hyperedge)
-  //total_deg(H) >> n?
-  nw::graph::edge_list<edge_directedness> linegraph;
+  nw::graph::edge_list<edge_directedness> linegraph(0);
+  vertex_id_t index = 0;
+  std::unordered_map<vertex_id_t, vertex_id_t> relabel_map;
   linegraph.open_for_push_back();
+  if (1 < s) {
+    //if s > 1, we squeeze the IDs
   for (std::size_t hyperE = 0, e = neighbor_map.size(); hyperE < e; ++hyperE) {
+    for (auto &&[anotherhyperE, val] : neighbor_map[hyperE]) {
+      if (val >= s) {
+        auto x = hyperE;
+        auto y = anotherhyperE;
+        if (relabel_map.end() == relabel_map.find(x)) {
+          //if x has not been relabeled
+          relabel_map[x] = index;
+          ++index;
+        }
+        auto newx = relabel_map[x];
+        if (relabel_map.end() == relabel_map.find(y)) {
+          //if y has not been relabeled
+          relabel_map[y] = index;
+          ++index;
+        }
+        auto newy = relabel_map[y];
+        //std::cout << x << " " << y << " into " << newx << " " << newy << std::endl;
+        linegraph.push_back(newx, newy);
+      }
+    }
+  }
+  }
+  else {
+    //if 1 = s, no need to squeeze
+   for (std::size_t hyperE = 0, e = neighbor_map.size(); hyperE < e; ++hyperE) {
     for (auto &&[anotherhyperE, val] : neighbor_map[hyperE]) {
       if (val >= s) {
         //std::cout << hyperE << "-" << anotherhyperE << std::endl;
         linegraph.push_back(std::make_tuple<vertex_id_t, vertex_id_t>(std::forward<vertex_id_t>(hyperE), std::forward<vertex_id_t>(anotherhyperE)));
       }
     }
+  }   
   }
   linegraph.close_for_push_back(false);
   return linegraph;
