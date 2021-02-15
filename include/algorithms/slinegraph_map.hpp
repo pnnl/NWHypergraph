@@ -272,16 +272,16 @@ auto populate_linegraph_from_neighbor_map(std::vector<std::map<size_t, size_t>>&
   }
   else {
     //if 1 = s, no need to squeeze
-   for (std::size_t hyperE = 0, e = neighbor_map.size(); hyperE < e; ++hyperE) {
-    for (auto &&[anotherhyperE, val] : neighbor_map[hyperE]) {
-      if (val >= s) {
-        //std::cout << hyperE << "-" << anotherhyperE << std::endl;
-        linegraph.push_back(std::make_tuple<vertex_id_t, vertex_id_t>(std::forward<vertex_id_t>(hyperE), std::forward<vertex_id_t>(anotherhyperE)));
+    for (std::size_t hyperE = 0, e = neighbor_map.size(); hyperE < e; ++hyperE) {
+      for (auto &&[anotherhyperE, val] : neighbor_map[hyperE]) {
+        if (val >= s) {
+          //std::cout << hyperE << "-" << anotherhyperE << std::endl;
+          linegraph.push_back(std::make_tuple<vertex_id_t, vertex_id_t>(std::forward<vertex_id_t>(hyperE), std::forward<vertex_id_t>(anotherhyperE)));
+        }
       }
     }
-  }   
   }
-  linegraph.close_for_push_back();
+  linegraph.close_for_push_back(false);
   return linegraph;
 }
 
@@ -307,7 +307,7 @@ std::size_t s, bool weighted = false) {
       }
     }
   }
-  linegraph.close_for_push_back();
+  linegraph.close_for_push_back(false);
   return linegraph;
 }
 

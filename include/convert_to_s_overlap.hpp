@@ -62,6 +62,7 @@ public:
     NWHypergraph(py::array_t<Index_t, py::array::c_style | py::array::forcecast> &x, 
     py::array_t<Index_t, py::array::c_style | py::array::forcecast> &y) : row_(x), col_(y) {
         nw::graph::edge_list<nw::graph::directed, Attributes...> g(0);
+        g.open_for_push_back();
         //sanitize check
         auto rx = x.template mutable_unchecked<1>();
         auto ry = y.template mutable_unchecked<1>();
@@ -71,6 +72,7 @@ public:
         for (size_t i = 0; i < n_x; ++i) {
             g.push_back({rx(i), ry(i), 0});
         }
+        g.close_for_push_back(false);
         edges_ = nw::graph::adjacency<0, Attributes...>(g);
         max_edge_ = edges_.size();
         nodes_ = nw::graph::adjacency<1, Attributes...>(g);
@@ -81,6 +83,7 @@ public:
     py::array_t<Attributes..., py::array::c_style | py::array::forcecast> &data,
     bool collapse = false) : row_(x), col_(y), data_(data) {
         nw::graph::edge_list<nw::graph::directed, Attributes...> g(0);
+        g.open_for_push_back();
         //sanitize check
         auto rx = x.template mutable_unchecked<1>();
         auto ry = y.template mutable_unchecked<1>();
@@ -99,7 +102,7 @@ public:
             for (size_t i = 0; i < n_x; ++i) 
                 g.push_back({rx(i), ry(i), rdata(i)});
         }
-        
+        g.close_for_push_back(false);
         if(collapse) {
             //Remove duplicate edges
             std::cout << "before collapse: " << g.size() << " edges" << std::endl;
