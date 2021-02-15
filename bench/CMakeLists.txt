@@ -52,7 +52,7 @@ target_link_libraries(ssssp.exe bench)
 add_executable(sbc.exe soverlapbc.cpp)
 target_link_libraries(sbc.exe bench)
 
-add_executable(top.exe toplex.cpp)
+add_executable(top.exe toplexes.cpp)
 target_link_libraries(top.exe bench)
 
 # -----------------------------------------------------------------------------
