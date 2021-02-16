@@ -297,13 +297,21 @@ std::size_t s, bool weighted = false) {
   //space complexity: O(n*total_deg(H)) -> worst is O(n^2)
   //total_deg(H)=sum of deg(each hyperedge)
   //total_deg(H) >> n?
-  for (size_t hyperE = 0; hyperE < M; ++hyperE) {
-    for (auto &&[anotherhyperE, val] : neighbor_map[hyperE]) {
-      if (val >= s) {
+  if (!weighted) {
+    for (size_t hyperE = 0; hyperE < M; ++hyperE) {
+      for (auto &&[anotherhyperE, val] : neighbor_map[hyperE]) {
+        if (val >= s) 
         //std::cout << hyperE << "-" << anotherhyperE << std::endl;
-        if (!weighted)
-          val = 1;
-        linegraph.push_back(std::make_tuple<vertex_id_t, vertex_id_t>(std::forward<vertex_id_t>(hyperE), std::forward<vertex_id_t>(anotherhyperE), val));
+          linegraph.push_back(std::make_tuple<vertex_id_t, vertex_id_t>(std::forward<vertex_id_t>(hyperE), std::forward<vertex_id_t>(anotherhyperE), 1));
+      }
+    }
+  }
+  else {
+    for (size_t hyperE = 0; hyperE < M; ++hyperE) {
+      for (auto &&[anotherhyperE, val] : neighbor_map[hyperE]) {
+        if (val >= s) 
+        //std::cout << hyperE << "-" << anotherhyperE << std::endl;
+          linegraph.push_back(std::make_tuple<vertex_id_t, vertex_id_t>(std::forward<vertex_id_t>(hyperE), std::forward<vertex_id_t>(anotherhyperE), val));
       }
     }
   }

@@ -142,6 +142,6 @@ PYBIND11_MODULE(nwhy, m) {
     "A function to get the degree of a vertex in the slinegraph", py::arg("v"));
 
     //register version information in a module as below
-    py::object version = py::cast("0.0.9");
+    py::object version = py::cast("0.0.10");
     m.attr("_version") = version;
 }
