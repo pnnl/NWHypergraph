@@ -147,7 +147,7 @@ int main(int argc, char* argv[]) {
       }
       case 3:
       {
-          nw::graph::edge_list<undirected> &&linegraph = to_two_graph_with_map_blocked<undirected>(std::execution::par_unseq, hyperedges, hypernodes, edgedegrees, s, num_bins);
+          nw::graph::edge_list<undirected> &&linegraph = to_two_graph_map_blocked_portal<undirected>(verbose, std::execution::par_unseq, hyperedges, hypernodes, edgedegrees, s, num_bins);
           //where when an empty edge list is passed in, an adjacency still have two elements
           if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
           nw::graph::adjacency<0> s_adj(linegraph);
@@ -156,7 +156,7 @@ int main(int argc, char* argv[]) {
       }
       case 4:
       {
-          nw::graph::edge_list<undirected> &&linegraph = to_two_graph_with_map_cyclic<undirected>(std::execution::par_unseq, hyperedges, hypernodes, edgedegrees, s, num_bins);
+          nw::graph::edge_list<undirected> &&linegraph = to_two_graph_map_cyclic_portal<undirected>(verbose, std::execution::par_unseq, hyperedges, hypernodes, edgedegrees, s, num_bins);
           //where when an empty edge list is passed in, an adjacency still have two elements
           if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
           nw::graph::adjacency<0> s_adj(linegraph);

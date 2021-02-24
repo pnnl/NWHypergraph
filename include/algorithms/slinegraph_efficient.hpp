@@ -757,6 +757,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
       } //for each hyperE
      
     }, tbb::auto_partitioner());
+    std::cout << "#visits for each thread:" << std::endl;
     for (auto &v : num_visits)
       std::cout << v << " ";
     std::cout << std::endl;
