@@ -13,7 +13,7 @@
 #include <cyclic_range_adapter.hpp>
 
 #include "util/slinegraph_helper.hpp"
-#include "tbb/task_scheduler_init.h"
+#include "tbb/task_arena.h"
 
 namespace nw {
 namespace hypergraph {
