@@ -90,7 +90,7 @@ int main(int argc, char* argv[]) {
           nw::hypergraph::relabel_by_degree(hyperedges, hypernodes, idx, args["--direction"].asString());
         }
         auto hyperedge_degrees = hyperedges.degrees();
-        auto hypernode_degrees = hyperedges.degrees();
+        auto hypernode_degrees = hypernodes.degrees();
         return std::tuple(hyperedges, hypernodes, hyperedge_degrees, hypernode_degrees);
       }
       else {

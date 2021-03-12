@@ -33,7 +33,6 @@ h = nwhy.NWHypergraph(row, col, data, collapse=True)
 # 
 print("=====s_connected_component=====")
 s1linegraph = h.s_linegraph(s=1, edges=True)
-ccs = h.s_connected_components(s1linegraph, return_singleton=True)
 ccs0 = s1linegraph.s_connected_components(return_singleton=True)
 #s1linegraph.s_distance(s=1, source=0, edges=True)
 print("ccs0:", ccs0)
@@ -52,17 +51,24 @@ vertex=0
 neighborsofv2 = s1linegraph.s_neighbors(v=vertex)
 print("neighbors of vertex", vertex, "are:", neighborsofv2)
 
+# s_path
+
+
 # s_betweenness_centrality
 print("=====s_betweenness_centrality=====")
-s3linegraph = h.s_linegraph(s=3)
+#s1edgelinegraph = h.s_linegraph(s=1, edges=False)
 print("normalized:")
-print(s3linegraph.s_betweenness_centrality(normalized=True))
+print(s1linegraph.s_betweenness_centrality(normalized=True))
 print("unnormalized:")
-print(s3linegraph.s_betweenness_centrality(normalized=False))
+s3edgelinegraph = h.s_linegraph(s=3, edges=True)
+bc = s1linegraph.s_betweenness_centrality(normalized=False)
+print(bc)
+#for k, v in bc.items():
+#    print(k, ' : ', v)
 
 # s_closeness_centrality
 print("=====s_closeness_centrality=====")
-outofboundvertex = np.amax(row) + 1
+outofboundvertex = 11
 print(s1linegraph.s_closeness_centrality(vertex))
 print(s1linegraph.s_closeness_centrality(outofboundvertex))
 print(s1linegraph.s_closeness_centrality())
@@ -78,3 +84,6 @@ print("=====s_eccentricity=====")
 print(s1linegraph.s_eccentricity(2))
 print(s1linegraph.s_eccentricity(outofboundvertex))
 print(s1linegraph.s_eccentricity())
+
+import gc
+gc.collect()
