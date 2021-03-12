@@ -37,8 +37,7 @@ class CMakeBuild(build_ext):
         if not extdir.endswith(os.path.sep):
             extdir += os.path.sep
 
-        cmake_args = ['-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + extdir,
-                      '-DPYTHON_EXECUTABLE=' + sys.executable]
+        cmake_args = ['-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + extdir]
         cmake_args += ['-DCMAKE_C_COMPILER=gcc']
         cmake_args += ['-DCMAKE_CXX_COMPILER=g++']  
         # for Pybind api, we will not build benchmarks
