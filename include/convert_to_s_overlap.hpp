@@ -669,6 +669,7 @@ public:
     }
     /*
     * Compute the betweenness centrality of vertex v to any other vertices
+    * TODO compute cc then compute bc on each cc
     */
     py::list s_betweenness_centrality(bool normalized = true) {
         using score_t=float;
@@ -760,7 +761,7 @@ public:
                 if (tmp != std::numeric_limits<distance_t>::max() && 0 != tmp)
                     sum +=  1.0 / tmp;
             }  
-            l.append(1.0 * sum / (n - 1));
+            l.append(1.0 * sum);
             return l;
         }
         else {
@@ -776,7 +777,7 @@ public:
                         if (tmp != std::numeric_limits<distance_t>::max() && 0 != tmp)
                             sum += 1.0 / tmp;
                     }
-                    l[v] = 1.0 * sum / (n - 1);
+                    l[v] = 1.0 * sum;
                 }
             });
             return l;

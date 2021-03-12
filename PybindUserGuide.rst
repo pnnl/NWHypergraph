@@ -24,6 +24,10 @@ To install TBB_:
 
 	>>> conda install tbb
 
+If a local TBB has been install, we can specify TBBROOT_
+
+    >>> export TBBROOT=/opt/tbb/
+	
 Install using Pip
 -----------------
 
