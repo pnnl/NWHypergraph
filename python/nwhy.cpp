@@ -13,7 +13,9 @@
 #include <pybind11/stl.h> //auto copy between stl containers and python data structures
 #include <pybind11/stl_bind.h>
 #include <pybind11/cast.h>
-#include "convert_to_s_overlap.hpp"
+//#include "convert_to_s_overlap.hpp"
+#include "containers/slinegraph.hpp"
+#include "containers/nwhypergraph.hpp"
 #include <pybind11/stl_bind.h>
 #include <vector>
 
@@ -116,6 +118,15 @@ PYBIND11_MODULE(nwhy, m) {
     .def(py::init<>([](NWHypergraph<Index_t, Data_t>& g, int s, bool edges) {
         return new Slinegraph<Index_t, Data_t>(g, s, edges);
     }), "Init function", py::arg("g"), py::arg("s") = 1, py::arg("edges") = true)
+    .def(py::init<>([](
+    py::array_t<Index_t, py::array::c_style | py::array::forcecast> &x, 
+    py::array_t<Index_t, py::array::c_style | py::array::forcecast> &y,
+    py::array_t<Data_t, py::array::c_style | py::array::forcecast> &data,
+    int s, 
+    bool edges) {
+        return new Slinegraph<Index_t, Data_t>(x, y, data, s, edges);
+    }), "Constructor",
+    py::arg("x"), py::arg("y"), py::arg("data"), py::arg("s") = 1, py::arg("edges") = true)
     .def_readonly("s", &Slinegraph<Index_t, Data_t>::s_)
     .def("s_connected_components", &Slinegraph<Index_t, Data_t>::s_connected_components,
      "A function which finds the connected components for its s line graph", py::arg("return_singleton") = false)

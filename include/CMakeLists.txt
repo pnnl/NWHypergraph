@@ -23,6 +23,8 @@ target_sources(NW_HYPERGRAPH
   INTERFACE
   containers/edge_list_hy.hpp
   containers/compressed_hy.hpp
+  containers/nwhypergraph.hpp
+  containers/slinegraph.hpp
   io/hypergraph_io.hpp
   io/mmio.hpp
   util/slinegraph_helper.hpp
