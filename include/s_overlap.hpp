@@ -18,7 +18,7 @@
 #include <mutex>
 #include <bitset>
 #include <map>
-#include "tbb/task_scheduler_init.h"
+#include "tbb/task_arena.h"
 
 using namespace nw::graph;
 
