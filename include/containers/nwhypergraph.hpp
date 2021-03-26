@@ -124,10 +124,24 @@ public:
         return slineg;
     }
     /*
+    * return a list of slinegraph based on the s value list
+    * */
+    py::list s_linegraphs(py::list l, bool edges = true) {
+        py::list res;
+        for (auto obj : l) {
+            int s = obj.cast<int>();
+            Slinegraph<Index_t, Attributes...> slineg(*this, s, edges);
+            res.append(slineg);
+        }
+        return res;
+        //min_s = std::min_element(l.begin(), l.end());
+        //return slineg;
+    }
+    /*
     * Find the connected components for a slinegraph
     */
-    py::list s_connected_components(Slinegraph<Index_t, Attributes...>& linegraph, bool return_singleton = false) {
-        return linegraph.s_connected_components(return_singleton);
+    py::list s_connected_components(Slinegraph<Index_t, Attributes...>& linegraph) {
+        return linegraph.s_connected_components();
     }
     /*
     * Find the distance from the src to dest in its slinegraph

@@ -65,6 +65,7 @@ option(NW_HYPERGRAPH_EXECUTION_POLICY "with(out) C++ parallel execution policy" 
 option(NW_HYPERGRAPH_BUILD_BENCH "Determines whether to build performance benchmarks." ON)
 option(NW_HYPERGRAPH_BUILD_PYBIND "Determines whether to build python binding modules." OFF)
 option(NW_HYPERGRAPH_USE_TBBMALLOC "Link to tbbmalloc" OFF)
+option(NW_HYPERGRAPH_BUILD_TESTS "Determines whether to build tests." ON)
 
 add_subdirectory(include)
 
@@ -84,3 +85,4 @@ endif()
 if (NW_HYPERGRAPH_BUILD_PYBIND)
   add_subdirectory(python)
 endif()
+

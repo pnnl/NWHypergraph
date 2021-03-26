@@ -33,14 +33,14 @@ namespace py = pybind11;
 
 namespace nw {
 namespace hypergraph {
-    
+
 template<class Index_t, typename... Attributes> class NWHypergraph;
 
 template<class Index_t, typename... Attributes> 
 class Slinegraph {
 private:
     bool edges_;
-
+    Index_t offset_; //offset between min id to 0
     //s-linegraph generated from original hypergraph
     nw::graph::adjacency<0, Attributes...> g_;
     nw::graph::adjacency<1, Attributes...> g_t_;
@@ -87,7 +87,10 @@ private:
     }
 public:
     //constructor
-    Slinegraph(NWHypergraph<Index_t, Attributes...>&g, int s = 1, bool edges = true) : edges_(edges), s_(s) {
+    Slinegraph(NWHypergraph<Index_t, Attributes...>&g, int s = 1, bool edges = true) : 
+    edges_(edges), 
+    offset_(0),
+    s_(s) {
         //extract linegraph from its neighbor counts
         if (edges_) {
             nw::graph::edge_list<nw::graph::undirected, Attributes...> linegraph = g.populate_edge_linegraph(s);
@@ -107,6 +110,7 @@ public:
     py::array_t<Attributes..., py::array::c_style | py::array::forcecast> &data,
     int s = 1, bool edges = true) : 
     edges_(edges), 
+    offset_(0),
     row_(x), 
     col_(y), 
     data_(data), 
@@ -138,36 +142,79 @@ public:
                 m = std::max(m, ry(i));
             }
         }
-        linegraph.close_for_push_back(false);
-        g_ = nw::graph::adjacency<0, Attributes...>(m, linegraph);
-        g_t_ = nw::graph::adjacency<1, Attributes...>(m, linegraph);
+        offset_ = linegraph.close_for_push_back_with_shift();
+        g_ = nw::graph::adjacency<0, Attributes...>(linegraph);
+        g_t_ = nw::graph::adjacency<1, Attributes...>(linegraph);
     }
     /*
-    * Return a list of sets which
-    * each set is a component.
-    */
-    py::list s_connected_components(bool return_singleton = false) {
-        //int thread = 32;
-        //auto E = nw::graph::lpcc(std::execution::par_unseq , g_, thread);
+    * Get all the singletons in the s line graph.
+    * */ 
+    py::list get_singletons() {
         auto E = nw::graph::ccv1(g_);
         // This returns the subgraph of each component.
         std::map<Index_t, py::set> comps;
         for (size_t i = 0, e = E.size(); i < e; ++i) {
             Index_t label = E[i];
-            comps[label].add(i);
+            Index_t original_id = i + offset_;
+            if (comps.find(label) != comps.end())
+                comps[label].add(original_id);
+            else {
+                py::set s;
+                s.add(original_id);
+                comps[label] = s;
+            }
+        }
+        if (0 != offset_) {
+            //if the ids are shifted by offset_, 
+            //then singletons from 0 to offset_ - 1 must be added to list
+            py::list l;
+            for (Index_t i = 0; i < offset_; ++i) {
+                py::set s;
+                s.add(i);
+                l.append(s);
+            }
+            for (auto it = comps.begin(); it != comps.end(); ++it) {
+                if (1 == it->second.size())
+                    l.append(it->second);  
+            }
+            return l;
+        }
+        else {
+            //if ids are not shifted, do nothing
+            py::list l;
+            for (auto it = comps.begin(); it != comps.end(); ++it) {
+                if (1 == it->second.size())
+                    l.append(it->second);  
+            }
+            return l;
+        }
+    }
+    /*
+    * Return a list of sets which
+    * each set is a component.
+    */
+    py::list s_connected_components() {
+        auto E = nw::graph::ccv1(g_);
+        
+        // This returns the subgraph of each component.
+        std::map<Index_t, py::set> comps;
+        for (size_t i = 0, e = E.size(); i < e; ++i) {
+            Index_t label = E[i];
+            Index_t original_id = i + offset_;
+            if (comps.find(label) != comps.end())
+                comps[label].add(original_id);
+            else {
+                py::set s;
+                s.add(original_id);
+                comps[label] = s;
+            }
         }
         py::list l;
         for (auto it = comps.begin(); it != comps.end(); ++it) {
-            auto s = it->second;
-            py::ssize_t n = it->second.size();
-            if (true == return_singleton) {
-                l.append(s);
-            }
-            else {
-                if (1 < n) {
-                    l.append(s);
-                }
-            }
+            //auto s = it->second;
+            //py::ssize_t n = it->second.size();
+            if (1 < it->second.size()) 
+                l.append(it->second); //only return non-singletons
         }
         return l;
     }
@@ -338,7 +385,6 @@ public:
         using accum_t=double;
         std::vector<score_t> bc = nw::graph::betweenness_brandes<decltype(g_), score_t, accum_t>(g_, false);
         std::size_t n = bc.size();
-        std::cout << g_.size() << ":" << n << std::endl;
         float scale = 1.0;
         if (normalized) {
             if (2 < n)

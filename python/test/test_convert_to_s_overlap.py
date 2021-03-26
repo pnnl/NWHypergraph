@@ -31,9 +31,10 @@ print("olds:", olds)
 h = nwhy.NWHypergraph(row, col, data, collapse=True)
 #print(h)
 # 
-print("=====s_connected_component=====")
+print("=====s_linegraph=====")
 s1linegraph = h.s_linegraph(s=1, edges=True)
-ccs0 = s1linegraph.s_connected_components(return_singleton=True)
+print("=====s_connected_component=====")
+ccs0 = s1linegraph.s_connected_components()
 #s1linegraph.s_distance(s=1, source=0, edges=True)
 print("ccs0:", ccs0)
 
@@ -85,5 +86,25 @@ print(s1linegraph.s_eccentricity(2))
 print(s1linegraph.s_eccentricity(outofboundvertex))
 print(s1linegraph.s_eccentricity())
 
+
+# another way to construct s line graph
+
+srow = np.array([4592, 4601, 4601, 4605, 4605, 4609, 4611, 4612, 4612, 4613, 4613,
+       4615, 4615, 4616, 4616, 4617])
+scol = np.array([4611, 4617, 4618, 4617, 4618, 4618, 4617, 4617, 4618, 4616, 4617,
+       4617, 4618, 4617, 4618, 4618])
+sdata = np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
+print("=====s_linegraph=====")
+linegraph = nwhy.Slinegraph(srow, scol, sdata, 15, True)
+print("=====s_connected_components=====")
+scc = linegraph.s_connected_components()
+print(scc)
+print("=====get_singletons=====")
+singletons = linegraph.get_singletons()
+print(singletons)
+
+print("=====s_betweenness_centrality=====")
+sbc = linegraph.s_betweenness_centrality(normalized=False)
+print(sbc)
 import gc
 gc.collect()

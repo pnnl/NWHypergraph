@@ -2,7 +2,7 @@
 # The date library from MIT provides C++20 std date functionality in C++17
 # -----------------------------------------------------------------------------
 find_package(Filesystem REQUIRED Final Experimental)
-message(STATUS ${CXX_FILESYSTEM_IS_EXPERIMENTAL})
+#message(STATUS ${CXX_FILESYSTEM_IS_EXPERIMENTAL})
 add_definitions(-Wno-deprecated -Wno-deprecated-declarations)
 
 # -----------------------------------------------------------------------------
@@ -51,15 +51,5 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/pybind11/include)
 # -----------------------------------------------------------------------------
 # NW_HYPERGRAPH pybind11 module to verify that we're correctly generating source lists.
 # -----------------------------------------------------------------------------
-
-#add_library(hello MODULE hello.cpp)
 pybind11_add_module(nwhy nwhy.cpp)
 target_link_libraries(nwhy PRIVATE dep pybind11::module)
-#target_link_libraries(hello PRIVATE dep 
-#pybind11::headers pybind11::module pybind11::lto pybind11::windows_extras)
-
-#pybind11_extension(hello)
-#pybind11_strip(hello)
-
-#set_target_properties(hello PROPERTIES CXX_VISIBILITY_PRESET "hidden"
-#                                       CUDA_VISIBILITY_PRESET "hidden")

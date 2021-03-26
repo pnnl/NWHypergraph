@@ -92,10 +92,13 @@ PYBIND11_MODULE(nwhy, m) {
     .def("s_linegraph", &NWHypergraph<Index_t, Data_t>::s_linegraph, 
     "A function which converts a hypergraph to its s line graph; if edges is true, then it is an edge linegraph",
     py::arg("s") = 1, py::arg("edges") = true)
+    .def("s_linegraphs", &NWHypergraph<Index_t, Data_t>::s_linegraphs, 
+    "A function which converts a hypergraph to its s line graphs; if edges is true, then it is an edge linegraph",
+    py::arg("l"), py::arg("edges") = true)
     //s_connected_component
-    .def("s_connected_components", py::overload_cast<Slinegraph<Index_t, Data_t> &, bool>(&NWHypergraph<Index_t, Data_t>::s_connected_components),
+    .def("s_connected_components", py::overload_cast<Slinegraph<Index_t, Data_t> &>(&NWHypergraph<Index_t, Data_t>::s_connected_components),
      "A function which finds the connected components for its s line graph",
-    py::arg("linegraph"), py::arg("return_singleton") = false)
+    py::arg("linegraph"))
     //s_distance
     .def("distance", py::overload_cast<Slinegraph<Index_t, Data_t> &, Index_t, Index_t>(&NWHypergraph<Index_t, Data_t>::distance),
      "A function which computes the distance from src to dest in its s line graph",
@@ -128,8 +131,10 @@ PYBIND11_MODULE(nwhy, m) {
     }), "Constructor",
     py::arg("x"), py::arg("y"), py::arg("data"), py::arg("s") = 1, py::arg("edges") = true)
     .def_readonly("s", &Slinegraph<Index_t, Data_t>::s_)
+    .def("get_singletons", &Slinegraph<Index_t, Data_t>::get_singletons,
+     "A function which finds the singletons for its s line graph")
     .def("s_connected_components", &Slinegraph<Index_t, Data_t>::s_connected_components,
-     "A function which finds the connected components for its s line graph", py::arg("return_singleton") = false)
+     "A function which finds the connected components for its s line graph")
     .def("is_s_connected", &Slinegraph<Index_t, Data_t>::is_s_connected,
     "A function which tests whether its s line graph is connected or not")
     .def("s_distance", &Slinegraph<Index_t, Data_t>::s_distance,
