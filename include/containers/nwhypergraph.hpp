@@ -127,6 +127,16 @@ public:
     * return a list of slinegraph based on the s value list
     * */
     py::list s_linegraphs(py::list l, bool edges = true) {
+        auto tmp = std::min_element(l.begin(), l.end());
+        int min_s = (*tmp).cast<int>();
+        if(edges) {
+            if (edge_neighbor_count_.empty()) 
+                edge_neighbor_count_ = to_two_graph_count_neighbors_cyclic(edges_, nodes_, min_s, 32);
+        }
+        else {
+            if (node_neighbor_count_.empty()) 
+                node_neighbor_count_ = to_two_graph_count_neighbors_cyclic(nodes_, edges_, min_s, 32);
+        }
         py::list res;
         for (auto obj : l) {
             int s = obj.cast<int>();
@@ -134,7 +144,7 @@ public:
             res.append(slineg);
         }
         return res;
-        //min_s = std::min_element(l.begin(), l.end());
+        
         //return slineg;
     }
     /*

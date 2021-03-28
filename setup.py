@@ -66,7 +66,7 @@ class CMakeBuild(build_ext):
 
 setup(
     name='nwhy',
-    version='0.0.12',
+    version='0.0.1',
     author='Xu Tony Liu',
     author_email='xu.liu2@wsu.edu',
     description='NWhy project using pybind11 and CMake',

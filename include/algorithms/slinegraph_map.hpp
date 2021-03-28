@@ -423,6 +423,31 @@ auto to_two_graph_count_neighbors_cyclic(HyperEdge& edges, HyperNode& nodes, int
 * counts the neighbor hyperedges of the hyperedges
 */
 template<class HyperEdge, class HyperNode>
+auto to_two_graph_count_neighbors_cyclic(HyperEdge& edges, HyperNode& nodes, size_t min_s, int num_bins = 32) {
+  nw::util::life_timer _(__func__);
+  size_t M = edges.size();
+  std::vector<std::map<size_t, size_t>> two_graphs(M, std::map<size_t, size_t>());
+  tbb::parallel_for(nw::graph::cyclic(edges, num_bins), [&](auto& i) {
+    int worker_index = tbb::task_arena::current_thread_index();    
+    for (auto&& j = i.begin(); j != i.end(); ++j) {
+      auto&& [hyperE, hyperE_ngh] = *j;
+      if (min_s > hyperE_ngh.size()) continue;
+      for (auto&& x : hyperE_ngh) {
+        auto hyperN = std::get<0>(x);
+        for (auto&& y : nodes[hyperN]) {
+          auto anotherhyperE = std::get<0>(y);
+          if (hyperE < anotherhyperE) ++two_graphs[hyperE][anotherhyperE];
+        }
+      }
+    }
+  }, tbb::auto_partitioner());
+  return two_graphs;
+}
+
+/*
+* counts the neighbor hyperedges of the hyperedges
+*/
+template<class HyperEdge, class HyperNode>
 auto to_two_graph_count_neighbors_blocked(HyperEdge& edges, HyperNode& nodes) {
   nw::util::life_timer _(__func__);
   size_t M = edges.size();
@@ -430,6 +455,30 @@ auto to_two_graph_count_neighbors_blocked(HyperEdge& edges, HyperNode& nodes) {
   tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M), [&](tbb::blocked_range<vertex_id_t>& r) {
     int worker_index = tbb::task_arena::current_thread_index();  
     for (auto hyperE = r.begin(), e = r.end(); hyperE != e; ++hyperE) {
+      for (auto&& x : edges[hyperE]) {
+        auto hyperN = std::get<0>(x);
+        for (auto&& y : nodes[hyperN]) {
+          auto anotherhyperE = std::get<0>(y);
+          if (hyperE < anotherhyperE) ++two_graphs[hyperE][anotherhyperE];
+        }
+      }
+    }
+  }, tbb::auto_partitioner());
+  return two_graphs;
+}
+
+/*
+* counts the neighbor hyperedges of the hyperedges
+*/
+template<class HyperEdge, class HyperNode>
+auto to_two_graph_count_neighbors_blocked(HyperEdge& edges, HyperNode& nodes, size_t min_s) {
+  nw::util::life_timer _(__func__);
+  size_t M = edges.size();
+  std::vector<std::map<size_t, size_t>> two_graphs(M, std::map<size_t, size_t>());
+  tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M), [&](tbb::blocked_range<vertex_id_t>& r) {
+    int worker_index = tbb::task_arena::current_thread_index();  
+    for (auto hyperE = r.begin(), e = r.end(); hyperE != e; ++hyperE) {
+      if (min_s > edges[hyperE].size()) continue;
       for (auto&& x : edges[hyperE]) {
         auto hyperN = std::get<0>(x);
         for (auto&& y : nodes[hyperN]) {
