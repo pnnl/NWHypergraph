@@ -142,7 +142,8 @@ public:
                 m = std::max(m, ry(i));
             }
         }
-        offset_ = linegraph.close_for_push_back_with_shift();
+        //offset_ = linegraph.close_for_push_back_with_shift();
+        linegraph.close_for_push_back(false);
         g_ = nw::graph::adjacency<0, Attributes...>(linegraph);
         g_t_ = nw::graph::adjacency<1, Attributes...>(linegraph);
     }
@@ -165,8 +166,8 @@ public:
             }
         }
         if (0 != offset_) {
-            //if the ids are shifted by offset_, 
-            //then singletons from 0 to offset_ - 1 must be added to list
+            //if the ids are shifted by a number, 
+            //then singletons from 0 to n - 1 must be added to list
             py::list l;
             for (Index_t i = 0; i < offset_; ++i) {
                 py::set s;
