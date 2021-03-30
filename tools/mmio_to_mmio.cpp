@@ -8,14 +8,13 @@
 // Author: Xu Tony Liu
 //
 
-#include <unordered_set>
 #include <docopt.h>
 #include <edge_list.hpp>
 #include "common.hpp"
-#include "io/mmio.hpp"
+
 
 static constexpr const char USAGE[] =
-    R"(mm2mm.exe: convert matrix market file to hypergraph biadjacency file driver.
+    R"(mm2mm.exe: transpose matrix market file driver.
   Usage:
       mm2mm.exe (-h | --help)
       mm2mm.exe [-i FILE] [-o FILE] [--transpose] [-dV]
@@ -42,21 +41,16 @@ int main(int argc, char* argv[]) {
   std::string output_file = args["-o"].asString();
   bool transpose = args["--transpose"].asBool();
 
-  size_t nreadedges, nrealnodes;
   auto aos_a   = load_graph<directed>(input_file);
   if (0 == aos_a.size()) {
     std::cerr << "not matrix market file, convert abort" << std::endl;
     exit(1);
   }
-  adjacency<0> E(aos_a);
-  adjacency<1> V(aos_a);
-  std::size_t m = E.size();
-  std::size_t n = V.size();
-  std::cout << "num_hyperedges:" << m << " num_hypernodes:" << n << std::endl;
+
   if (!transpose)
-    write_mm_hy(output_file, E, m, n);
+    write_mm<0>(output_file, aos_a);
   else
-    write_mm_hy(output_file, V, n, m);
+    write_mm<1>(output_file, aos_a);
 
   return 0;
 }
