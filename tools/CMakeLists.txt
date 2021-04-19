@@ -15,6 +15,9 @@ target_link_libraries(tools INTERFACE NW_HYPERGRAPH docopt date::date)
 add_executable(mm2adj.exe mmio_to_hyadj.cpp)
 target_link_libraries(mm2adj.exe tools)
 
+add_executable(adj2mm.exe hyadj_to_mmio.cpp)
+target_link_libraries(adj2mm.exe tools)
+
 add_executable(hystat.exe hyperstats.cpp)
 target_link_libraries(hystat.exe tools)
 
