@@ -53,7 +53,6 @@ using score_t = float;
 using accum_t = double;
 
 int main(int argc, char* argv[]) {
-  tbb::task_scheduler_init init(std::stol(argv[argc - 1]));
   std::vector strings = std::vector<std::string>(argv + 1, argv + argc);
   std::map       args = docopt::docopt(USAGE, strings, true);
 

@@ -18,7 +18,8 @@
 #include <mutex>
 #include <bitset>
 #include <map>
-#include "tbb/task_arena.h"
+#include <tbb/task_arena.h>
+#include <tbb/blocked_range2d.h>
 
 using namespace nw::graph;
 
