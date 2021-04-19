@@ -13,13 +13,12 @@
 #include <docopt.h>
 #include <edge_list.hpp>
 #include <util/parallel_for.hpp>
-#include "Log.hpp"
 #include "common.hpp"
 #include "containers/edge_list_hy.hpp"
 #include "containers/compressed_hy.hpp"
 #include "io/mmio.hpp"
 
-using namespace nw::hypergraph::bench;
+using namespace nw::hypergraph::tools;
 using namespace nw::hypergraph;
 
 static constexpr const char USAGE[] =
@@ -37,8 +36,6 @@ static constexpr const char USAGE[] =
       --relabel NUM         relabel the graph - 0(hyperedge)/1(hypernode) [default: -1]
       --degree NUM          check the percentile above and below degree [NUM] [default: -1]
       --direction DIR       graph relabeling direction - ascending/descending [default: descending]
-      --log FILE            log times to a file
-      --log-header          add a header to the log file
       -d, --debug           run in debug mode
 )";
 template<typename T>
@@ -198,12 +195,6 @@ int main(int argc, char* argv[]) {
   } //for file
 
   times.print(std::cout);
-
-  if (args["--log"]) {
-    auto file   = args["--log"].asString();
-    bool header = args["--log-header"].asBool();
-    log("cc", file, times, header, "Time(s)");
-  }
 
   return 0;
 }

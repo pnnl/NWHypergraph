@@ -8,28 +8,27 @@
 // Author: Xu Tony Liu
 //
 
-#include <unordered_set>
 #include <docopt.h>
 #include <edge_list.hpp>
 #include "common.hpp"
-#include "io/hypergraph_io.hpp"
 
 
 static constexpr const char USAGE[] =
-    R"(mm2adj.exe: convert matrix market file to hypergraph biadjacency file driver.
+    R"(mm2mm.exe: transpose matrix market file driver.
   Usage:
-      mm2adj.exe (-h | --help)
-      mm2adj.exe [-i FILE] [-o FILE] [-dV]
+      mm2mm.exe (-h | --help)
+      mm2mm.exe [-i FILE] [-o FILE] [--transpose] [-dV]
 
   Options:
       -h, --help            show this screen
       -i FILE               matrix market input file path
-      -o FILE               hypergraph biadajacency output file path
+      -o FILE               matrix market output file path
+      --transpose           swap column 0 with column 1
       -d, --debug           run in debug mode
       -V, --verbose         run in verbose mode
 )";
 
-using namespace nw::hypergraph::bench;
+using namespace nw::hypergraph::tools;
 using namespace nw::hypergraph;
 
 int main(int argc, char* argv[]) {
@@ -40,17 +39,18 @@ int main(int argc, char* argv[]) {
   bool debug   = args["--debug"].asBool();
   std::string input_file = args["-i"].asString();
   std::string output_file = args["-o"].asString();
-  size_t nreadedges, nrealnodes;
+  bool transpose = args["--transpose"].asBool();
+
   auto aos_a   = load_graph<directed>(input_file);
   if (0 == aos_a.size()) {
     std::cerr << "not matrix market file, convert abort" << std::endl;
     exit(1);
   }
-  adjacency<0> E(aos_a);
-  adjacency<1> N(aos_a);
-  std::cout << "num_hyperedges:" << E.size() << " num_hypernodes:" << N.size() << std::endl;
-  if (false == write_adj_hypergraph(output_file, E, N)){
-    std::cerr << "write failed" << std::endl;
-  }
+
+  if (!transpose)
+    write_mm<0>(output_file, aos_a);
+  else
+    write_mm<1>(output_file, aos_a);
+
   return 0;
 }
