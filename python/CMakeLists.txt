@@ -6,18 +6,10 @@ find_package(Filesystem REQUIRED Final Experimental)
 add_definitions(-Wno-deprecated -Wno-deprecated-declarations)
 
 # -----------------------------------------------------------------------------
-# Generate the configuration files used for logging, and -I its built path.
-# -----------------------------------------------------------------------------
-get_filename_component(NW_HYPERGRAPH_CXX_COMPILER ${CMAKE_CXX_COMPILER} NAME)
-configure_file(config.h.in config.h)
-#include_directories(${CMAKE_CURRENT_BINARY_DIR})
-
-# -----------------------------------------------------------------------------
 # Create an interface library for the benchmarks to depend on.
 # -----------------------------------------------------------------------------
 add_library(dep INTERFACE)
-target_sources(dep INTERFACE
-  config.h)
+target_sources(dep INTERFACE)
 target_include_directories(dep INTERFACE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(dep INTERFACE NW_HYPERGRAPH)
 
