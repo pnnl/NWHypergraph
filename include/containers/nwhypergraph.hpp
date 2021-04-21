@@ -53,9 +53,9 @@ private:
     //the value is the number of overlap hyperedges
     std::vector<std::map<size_t, size_t>> node_neighbor_count_;   
 public:
-    py::array_t<Index_t, py::array::c_style> row_;
-    py::array_t<Index_t, py::array::c_style> col_;
-    py::array_t<Attributes..., py::array::c_style> data_;
+    py::array_t<Index_t, py::array::c_style | py::array::forcecast> row_;
+    py::array_t<Index_t, py::array::c_style | py::array::forcecast> col_;
+    py::array_t<Attributes..., py::array::c_style | py::array::forcecast> data_;
     friend class Slinegraph<Index_t, Attributes...>;
 public:
     //constructor
@@ -75,7 +75,9 @@ public:
     bool collapse,
     bool remove_duplicates = false) : row_(x), col_(y), data_(data) {
         if (collapse) {
-            auto&& [el, dict] = collapse_array_x();
+            auto row = as_vector(row_);
+            auto col = as_vector(col_);
+            auto&& [el, dict] = collapse_array_x(row, col);
             edges_ = nw::graph::adjacency<0, Attributes...>(el);
             max_edge_ = edges_.size();
             nodes_ = nw::graph::adjacency<1, Attributes...>(el);
@@ -111,8 +113,10 @@ public:
     }
 
     decltype(auto) collapse_edges(bool return_equivalence_class = false) {
+        auto row = as_vector(row_);
+        auto col = as_vector(col_);
         //collapse to get new edge list and equal class
-        auto &&[el, equivalence_class_dict] = collapse_array_x();
+        auto &&[el, equivalence_class_dict] = collapse_array_x(row, col);
 
         //create new row, col and ata from the new edge list
         std::vector<Index_t> new_x(el.size());
@@ -134,14 +138,14 @@ public:
         //create a mapping from the new id to old id from the equal class
         std::map<Index_t, std::set<Index_t>> dict;
         if (return_equivalence_class) {
-            for (auto &&[k, v] : equivalence_class_edges){
+            for (auto &&[k, v] : equivalence_class_dict){
                 auto rep = *v.begin();
                 dict[rep] = v;
             }
         }
         else {
-            for (auto&& [k, v] : equivalence_class_edges) {
-                auto rep = *v.begin()
+            for (auto&& [k, v] : equivalence_class_dict) {
+                auto rep = *v.begin();
                 std::set<Index_t> s;
                 s.insert(v.size());
                 dict[rep] = s;
@@ -152,8 +156,9 @@ public:
     }
 
     decltype(auto) collapse_nodes(bool return_equivalence_class = false) {
-        bool transpose = true;
-        auto &&[el, equivalence_class_dict] = collapse_array_x(transpose);
+        auto row = as_vector(row_);
+        auto col = as_vector(col_);
+        auto &&[el, equivalence_class_dict] = collapse_array_x(col, row);
 
         //create new row, col and ata from the new edge list
         std::vector<Index_t> new_x(el.size());
@@ -177,14 +182,14 @@ public:
         //create a mapping from the new id to old id from the equal class
         std::map<Index_t, std::set<Index_t>> dict;
         if (return_equivalence_class) {
-            for (auto &&[k, v] : equivalence_class_edges){
+            for (auto &&[k, v] : equivalence_class_dict){
                 auto rep = *v.begin();
                 dict[rep] = v;
             }
         }
         else {
-            for (auto&& [k, v] : equivalence_class_edges) {
-                auto rep = *v.begin()
+            for (auto&& [k, v] : equivalence_class_dict) {
+                auto rep = *v.begin();
                 std::set<Index_t> s;
                 s.insert(v.size());
                 dict[rep] = s;
@@ -193,48 +198,33 @@ public:
 
         return std::tuple{newh, dict};
     }
-    /*
-    * Convert a sequence (a vector for example) into a numpy array without copy.
-    */
-    template <typename Sequence,
-    typename = std::enable_if_t<std::is_rvalue_reference_v<Sequence&&>>>
-    inline py::array_t<typename Sequence::value_type, py::array::c_style | py::array::forcecast> as_pyarray(Sequence &&seq) {
-        auto size = seq.size();
-        auto data = seq.data();
-        std::unique_ptr<Sequence> seq_ptr = std::make_unique<Sequence>(std::move(seq));
-        auto capsule = py::capsule(seq_ptr.get(), [](void *p) { std::unique_ptr<Sequence>(reinterpret_cast<Sequence *>(p)); });
-        seq_ptr.release();
-        return py::array(size, data, capsule);
-    }
+
     decltype(auto) collapse_nodes_and_edges(bool return_equivalence_class = false) {
         //collapse nodes first
         bool transpose = true;
-        std::cout << "before collapse nodes: " << row_.size() << std::endl;
-        auto &&[new_el, equivalence_class_nodes] = collapse_array_x(transpose);
-        std::cout << "after collapse nodes: " << new_el.size() << std::endl;
-        {
-            std::vector<Index_t> new_x(new_el.size());
-            std::vector<Index_t> new_y(new_el.size());
-            std::vector<Attributes...> new_data(new_el.size());
+        //std::cout << "before collapse nodes: " << row_.size() << std::endl;
+        auto row = as_vector(row_);
+        auto col = as_vector(col_);
+        auto &&[new_el, equivalence_class_nodes] = collapse_array_x(col, row);
+        //std::cout << "after collapse nodes: " << new_el.size() << std::endl;
+        
+            std::vector<Index_t> x(new_el.size());
+            std::vector<Index_t> y(new_el.size());
             size_t i = 0;
             for (auto &&[u, v, w] : new_el) {
-                new_x[i] = u;
-                new_y[i] = v;
-                new_data[i] = w;
+                x[i] = u;
+                y[i] = v;
                 ++i;
             }
-            col_ = as_pyarray<std::vector<Index_t>>(std::move(new_x));
-            row_ = as_pyarray<std::vector<Index_t>>(std::move(new_y));
-            data_ = as_pyarray<std::vector<Attributes...>>(std::move(new_data));
-        }
+        
         //then collapse edges
-        auto &&[el, equivalence_class_edges] = collapse_array_x();
-        std::cout << "after collapse edges: " << el.size() << std::endl;
+        auto &&[el, equivalence_class_edges] = collapse_array_x(x, y);
+        //std::cout << "after collapse edges: " << el.size() << std::endl;
         //create new row, col and ata from the new edge list
         std::vector<Index_t> new_x(el.size());
         std::vector<Index_t> new_y(el.size());
         std::vector<Attributes...> new_w(el.size());
-        size_t i = 0;
+        i = 0;
         for (auto&& [u, v, w] : el) {
             new_x[i] = u;
             new_y[i] = v;
@@ -256,7 +246,7 @@ public:
         }
         else {
             for (auto&& [k, v] : equivalence_class_edges) {
-                auto rep = *v.begin()
+                auto rep = *v.begin();
                 std::set<Index_t> s;
                 s.insert(v.size());
                 dict[rep] = s;
@@ -659,78 +649,39 @@ private:
     }
 
 
-    auto collapse_array_x(bool transpose = false) {
+    auto collapse_array_x(std::vector<Index_t>& x, std::vector<Index_t>& y) {
         std::map<std::set<Index_t>, std::set<Index_t>> equal_class;
-        if (transpose) {
-            auto rx = col_.template mutable_unchecked<1>();
-            auto ry = row_.template mutable_unchecked<1>();
-            size_t n_x = col_.shape(0);
-            size_t n_y = row_.shape(0);
-
-            //sort the raw array into an adjacency, where key is the element u of array x
-            // and value is u's neighbors (the element of array y)
-            std::map<Index_t, std::set<Index_t>> adjacency;
-            for (size_t i = 0; i < n_x; ++i) {
-                auto key = rx(i);
-                if (adjacency.find(key) == adjacency.end()) {
-                    //if no such key exists, we create a set and insert as the value
-                    std::set<Index_t> s;
-                    s.insert(ry(i));
-                    adjacency[key] = s;
-                }
-                else
-                    adjacency[key].insert(ry(i));
-            }
-            //based on [key, value] pairs of adjacency, combine its keys if they have the same value.
-            //The combined keys will be stored in a new set as the value of equal_class.
-            //Whereas the value of adjacency becomes the key of equal_class.
-        
-            for (auto&& [k, v] : adjacency) {
-                auto key = v;
-                if (equal_class.find(key) == equal_class.end()) {
-                    std::set<Index_t> s;
-                    s.insert(k);
-                    equal_class[key] = s;
-                }
-                else 
-                    equal_class[key].insert(k);
-            }
-        }
-        else {
-            auto rx = row_.template mutable_unchecked<1>();
-            auto ry = col_.template mutable_unchecked<1>();
-            size_t n_x = row_.shape(0);
-            size_t n_y = col_.shape(0);
-
-            //sort the raw array into a dict, where key is the element of array x
-            // and value is the element of array y
-            std::map<Index_t, std::set<Index_t>> dict;
-            for (size_t i = 0; i < n_x; ++i) {
-                auto key = rx(i);
-                if (dict.find(key) == dict.end()) {
+        assert(x.size() == y.size());
+        size_t n = x.size();
+        //sort the raw array into an adjacency, where key is the element u of array x
+        // and value is u's neighbors (the element of array y)
+        std::map<Index_t, std::set<Index_t>> adjacency;
+        for (size_t i = 0; i < n; ++i) {
+            auto key = x[i];
+            if (adjacency.find(key) == adjacency.end()) {
                 //if no such key exists, we create a set and insert as the value
-                    std::set<Index_t> s;
-                    s.insert(ry(i));
-                    dict[key] = s;
-                }
-                else
-                    dict[key].insert(ry(i));
+                std::set<Index_t> s;
+                s.insert(y[i]);
+                adjacency[key] = s;
             }
-            //based on [key, value] pairs of dict, combine its keys if they have the same value.
-            //The combined keys will be stored in a new set as the value of equal_class.
-            //Whereas the value of dict becomes the key of equal_class.
-        
-            for (auto&& [k, v] : dict) {
-                auto key = v;
-                if (equal_class.find(key) == equal_class.end()) {
-                    std::set<Index_t> s;
-                    s.insert(k);
-                    equal_class[key] = s;
-                }
-                else 
-                    equal_class[key].insert(k);
-            }
+            else
+                adjacency[key].insert(y[i]);
         }
+        //based on [key, value] pairs of adjacency, combine its keys if they have the same value.
+        //The combined keys will be stored in a new set as the value of equal_class.
+        //Whereas the value of adjacency becomes the key of equal_class.
+        
+        for (auto&& [k, v] : adjacency) {
+            auto key = v;
+            if (equal_class.find(key) == equal_class.end()) {
+                std::set<Index_t> s;
+                s.insert(k);
+                equal_class[key] = s;
+            }
+            else 
+                equal_class[key].insert(k);
+        }
+        
         nw::graph::edge_list<nw::graph::directed, Attributes...> g(0);
         g.open_for_push_back();
         for (auto&& [nodes, edges] : equal_class) {
@@ -743,6 +694,28 @@ private:
         }
         g.close_for_push_back(false);
         return std::tuple{g, equal_class};
+    }
+    /*
+    * Convert a sequence (a vector for example) into a numpy array without copy.
+    */
+    template <typename Sequence,
+    typename = std::enable_if_t<std::is_rvalue_reference_v<Sequence&&>>>
+    inline py::array_t<typename Sequence::value_type, py::array::c_style | py::array::forcecast> as_pyarray(Sequence &&seq) {
+        auto size = seq.size();
+        auto data = seq.data();
+        std::unique_ptr<Sequence> seq_ptr = std::make_unique<Sequence>(std::move(seq));
+        auto capsule = py::capsule(seq_ptr.get(), [](void *p) { std::unique_ptr<Sequence>(reinterpret_cast<Sequence *>(p)); });
+        seq_ptr.release();
+        return py::array(size, data, capsule);
+    }
+    template<typename value_type>
+    inline std::vector<value_type> as_vector(py::array_t<value_type, py::array::c_style | py::array::forcecast> seq) {
+        auto rx = seq.template mutable_unchecked<1>();
+        size_t n = seq.shape(0);
+        std::vector<value_type> res(n);
+        for (size_t i = 0; i < n; ++i) 
+            res[i] = rx(i);
+        return res;
     }
 }; //class NWhypergraph
 
