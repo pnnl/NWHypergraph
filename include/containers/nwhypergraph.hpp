@@ -133,15 +133,22 @@ public:
 
         //create a mapping from the new id to old id from the equal class
         std::map<Index_t, std::set<Index_t>> dict;
-        for (auto&& [k, v] : equivalence_class_dict) {
-            auto rep = *v.begin();
-            dict[rep] = v;
+        if (return_equivalence_class) {
+            for (auto &&[k, v] : equivalence_class_edges){
+                auto rep = *v.begin();
+                dict[rep] = v;
+            }
         }
-        
-        if (return_equivalence_class)
-            return std::tuple{newh, dict};
-        else
-            return std::tuple{newh, dict};
+        else {
+            for (auto&& [k, v] : equivalence_class_edges) {
+                auto rep = *v.begin()
+                std::set<Index_t> s;
+                s.insert(v.size());
+                dict[rep] = s;
+            }
+        }
+
+        return std::tuple{newh, dict};
     }
 
     decltype(auto) collapse_nodes(bool return_equivalence_class = false) {
@@ -169,15 +176,22 @@ public:
 
         //create a mapping from the new id to old id from the equal class
         std::map<Index_t, std::set<Index_t>> dict;
-        for (auto&& [k, v] : equivalence_class_dict) {
-            auto rep = *v.begin();
-            dict[rep] = v;
+        if (return_equivalence_class) {
+            for (auto &&[k, v] : equivalence_class_edges){
+                auto rep = *v.begin();
+                dict[rep] = v;
+            }
+        }
+        else {
+            for (auto&& [k, v] : equivalence_class_edges) {
+                auto rep = *v.begin()
+                std::set<Index_t> s;
+                s.insert(v.size());
+                dict[rep] = s;
+            }
         }
 
-        if (return_equivalence_class)
-            return std::tuple{newh, dict};
-        else
-            return std::tuple{newh, dict}; 
+        return std::tuple{newh, dict};
     }
     /*
     * Convert a sequence (a vector for example) into a numpy array without copy.
@@ -234,15 +248,22 @@ public:
         NWHypergraph<Index_t, Attributes...> newh(new_row, new_col, new_data);
 
         std::map<Index_t, std::set<Index_t>> dict;
-        for (auto&& [k, v] : equivalence_class_edges) {
-            auto rep = *v.begin();
-            dict[rep] = v;
+        if (return_equivalence_class) {
+            for (auto &&[k, v] : equivalence_class_edges){
+                auto rep = *v.begin();
+                dict[rep] = v;
+            }
+        }
+        else {
+            for (auto&& [k, v] : equivalence_class_edges) {
+                auto rep = *v.begin()
+                std::set<Index_t> s;
+                s.insert(v.size());
+                dict[rep] = s;
+            }
         }
 
-        if (return_equivalence_class)
-            return std::tuple{newh, dict};
-        else
-            return std::tuple{newh, dict};
+        return std::tuple{newh, dict};
     }
 
     std::vector<std::map<size_t, size_t>> get_edge_neighbor_counts() const { return edge_neighbor_count_; }
