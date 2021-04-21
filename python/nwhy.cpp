@@ -48,6 +48,11 @@ PYBIND11_MODULE(nwhy, m) {
         return new NWHypergraph<Index_t, Data_t>(x, y);
     }))
     .def(py::init<>([](py::array_t<Index_t, py::array::c_style | py::array::forcecast> &x, 
+    py::array_t<Index_t, py::array::c_style | py::array::forcecast> &y, 
+    py::array_t<Data_t, py::array::c_style | py::array::forcecast> &data) {
+        return new NWHypergraph<Index_t, Data_t>(x, y, data);
+    }))
+    .def(py::init<>([](py::array_t<Index_t, py::array::c_style | py::array::forcecast> &x, 
     py::array_t<Index_t, py::array::c_style | py::array::forcecast> &y,
     py::array_t<Data_t, py::array::c_style | py::array::forcecast> &data,
     bool collapse = false) {

@@ -125,11 +125,11 @@ public:
             new_w[i] = w;
             ++i;
         }
-        auto new_col = as_pyarray<std::vector<Index_t>>(std::move(new_x));
-        auto new_row = as_pyarray<std::vector<Index_t>>(std::move(new_y));
+        auto new_row = as_pyarray<std::vector<Index_t>>(std::move(new_x));
+        auto new_col = as_pyarray<std::vector<Index_t>>(std::move(new_y));
         auto new_data = as_pyarray<std::vector<Attributes...>>(std::move(new_w));
         //create a new hypergraph from the new rol, col and data
-        NWHypergraph<Index_t, Attributes...> newh(new_col, new_row, new_data);
+        NWHypergraph<Index_t, Attributes...> newh(new_row, new_col, new_data);
 
         //create a mapping from the new id to old id from the equal class
         std::map<Index_t, std::set<Index_t>> dict;
@@ -159,6 +159,8 @@ public:
             new_w[i] = w;
             ++i;
         }
+        //since the el is a transpose, we need to transpose it back when mapping to 
+        //new col and new row
         auto new_col = as_pyarray<std::vector<Index_t>>(std::move(new_x));
         auto new_row = as_pyarray<std::vector<Index_t>>(std::move(new_y));
         auto new_data = as_pyarray<std::vector<Attributes...>>(std::move(new_w));
@@ -177,7 +179,11 @@ public:
         else
             return std::tuple{newh, dict}; 
     }
-    template <typename Sequence>
+    /*
+    * Convert a sequence (a vector for example) into a numpy array without copy.
+    */
+    template <typename Sequence,
+    typename = std::enable_if_t<std::is_rvalue_reference_v<Sequence&&>>>
     inline py::array_t<typename Sequence::value_type, py::array::c_style | py::array::forcecast> as_pyarray(Sequence &&seq) {
         auto size = seq.size();
         auto data = seq.data();
@@ -189,7 +195,7 @@ public:
     decltype(auto) collapse_nodes_and_edges(bool return_equivalence_class = false) {
         //collapse nodes first
         bool transpose = true;
-        std::cout << "before collapse nodes: " << col_.size() << std::endl;
+        std::cout << "before collapse nodes: " << row_.size() << std::endl;
         auto &&[new_el, equivalence_class_nodes] = collapse_array_x(transpose);
         std::cout << "after collapse nodes: " << new_el.size() << std::endl;
         {
@@ -221,11 +227,11 @@ public:
             new_w[i] = w;
             ++i;
         }
-        auto new_col = as_pyarray<std::vector<Index_t>>(std::move(new_x));
-        auto new_row = as_pyarray<std::vector<Index_t>>(std::move(new_y));
+        auto new_row = as_pyarray<std::vector<Index_t>>(std::move(new_x));
+        auto new_col = as_pyarray<std::vector<Index_t>>(std::move(new_y));
         auto new_data = as_pyarray<std::vector<Attributes...>>(std::move(new_w));
         //create a new hypergraph from the new rol, col and data
-        NWHypergraph<Index_t, Attributes...> newh(new_col, new_row, new_data);
+        NWHypergraph<Index_t, Attributes...> newh(new_row, new_col, new_data);
 
         std::map<Index_t, std::set<Index_t>> dict;
         for (auto&& [k, v] : equivalence_class_edges) {
@@ -670,41 +676,39 @@ private:
             }
         }
         else {
-            //dict = collapse_identical_elements(col_, row_);
-                    //dict = collapse_identical_elements(row_, col_)
             auto rx = row_.template mutable_unchecked<1>();
             auto ry = col_.template mutable_unchecked<1>();
             size_t n_x = row_.shape(0);
             size_t n_y = col_.shape(0);
 
-        //sort the raw array into a dict, where key is the element of array x
-        // and value is the element of array y
-        std::map<Index_t, std::set<Index_t>> dict;
-        for (size_t i = 0; i < n_x; ++i) {
-            auto key = rx(i);
-            if (dict.find(key) == dict.end()) {
+            //sort the raw array into a dict, where key is the element of array x
+            // and value is the element of array y
+            std::map<Index_t, std::set<Index_t>> dict;
+            for (size_t i = 0; i < n_x; ++i) {
+                auto key = rx(i);
+                if (dict.find(key) == dict.end()) {
                 //if no such key exists, we create a set and insert as the value
-                std::set<Index_t> s;
-                s.insert(ry(i));
-                dict[key] = s;
+                    std::set<Index_t> s;
+                    s.insert(ry(i));
+                    dict[key] = s;
+                }
+                else
+                    dict[key].insert(ry(i));
             }
-            else
-                dict[key].insert(ry(i));
-        }
-        //based on [key, value] pairs of dict, combine its keys if they have the same value.
-        //The combined keys will be stored in a new set as the value of equal_class.
-        //Whereas the value of dict becomes the key of equal_class.
+            //based on [key, value] pairs of dict, combine its keys if they have the same value.
+            //The combined keys will be stored in a new set as the value of equal_class.
+            //Whereas the value of dict becomes the key of equal_class.
         
-        for (auto&& [k, v] : dict) {
-            auto key = v;
-            if (equal_class.find(key) == equal_class.end()) {
-                std::set<Index_t> s;
-                s.insert(k);
-                equal_class[key] = s;
+            for (auto&& [k, v] : dict) {
+                auto key = v;
+                if (equal_class.find(key) == equal_class.end()) {
+                    std::set<Index_t> s;
+                    s.insert(k);
+                    equal_class[key] = s;
+                }
+                else 
+                    equal_class[key].insert(k);
             }
-            else 
-                equal_class[key].insert(k);
-        }
         }
         nw::graph::edge_list<nw::graph::directed, Attributes...> g(0);
         g.open_for_push_back();
