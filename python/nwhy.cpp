@@ -54,6 +54,15 @@ PYBIND11_MODULE(nwhy, m) {
         return new NWHypergraph<Index_t, Data_t>(x, y, data, collapse);
     }),
     py::arg("x"), py::arg("y"), py::arg("data"), py::arg("collapse") = false)
+    .def("collapse_edges", &NWHypergraph<Index_t, Data_t>::collapse_edges, 
+    "A function to collapse the edges into equivalence class of the hypergraph", 
+    py::arg("return_equivalence_class") = false)
+    .def("collapse_nodes", &NWHypergraph<Index_t, Data_t>::collapse_nodes, 
+    "A function to collapse the nodes into equivalence class of the hypergraph", 
+    py::arg("return_equivalence_class") = false)
+    .def("collapse_nodes_and_edges", &NWHypergraph<Index_t, Data_t>::collapse_nodes_and_edges, 
+    "A function to collapse the edges then, collapse nodes into equivalence class of the hypergraph", 
+    py::arg("return_equivalence_class") = false)
     //stats for hypergraph
     .def("edge_size_dist", &NWHypergraph<Index_t, Data_t>::edge_size_dist,
     "A function to get the edge size distribution of the hypergraph")

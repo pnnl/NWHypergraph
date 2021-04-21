@@ -62,60 +62,129 @@ public:
     NWHypergraph() {}
     NWHypergraph(py::array_t<Index_t, py::array::c_style | py::array::forcecast> &x, 
     py::array_t<Index_t, py::array::c_style | py::array::forcecast> &y) : row_(x), col_(y) {
-        nw::graph::edge_list<nw::graph::directed, Attributes...> g(0);
-        g.open_for_push_back();
-        //sanitize check
-        auto rx = x.template mutable_unchecked<1>();
-        auto ry = y.template mutable_unchecked<1>();
-        //rx(0) = 1;
-        size_t n_x = x.shape(0);
-        size_t n_y = y.shape(0);
-        for (size_t i = 0; i < n_x; ++i) {
-            g.push_back({rx(i), ry(i), 0});
-        }
-        g.close_for_push_back(false);
-        edges_ = nw::graph::adjacency<0, Attributes...>(g);
+        auto&& el = populate_weighted_edge_list(x, y);
+        
+        edges_ = nw::graph::adjacency<0, Attributes...>(el);
         max_edge_ = edges_.size();
-        nodes_ = nw::graph::adjacency<1, Attributes...>(g);
+        nodes_ = nw::graph::adjacency<1, Attributes...>(el);
         max_node_ = nodes_.size();
     }
     NWHypergraph(py::array_t<Index_t, py::array::c_style | py::array::forcecast> &x, 
     py::array_t<Index_t, py::array::c_style | py::array::forcecast> &y,
     py::array_t<Attributes..., py::array::c_style | py::array::forcecast> &data,
-    bool collapse = false) : row_(x), col_(y), data_(data) {
-        nw::graph::edge_list<nw::graph::directed, Attributes...> g(0);
-        g.open_for_push_back();
-        //sanitize check
-        auto rx = x.template mutable_unchecked<1>();
-        auto ry = y.template mutable_unchecked<1>();
-        auto rdata = data.template mutable_unchecked<1>();
-        //rx(0) = 1;
-        size_t n_x = x.shape(0);
-        size_t n_y = y.shape(0);
-        size_t n_data = data.shape(0);
-        if (0 == n_data) {
-            //when there is no weight passed in, but request a weighted hypergraph
-            //we fake a weight
-            for (size_t i = 0; i < n_x; ++i) 
-                g.push_back({rx(i), ry(i), 0});
+    bool collapse,
+    bool remove_duplicates = false) : row_(x), col_(y), data_(data) {
+        if (collapse) {
+            auto&& [el, dict] = collapse_array_x();
+            edges_ = nw::graph::adjacency<0, Attributes...>(el);
+            max_edge_ = edges_.size();
+            nodes_ = nw::graph::adjacency<1, Attributes...>(el);
+            max_node_ = nodes_.size();
         }
         else {
-            for (size_t i = 0; i < n_x; ++i) 
-                g.push_back({rx(i), ry(i), rdata(i)});
+            auto&& el = populate_weighted_edge_list(x, y, data);
+
+            if (remove_duplicates) {
+                //Remove duplicate edges
+                std::cout << "before collapse: " << el.size() << " edges" << std::endl;
+                el.template lexical_sort_by<0>();
+                el.uniq();
+                std::cout << "after collapse: " << el.size() << " edges" << std::endl;
+            }
+            edges_ = nw::graph::adjacency<0, Attributes...>(el);
+            max_edge_ = edges_.size();
+            nodes_ = nw::graph::adjacency<1, Attributes...>(el);
+            max_node_ = nodes_.size();
         }
-        g.close_for_push_back(false);
-        if(collapse) {
-            //Remove duplicate edges
-            std::cout << "before collapse: " << g.size() << " edges" << std::endl;
-            g.template lexical_sort_by<0>();
-            g.uniq();
-            std::cout << "after collapse: " << g.size() << " edges" << std::endl;
-        }
-        edges_ = nw::graph::adjacency<0, Attributes...>(g);
-        max_edge_ = edges_.size();
-        nodes_ = nw::graph::adjacency<1, Attributes...>(g);
-        max_node_ = nodes_.size();
     }
+    /*
+    NWHypergraph(py::array_t<Index_t, py::array::c_style | py::array::forcecast> &x, 
+    py::array_t<Index_t, py::array::c_style | py::array::forcecast> &y,
+    py::array_t<Attributes..., py::array::c_style | py::array::forcecast> &data,
+    bool collapse,
+    bool remove_duplicates = false) : row_(x), col_(y), data_(data) {
+        auto&& el = populate_weighted_edge_list(x, y, data);
+        if(remove_duplicates) {
+            //Remove duplicate edges
+            std::cout << "before collapse: " << el.size() << " edges" << std::endl;
+            el.template lexical_sort_by<0>();
+            el.uniq();
+            std::cout << "after collapse: " << el.size() << " edges" << std::endl;
+        }
+        edges_ = nw::graph::adjacency<0, Attributes...>(el);
+        max_edge_ = edges_.size();
+        nodes_ = nw::graph::adjacency<1, Attributes...>(el);
+        max_node_ = nodes_.size();
+        std::vector<std::set<Index_t>> neighborhoods(max_edge_);
+        for (Index_t i = 0; i < max_edge_; ++i) {
+            std::set<Index_t> set_i;
+            for (auto& i_ngh : edges_[i]) {
+                set_i.add(std::get<0>(*i_ngh));
+            }
+            neighborhoods[i] = set_i;
+        }
+        std::unordered_map<std::set<Index_t>, std::set<Index_t>> equal_class;
+        for (Index_t i = 0; i < max_edge_; ++i) {
+            for (Index_t j = i + 1; j < max_edge_; ++j) {   
+                if (neighborhoods[i].size() == neighborhoods[j].size()) {
+                    if (neighborhoods[i] == neighborhoods[j]) {
+                        //then edge i and j are equal class
+                        if (equal_class.find(neighborhoods[i]) != equal_class.end()) {
+                            equal_class[neighborhoods[i]].add(i);
+                            equal_class[neighborhoods[i]].add(j);
+                        }
+                        else {
+                            std::set<Index_t> s;
+                            s.add(i);
+                            s.add(j);
+                            equal_class[neighborhoods[i]] = s;
+                        }
+                    }
+                }          
+            }
+        }
+    }
+*/
+    decltype(auto) collapse_edges(bool return_equivalence_class = false) {
+        auto &&[el, equivalence_class_dict] = collapse_array_x();
+        edges_ = nw::graph::adjacency<0, Attributes...>(el);
+        max_edge_ = edges_.size();
+        nodes_ = nw::graph::adjacency<1, Attributes...>(el);
+        max_node_ = nodes_.size();
+
+        if (return_equivalence_class)
+            return std::tuple{*this, equivalence_class_dict};
+        else
+            return std::tuple{*this, equivalence_class_dict};
+    }
+
+    decltype(auto) collapse_nodes(bool return_equivalence_class = false) {
+        bool transpose = true;
+        auto &&[el, equivalence_class_dict] = collapse_array_x(transpose);
+        edges_ = nw::graph::adjacency<0, Attributes...>(el);
+        max_edge_ = edges_.size();
+        nodes_ = nw::graph::adjacency<1, Attributes...>(el);
+        max_node_ = nodes_.size();
+
+        if (return_equivalence_class)
+            return std::tuple{*this, equivalence_class_dict};
+        else
+            return std::tuple{*this, equivalence_class_dict};   
+    }
+    
+    decltype(auto) collapse_nodes_and_edges(bool return_equivalence_class = false) {
+        auto &&[el, equivalence_class_dict] = collapse_array_x();
+        edges_ = nw::graph::adjacency<0, Attributes...>(el);
+        max_edge_ = edges_.size();
+        nodes_ = nw::graph::adjacency<1, Attributes...>(el);
+        max_node_ = nodes_.size();
+
+        if (return_equivalence_class)
+            return std::tuple{*this, equivalence_class_dict};
+        else
+            return std::tuple{*this, equivalence_class_dict};   
+    }
+
     std::vector<std::map<size_t, size_t>> get_edge_neighbor_counts() const { return edge_neighbor_count_; }
     std::vector<std::map<size_t, size_t>> get_node_neighbor_counts() const { return node_neighbor_count_; }
 
@@ -440,6 +509,162 @@ protected:
             node_neighbor_count_ = to_two_graph_count_neighbors_cyclic(nodes_, edges_);
         }
         return populate_linegraph_from_neighbor_map<nw::graph::undirected, decltype(nodes_), Attributes...>(nodes_, node_neighbor_count_, s, false);
+    }
+private:
+    /*
+    * Populate unweighted edge list with numpy arrays.
+    * */
+    auto populate_unweighted_edge_list(py::array_t<Index_t, py::array::c_style | py::array::forcecast> &x, 
+    py::array_t<Index_t, py::array::c_style | py::array::forcecast> &y) {
+        nw::graph::edge_list<nw::graph::directed> g(0);
+        g.open_for_push_back();
+        //sanitize check
+        auto rx = x.template mutable_unchecked<1>();
+        auto ry = y.template mutable_unchecked<1>();
+        size_t n_x = x.shape(0);
+        size_t n_y = y.shape(0);
+        for (size_t i = 0; i < n_x; ++i) 
+            g.push_back({rx(i), ry(i)});
+
+        g.close_for_push_back(false);
+        return g;
+    }
+    /*
+    * Populate weighted edge list with numpy arrays and fake weight 0.
+    * */
+    auto populate_weighted_edge_list(py::array_t<Index_t, py::array::c_style | py::array::forcecast> &x, 
+    py::array_t<Index_t, py::array::c_style | py::array::forcecast> &y) {
+        nw::graph::edge_list<nw::graph::directed, Attributes...> g(0);
+        g.open_for_push_back();
+        //sanitize check
+        auto rx = x.template mutable_unchecked<1>();
+        auto ry = y.template mutable_unchecked<1>();
+        size_t n_x = x.shape(0);
+        size_t n_y = y.shape(0);
+        for (size_t i = 0; i < n_x; ++i) 
+            g.push_back({rx(i), ry(i), 0});
+
+        g.close_for_push_back(false);
+        return g;
+    }
+
+    /*
+    * Populate weighted edge list with numpy arrays.
+    * */
+    auto populate_weighted_edge_list(py::array_t<Index_t, py::array::c_style | py::array::forcecast> &x, 
+    py::array_t<Index_t, py::array::c_style | py::array::forcecast> &y,
+    py::array_t<Attributes..., py::array::c_style | py::array::forcecast> &data) {
+        nw::graph::edge_list<nw::graph::directed, Attributes...> g(0);
+        g.open_for_push_back();
+        //sanitize check
+        auto rx = x.template mutable_unchecked<1>();
+        auto ry = y.template mutable_unchecked<1>();
+        auto rdata = data.template mutable_unchecked<1>();
+        size_t n_x = x.shape(0);
+        size_t n_y = y.shape(0);
+        size_t n_data = data.shape(0);
+        if (0 == n_data) {
+            //when there is no weight passed in, but request a weighted hypergraph
+            //we fake a weight
+            for (size_t i = 0; i < n_x; ++i) 
+                g.push_back({rx(i), ry(i), 0});
+        }
+        else {
+            for (size_t i = 0; i < n_x; ++i) 
+                g.push_back({rx(i), ry(i), rdata(i)});
+        }
+        g.close_for_push_back(false);
+        return g;
+    }
+
+
+    auto collapse_array_x(bool transpose = false) {
+        std::map<std::set<Index_t>, std::set<Index_t>> equal_class;
+        if (transpose) {
+            //dict = collapse_identical_elements(row_, col_)
+            auto rx = col_.template mutable_unchecked<1>();
+            auto ry = row_.template mutable_unchecked<1>();
+            size_t n_x = col_.shape(0);
+            size_t n_y = row_.shape(0);
+
+        //sort the raw array into a dict, where key is the element of array x
+        // and value is the element of array y
+        std::map<Index_t, std::set<Index_t>> dict;
+        for (size_t i = 0; i < n_x; ++i) {
+            auto key = rx(i);
+            if (dict.find(key) == dict.end()) {
+                //if no such key exists, we create a set and insert as the value
+                std::set<Index_t> s;
+                s.insert(ry(i));
+                dict[key] = s;
+            }
+            else
+                dict[key].insert(ry(i));
+        }
+        //based on [key, value] pairs of dict, combine its keys if they have the same value.
+        //The combined keys will be stored in a new set as the value of equal_class.
+        //Whereas the value of dict becomes the key of equal_class.
+        
+        for (auto&& [k, v] : dict) {
+            auto key = v;
+            if (equal_class.find(key) == equal_class.end()) {
+                std::set<Index_t> s;
+                s.insert(k);
+                equal_class[key] = s;
+            }
+            else 
+                equal_class[key].insert(k);
+        }
+        }
+        else {
+            //dict = collapse_identical_elements(col_, row_);
+                    //dict = collapse_identical_elements(row_, col_)
+            auto rx = row_.template mutable_unchecked<1>();
+            auto ry = col_.template mutable_unchecked<1>();
+            size_t n_x = row_.shape(0);
+            size_t n_y = col_.shape(0);
+
+        //sort the raw array into a dict, where key is the element of array x
+        // and value is the element of array y
+        std::map<Index_t, std::set<Index_t>> dict;
+        for (size_t i = 0; i < n_x; ++i) {
+            auto key = rx(i);
+            if (dict.find(key) == dict.end()) {
+                //if no such key exists, we create a set and insert as the value
+                std::set<Index_t> s;
+                s.insert(ry(i));
+                dict[key] = s;
+            }
+            else
+                dict[key].insert(ry(i));
+        }
+        //based on [key, value] pairs of dict, combine its keys if they have the same value.
+        //The combined keys will be stored in a new set as the value of equal_class.
+        //Whereas the value of dict becomes the key of equal_class.
+        
+        for (auto&& [k, v] : dict) {
+            auto key = v;
+            if (equal_class.find(key) == equal_class.end()) {
+                std::set<Index_t> s;
+                s.insert(k);
+                equal_class[key] = s;
+            }
+            else 
+                equal_class[key].insert(k);
+        }
+        }
+        nw::graph::edge_list<nw::graph::directed, Attributes...> g(0);
+        g.open_for_push_back();
+        for (auto&& [nodes, edges] : equal_class) {
+            //because set is stored in sorted order.
+            //So the minimum element of the set will reside in the first element.
+            //Therefore, this first can be fetched with the help of set.begin() method.
+            auto new_edge = *edges.begin();
+            for (auto&& neighbor : nodes)
+                g.push_back({new_edge, neighbor, 0});
+        }
+        g.close_for_push_back(false);
+        return std::tuple{g, equal_class};
     }
 }; //class NWhypergraph
 
