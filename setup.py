@@ -72,7 +72,7 @@ with open(path.join(this_directory, 'NWhyUserGuide.rst'), encoding='utf-8') as f
 
 setup(
     name='nwhy',
-    version='0.0.13',
+    version='0.0.14',
     author='Xu Tony Liu',
     author_email='xu.liu2@wsu.edu',
     description='NWhy project using pybind11 and CMake',

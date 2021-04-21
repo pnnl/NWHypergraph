@@ -97,92 +97,146 @@ public:
             max_node_ = nodes_.size();
         }
     }
-    /*
+    
     NWHypergraph(py::array_t<Index_t, py::array::c_style | py::array::forcecast> &x, 
     py::array_t<Index_t, py::array::c_style | py::array::forcecast> &y,
-    py::array_t<Attributes..., py::array::c_style | py::array::forcecast> &data,
-    bool collapse,
-    bool remove_duplicates = false) : row_(x), col_(y), data_(data) {
+    py::array_t<Attributes..., py::array::c_style | py::array::forcecast> &data) 
+    : row_(x), col_(y), data_(data) {
         auto&& el = populate_weighted_edge_list(x, y, data);
-        if(remove_duplicates) {
-            //Remove duplicate edges
-            std::cout << "before collapse: " << el.size() << " edges" << std::endl;
-            el.template lexical_sort_by<0>();
-            el.uniq();
-            std::cout << "after collapse: " << el.size() << " edges" << std::endl;
-        }
-        edges_ = nw::graph::adjacency<0, Attributes...>(el);
-        max_edge_ = edges_.size();
-        nodes_ = nw::graph::adjacency<1, Attributes...>(el);
-        max_node_ = nodes_.size();
-        std::vector<std::set<Index_t>> neighborhoods(max_edge_);
-        for (Index_t i = 0; i < max_edge_; ++i) {
-            std::set<Index_t> set_i;
-            for (auto& i_ngh : edges_[i]) {
-                set_i.add(std::get<0>(*i_ngh));
-            }
-            neighborhoods[i] = set_i;
-        }
-        std::unordered_map<std::set<Index_t>, std::set<Index_t>> equal_class;
-        for (Index_t i = 0; i < max_edge_; ++i) {
-            for (Index_t j = i + 1; j < max_edge_; ++j) {   
-                if (neighborhoods[i].size() == neighborhoods[j].size()) {
-                    if (neighborhoods[i] == neighborhoods[j]) {
-                        //then edge i and j are equal class
-                        if (equal_class.find(neighborhoods[i]) != equal_class.end()) {
-                            equal_class[neighborhoods[i]].add(i);
-                            equal_class[neighborhoods[i]].add(j);
-                        }
-                        else {
-                            std::set<Index_t> s;
-                            s.add(i);
-                            s.add(j);
-                            equal_class[neighborhoods[i]] = s;
-                        }
-                    }
-                }          
-            }
-        }
-    }
-*/
-    decltype(auto) collapse_edges(bool return_equivalence_class = false) {
-        auto &&[el, equivalence_class_dict] = collapse_array_x();
-        edges_ = nw::graph::adjacency<0, Attributes...>(el);
-        max_edge_ = edges_.size();
-        nodes_ = nw::graph::adjacency<1, Attributes...>(el);
-        max_node_ = nodes_.size();
 
+        edges_ = nw::graph::adjacency<0, Attributes...>(el);
+        max_edge_ = edges_.size();
+        nodes_ = nw::graph::adjacency<1, Attributes...>(el);
+        max_node_ = nodes_.size();
+    }
+
+    decltype(auto) collapse_edges(bool return_equivalence_class = false) {
+        //collapse to get new edge list and equal class
+        auto &&[el, equivalence_class_dict] = collapse_array_x();
+
+        //create new row, col and ata from the new edge list
+        std::vector<Index_t> new_x(el.size());
+        std::vector<Index_t> new_y(el.size());
+        std::vector<Attributes...> new_w(el.size());
+        size_t i = 0;
+        for (auto&& [u, v, w] : el) {
+            new_x[i] = u;
+            new_y[i] = v;
+            new_w[i] = w;
+            ++i;
+        }
+        auto new_col = as_pyarray<std::vector<Index_t>>(std::move(new_x));
+        auto new_row = as_pyarray<std::vector<Index_t>>(std::move(new_y));
+        auto new_data = as_pyarray<std::vector<Attributes...>>(std::move(new_w));
+        //create a new hypergraph from the new rol, col and data
+        NWHypergraph<Index_t, Attributes...> newh(new_col, new_row, new_data);
+
+        //create a mapping from the new id to old id from the equal class
+        std::map<Index_t, std::set<Index_t>> dict;
+        for (auto&& [k, v] : equivalence_class_dict) {
+            auto rep = *v.begin();
+            dict[rep] = v;
+        }
+        
         if (return_equivalence_class)
-            return std::tuple{*this, equivalence_class_dict};
+            return std::tuple{newh, dict};
         else
-            return std::tuple{*this, equivalence_class_dict};
+            return std::tuple{newh, dict};
     }
 
     decltype(auto) collapse_nodes(bool return_equivalence_class = false) {
         bool transpose = true;
         auto &&[el, equivalence_class_dict] = collapse_array_x(transpose);
-        edges_ = nw::graph::adjacency<0, Attributes...>(el);
-        max_edge_ = edges_.size();
-        nodes_ = nw::graph::adjacency<1, Attributes...>(el);
-        max_node_ = nodes_.size();
+
+        //create new row, col and ata from the new edge list
+        std::vector<Index_t> new_x(el.size());
+        std::vector<Index_t> new_y(el.size());
+        std::vector<Attributes...> new_w(el.size());
+        size_t i = 0;
+        for (auto&& [u, v, w] : el) {
+            new_x[i] = u;
+            new_y[i] = v;
+            new_w[i] = w;
+            ++i;
+        }
+        auto new_col = as_pyarray<std::vector<Index_t>>(std::move(new_x));
+        auto new_row = as_pyarray<std::vector<Index_t>>(std::move(new_y));
+        auto new_data = as_pyarray<std::vector<Attributes...>>(std::move(new_w));
+        //create a new hypergraph from the new rol, col and data
+        NWHypergraph<Index_t, Attributes...> newh(new_col, new_row, new_data);
+
+        //create a mapping from the new id to old id from the equal class
+        std::map<Index_t, std::set<Index_t>> dict;
+        for (auto&& [k, v] : equivalence_class_dict) {
+            auto rep = *v.begin();
+            dict[rep] = v;
+        }
 
         if (return_equivalence_class)
-            return std::tuple{*this, equivalence_class_dict};
+            return std::tuple{newh, dict};
         else
-            return std::tuple{*this, equivalence_class_dict};   
+            return std::tuple{newh, dict}; 
     }
-    
+    template <typename Sequence>
+    inline py::array_t<typename Sequence::value_type, py::array::c_style | py::array::forcecast> as_pyarray(Sequence &&seq) {
+        auto size = seq.size();
+        auto data = seq.data();
+        std::unique_ptr<Sequence> seq_ptr = std::make_unique<Sequence>(std::move(seq));
+        auto capsule = py::capsule(seq_ptr.get(), [](void *p) { std::unique_ptr<Sequence>(reinterpret_cast<Sequence *>(p)); });
+        seq_ptr.release();
+        return py::array(size, data, capsule);
+    }
     decltype(auto) collapse_nodes_and_edges(bool return_equivalence_class = false) {
-        auto &&[el, equivalence_class_dict] = collapse_array_x();
-        edges_ = nw::graph::adjacency<0, Attributes...>(el);
-        max_edge_ = edges_.size();
-        nodes_ = nw::graph::adjacency<1, Attributes...>(el);
-        max_node_ = nodes_.size();
+        //collapse nodes first
+        bool transpose = true;
+        std::cout << "before collapse nodes: " << col_.size() << std::endl;
+        auto &&[new_el, equivalence_class_nodes] = collapse_array_x(transpose);
+        std::cout << "after collapse nodes: " << new_el.size() << std::endl;
+        {
+            std::vector<Index_t> new_x(new_el.size());
+            std::vector<Index_t> new_y(new_el.size());
+            std::vector<Attributes...> new_data(new_el.size());
+            size_t i = 0;
+            for (auto &&[u, v, w] : new_el) {
+                new_x[i] = u;
+                new_y[i] = v;
+                new_data[i] = w;
+                ++i;
+            }
+            col_ = as_pyarray<std::vector<Index_t>>(std::move(new_x));
+            row_ = as_pyarray<std::vector<Index_t>>(std::move(new_y));
+            data_ = as_pyarray<std::vector<Attributes...>>(std::move(new_data));
+        }
+        //then collapse edges
+        auto &&[el, equivalence_class_edges] = collapse_array_x();
+        std::cout << "after collapse edges: " << el.size() << std::endl;
+        //create new row, col and ata from the new edge list
+        std::vector<Index_t> new_x(el.size());
+        std::vector<Index_t> new_y(el.size());
+        std::vector<Attributes...> new_w(el.size());
+        size_t i = 0;
+        for (auto&& [u, v, w] : el) {
+            new_x[i] = u;
+            new_y[i] = v;
+            new_w[i] = w;
+            ++i;
+        }
+        auto new_col = as_pyarray<std::vector<Index_t>>(std::move(new_x));
+        auto new_row = as_pyarray<std::vector<Index_t>>(std::move(new_y));
+        auto new_data = as_pyarray<std::vector<Attributes...>>(std::move(new_w));
+        //create a new hypergraph from the new rol, col and data
+        NWHypergraph<Index_t, Attributes...> newh(new_col, new_row, new_data);
+
+        std::map<Index_t, std::set<Index_t>> dict;
+        for (auto&& [k, v] : equivalence_class_edges) {
+            auto rep = *v.begin();
+            dict[rep] = v;
+        }
 
         if (return_equivalence_class)
-            return std::tuple{*this, equivalence_class_dict};
+            return std::tuple{newh, dict};
         else
-            return std::tuple{*this, equivalence_class_dict};   
+            return std::tuple{newh, dict};
     }
 
     std::vector<std::map<size_t, size_t>> get_edge_neighbor_counts() const { return edge_neighbor_count_; }
@@ -581,40 +635,39 @@ private:
     auto collapse_array_x(bool transpose = false) {
         std::map<std::set<Index_t>, std::set<Index_t>> equal_class;
         if (transpose) {
-            //dict = collapse_identical_elements(row_, col_)
             auto rx = col_.template mutable_unchecked<1>();
             auto ry = row_.template mutable_unchecked<1>();
             size_t n_x = col_.shape(0);
             size_t n_y = row_.shape(0);
 
-        //sort the raw array into a dict, where key is the element of array x
-        // and value is the element of array y
-        std::map<Index_t, std::set<Index_t>> dict;
-        for (size_t i = 0; i < n_x; ++i) {
-            auto key = rx(i);
-            if (dict.find(key) == dict.end()) {
-                //if no such key exists, we create a set and insert as the value
-                std::set<Index_t> s;
-                s.insert(ry(i));
-                dict[key] = s;
+            //sort the raw array into an adjacency, where key is the element u of array x
+            // and value is u's neighbors (the element of array y)
+            std::map<Index_t, std::set<Index_t>> adjacency;
+            for (size_t i = 0; i < n_x; ++i) {
+                auto key = rx(i);
+                if (adjacency.find(key) == adjacency.end()) {
+                    //if no such key exists, we create a set and insert as the value
+                    std::set<Index_t> s;
+                    s.insert(ry(i));
+                    adjacency[key] = s;
+                }
+                else
+                    adjacency[key].insert(ry(i));
             }
-            else
-                dict[key].insert(ry(i));
-        }
-        //based on [key, value] pairs of dict, combine its keys if they have the same value.
-        //The combined keys will be stored in a new set as the value of equal_class.
-        //Whereas the value of dict becomes the key of equal_class.
+            //based on [key, value] pairs of adjacency, combine its keys if they have the same value.
+            //The combined keys will be stored in a new set as the value of equal_class.
+            //Whereas the value of adjacency becomes the key of equal_class.
         
-        for (auto&& [k, v] : dict) {
-            auto key = v;
-            if (equal_class.find(key) == equal_class.end()) {
-                std::set<Index_t> s;
-                s.insert(k);
-                equal_class[key] = s;
+            for (auto&& [k, v] : adjacency) {
+                auto key = v;
+                if (equal_class.find(key) == equal_class.end()) {
+                    std::set<Index_t> s;
+                    s.insert(k);
+                    equal_class[key] = s;
+                }
+                else 
+                    equal_class[key].insert(k);
             }
-            else 
-                equal_class[key].insert(k);
-        }
         }
         else {
             //dict = collapse_identical_elements(col_, row_);
