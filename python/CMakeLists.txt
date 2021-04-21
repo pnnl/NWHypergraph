@@ -1,15 +1,7 @@
 # -----------------------------------------------------------------------------
-# The date library from MIT provides C++20 std date functionality in C++17
-# -----------------------------------------------------------------------------
-find_package(Filesystem REQUIRED Final Experimental)
-#message(STATUS ${CXX_FILESYSTEM_IS_EXPERIMENTAL})
-add_definitions(-Wno-deprecated -Wno-deprecated-declarations)
-
-# -----------------------------------------------------------------------------
 # Create an interface library for the benchmarks to depend on.
 # -----------------------------------------------------------------------------
 add_library(dep INTERFACE)
-target_sources(dep INTERFACE)
 target_include_directories(dep INTERFACE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(dep INTERFACE NW_HYPERGRAPH)
 

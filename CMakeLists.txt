@@ -74,11 +74,6 @@ option(NW_HYPERGRAPH_BUILD_TOOLS "Determines whether to build tools." OFF)
 
 add_subdirectory(include)
 
-include(Date)
-include(Docopt)
-include(RangeV3)
-
-
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../NWut/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../NWgr/include)
 
