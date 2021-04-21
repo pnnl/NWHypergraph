@@ -12,6 +12,11 @@
 # make VERBOSE=1
 # cmake --trace
 # cmake .. -DCMAKE_CXX_COMPILER=icpx
+# cmake .. -DCMAKE_BUILD_TYPE=Release (or Debug)
+# cmake .. -DNW_HYPERGRAPH_BUILD_BENCH=ON (or OFF)
+# cmake .. -NW_HYPERGRAPH_BUILD_PYBIND=OFF (or ON)
+# cmake .. -NW_HYPERGRAPH_USE_TBBMALLOC=ON (or OFF)
+# cmake .. -NW_HYPERGRAPH_BUILD_TOOLS=OFF (or ON)
 #
 ##########################################################################
 cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
@@ -80,6 +85,9 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../NWgr/include)
 
 if (NW_HYPERGRAPH_BUILD_BENCH)
   add_subdirectory(bench)
+  include(Date)
+  include(Docopt)
+  include(RangeV3)
 endif()
 
 if (NW_HYPERGRAPH_BUILD_PYBIND)
@@ -88,4 +96,7 @@ endif()
 
 if (NW_HYPERGRAPH_BUILD_TOOLS)
   add_subdirectory(tools)
+  include(Date)
+  include(Docopt)
+  include(RangeV3)
 endif()
