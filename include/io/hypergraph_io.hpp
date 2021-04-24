@@ -23,7 +23,10 @@ namespace hypergraph {
 std::string AdjHypergraphHeader = "AdjacencyHypergraph";
 std::string WghAdjHypergraphHeader = "WeightedAdjacencyHypergraph";
 
-//fill biadjacency
+/* 
+* fill biadjacency.
+* return adjacency<0> and adjacency<1>.
+*/
 auto adj_hypergraph_fill(std::istream& inputStream) {
   //100, 972 100 972
   size_t n0, m0, n1, m1;
@@ -58,10 +61,10 @@ auto adj_hypergraph_fill(std::istream& inputStream) {
   v1[n1] = m1;
 
   //in adj_hypergraph, <0> is hypernodes, <1> is hyperedges
-  adjacency<1> N(n0, m0);
+  nw::graph::adjacency<1> N(n0, m0);
   N.move(std::move(v0), std::move(e0));
   
-  adjacency<0> E(n1, m1);
+  nw::graph::adjacency<0> E(n1, m1);
   E.move(std::move(v1), std::move(e1));
   return std::tuple(E, N);
 }
