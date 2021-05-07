@@ -12,6 +12,7 @@
 #include <util/timer.hpp>
 #include <util/AtomicBitVector.hpp>
 #include <util/atomic.hpp>
+#include <tbb/concurrent_vector.h>
 namespace nw {
 namespace hypergraph {
 

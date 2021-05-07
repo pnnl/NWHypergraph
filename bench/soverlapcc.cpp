@@ -13,9 +13,7 @@
 #include <edge_list.hpp>
 #include "Log.hpp"
 #include "common.hpp"
-#include "algorithms/slinegraph_naive.hpp"
-#include "algorithms/slinegraph_efficient.hpp"
-#include "algorithms/slinegraph_map.hpp"
+#include "s_overlap.hpp"
 #include "containers/edge_list_hy.hpp"
 #include "containers/compressed_hy.hpp"
 #include "algorithms/s_connected_components.hpp"
@@ -28,7 +26,7 @@ static constexpr const char USAGE[] =
     R"(scc.exe: s-overlap connected components benchmark driver.
   Usage:
       scc.exe (-h | --help)
-      scc.exe [-f FILE...] [--version ID...] [--feature ID...] [--loader-version ID] [-n NUM] [-B NUM] [-s NUM...] [--relabel NUM] [--direction DIR] [-dvV] [--log FILE] [--log-header] [THREADS]...
+      scc.exe [-f FILE...] [--version ID...] [--feature ID...] [--loader-version ID] [-n NUM] [-B NUM] [-s NUM...] [--relabel NUM] [--direction DIR] [--adjoin NUM] [-dvV] [--log FILE] [--log-header] [THREADS]...
 
   Options:
       -h, --help            show this screen
@@ -39,8 +37,9 @@ static constexpr const char USAGE[] =
       -n NUM                number of trials [default: 1]
       -B NUM                number of bins [default: 32]
       -s NUM                s value of soverlap [default: 1]
-      --relabel NUM         relabel the graph - 0(hyperedge)/1(hypernode) [default: -1]
-      --direction DIR       graph relabeling direction - ascending/descending [default: descending]
+      --relabel NUM         relabel the hypergraph - 0(hyperedge)/1(hypernode) [default: -1]
+      --direction DIR       hypergraph relabeling direction - ascending/descending [default: ascending]
+      --adjoin NUM          adjoin hyperedge(0) with hypernode(1) [default: -1]
       --log FILE            log times to a file
       --log-header          add a header to the log file
       -d, --debug           run in debug mode
@@ -54,9 +53,10 @@ int main(int argc, char* argv[]) {
 
   bool verbose = args["--verbose"].asBool();
   bool debug   = args["--debug"].asBool();
-  long trials  = args["-n"].asLong() ?: 1;
-  long num_bins= args["-B"].asLong() ?: 32;
-  long loader_version = args["--loader-version"].asLong() ?: 0;
+  long trials  = args["-n"].asLong();
+  long num_bins= args["-B"].asLong();
+  long loader_version = args["--loader-version"].asLong();
+  long adjoin  = args["--adjoin"].asLong();
 
   std::vector ids     = parse_ids(args["--version"].asStringList());
   std::vector threads = parse_n_threads(args["THREADS"].asStringList());
@@ -115,82 +115,7 @@ int main(int argc, char* argv[]) {
     }
 
     for (auto&& s : s_values) {
-    auto twograph_reader = [&](adjacency<0>& edges, adjacency<1>& nodes, std::vector<nw::graph::index_t>& edgedegrees, 
-    size_t s = 1, int num_bins = 32) {
-      switch (loader_version) {
-      case 0:
-      {
-          nw::graph::edge_list<undirected> &&linegraph = to_two_graph_efficient_parallel_portal<undirected>(verbose, features, std::execution::par_unseq, hyperedges, hypernodes, edgedegrees, s, num_bins);
-          //where when an empty edge list is passed in, an adjacency still have two elements
-          if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
-          nw::graph::adjacency<0> s_adj(linegraph);
-          std::cout << "line graph edges = " << linegraph.size() << ", adjacency size = " << s_adj.size() << ", max= " << s_adj.max() << std::endl;
-          return s_adj;
-      }
-      case 1:
-      {
-          nw::graph::edge_list<undirected> &&linegraph = to_two_graph_efficient_parallel_cyclic_portal<undirected>(verbose, std::execution::par_unseq, hyperedges, hypernodes, edgedegrees, s, num_bins);
-          //where when an empty edge list is passed in, an adjacency still have two elements
-          if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
-          nw::graph::adjacency<0> s_adj(linegraph);
-          std::cout << "line graph edges = " << linegraph.size() << ", adjacency size = " << s_adj.size() << ", max= " << s_adj.max() << std::endl;
-          return s_adj;
-      }
-      case 2:
-      {
-          nw::graph::edge_list<undirected> &&linegraph = to_two_graph_naive_parallel_portal<undirected>(verbose, std::execution::par_unseq, hyperedges, hypernodes, s, num_bins);
-          //where when an empty edge list is passed in, an adjacency still have two elements
-          if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
-          nw::graph::adjacency<0> s_adj(linegraph);
-          std::cout << "line graph edges = " << linegraph.size() << ", adjacency size = " << s_adj.size() << ", max= " << s_adj.max() << std::endl;
-          return s_adj;
-      }
-      case 3:
-      {
-          nw::graph::edge_list<undirected> &&linegraph = to_two_graph_map_blocked_portal<undirected>(verbose, std::execution::par_unseq, hyperedges, hypernodes, edgedegrees, s, num_bins);
-          //where when an empty edge list is passed in, an adjacency still have two elements
-          if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
-          nw::graph::adjacency<0> s_adj(linegraph);
-          std::cout << "line graph edges = " << linegraph.size() << ", adjacency size = " << s_adj.size() << ", max= " << s_adj.max() << std::endl;
-          return s_adj;
-      }
-      case 4:
-      {
-          nw::graph::edge_list<undirected> &&linegraph = to_two_graph_map_cyclic_portal<undirected>(verbose, std::execution::par_unseq, hyperedges, hypernodes, edgedegrees, s, num_bins);
-          //where when an empty edge list is passed in, an adjacency still have two elements
-          if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
-          nw::graph::adjacency<0> s_adj(linegraph);
-          std::cout << "line graph edges = " << linegraph.size() << ", adjacency size = " << s_adj.size() << ", max= " << s_adj.max() << std::endl;
-          return s_adj;
-      }
-      case 5:
-      {
-          std::vector<std::map<size_t, size_t>> neighbor_count = to_two_graph_count_neighbors_blocked(hyperedges, hypernodes);
-          nw::graph::edge_list<undirected> &&linegraph = populate_linegraph_from_neighbor_map<undirected>(neighbor_count, s);
-          //where when an empty edge list is passed in, an adjacency still have two elements
-          if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
-          nw::graph::adjacency<0> s_adj(linegraph);
-          std::cout << "line graph edges = " << linegraph.size() << ", adjacency size = " << s_adj.size() << ", max= " << s_adj.max() << std::endl;
-          return s_adj;
-      } 
-      case 6:
-      {
-          std::vector<std::map<size_t, size_t>> neighbor_count = to_two_graph_count_neighbors_cyclic(hyperedges, hypernodes);
-          nw::graph::edge_list<undirected> &&linegraph = populate_linegraph_from_neighbor_map<undirected>(neighbor_count, s);
-          //where when an empty edge list is passed in, an adjacency still have two elements
-          if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
-          nw::graph::adjacency<0> s_adj(linegraph);
-          std::cout << "line graph edges = " << linegraph.size() << ", adjacency size = " << s_adj.size() << ", max= " << s_adj.max() << std::endl;
-          return s_adj;
-      }       
-      default:
-      {
-          std::cerr << "unknown soverlap computation loader" << std::endl;
-          return nw::graph::adjacency<0>(0);
-      }
-      }
-    };
-    auto&& s_adj = twograph_reader(hyperedges, hypernodes, hyperedge_degrees, s, num_bins);
+    auto&& s_adj = twograph_reader(loader_version, verbose, features, hyperedges, hypernodes, hyperedge_degrees, s, num_bins);
 
     if (debug) {
       hypernodes.stream_indices();
