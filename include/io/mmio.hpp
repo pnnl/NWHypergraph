@@ -12,7 +12,7 @@
 #include <util/timer.hpp>
 #include <mmio.hpp>
 
-void mm_fill_relabeling(std::istream& inputStream, nw::graph::edge_list<nw::graph::directed>& A, size_t nedges, size_t nnodes, 
+void mm_fill_adjoin(std::istream& inputStream, nw::graph::edge_list<nw::graph::directed>& A, size_t nedges, size_t nnodes, 
 size_t nNonzeros, bool file_symmetry, bool pattern) {
 
   A.reserve(nNonzeros);
@@ -37,7 +37,7 @@ size_t nNonzeros, bool file_symmetry, bool pattern) {
 }
 
 template<typename T>
-void mm_fill_relabeling(std::istream& inputStream, nw::graph::edge_list<nw::graph::directed, T>& A, size_t nedges, size_t nnodes, 
+void mm_fill_adjoin(std::istream& inputStream, nw::graph::edge_list<nw::graph::directed, T>& A, size_t nedges, size_t nnodes, 
 size_t nNonzeros, bool file_symmetry, bool pattern) {
 
   A.reserve((file_symmetry ? 2 : 1) * nNonzeros);
@@ -66,7 +66,7 @@ size_t nNonzeros, bool file_symmetry, bool pattern) {
   A.close_for_push_back();
 }
 
-void mm_fill_relabeling(std::istream& inputStream, nw::graph::edge_list<nw::graph::undirected>& A, size_t nedges, size_t nnodes, 
+void mm_fill_adjoin(std::istream& inputStream, nw::graph::edge_list<nw::graph::undirected>& A, size_t nedges, size_t nnodes, 
 size_t nNonzeros, bool file_symmetry, bool pattern) {
 
   A.reserve(nNonzeros);
@@ -117,7 +117,7 @@ size_t nNonzeros, bool file_symmetry, bool pattern) {
 
 //loader for mmio
 template<nw::graph::directedness sym, typename... Attributes>
-nw::graph::edge_list<sym, Attributes...> read_mm_relabeling(const std::string& filename, size_t& numRealEdges, size_t& numRealNodes) {
+nw::graph::edge_list<sym, Attributes...> read_mm_adjoin(const std::string& filename, size_t& numRealEdges, size_t& numRealNodes) {
   nw::util::life_timer _(__func__);
   std::ifstream inputStream(filename);
   std::string              string_input;
@@ -150,7 +150,7 @@ nw::graph::edge_list<sym, Attributes...> read_mm_relabeling(const std::string& f
   std::stringstream(string_input) >> numRealEdges >> numRealNodes >> nNonzeros;
 
   nw::graph::edge_list<sym, Attributes...> A(numRealEdges);
-  mm_fill_relabeling(inputStream, A, numRealEdges, numRealNodes, nNonzeros, file_symmetry, (header[3] == "pattern"));
+  mm_fill_adjoin(inputStream, A, numRealEdges, numRealNodes, nNonzeros, file_symmetry, (header[3] == "pattern"));
   A.set_origin(filename);
   
   return A;

@@ -24,10 +24,10 @@ using namespace nw::hypergraph;
 using namespace nw::graph;
 
 static constexpr const char USAGE[] =
-    R"(hyccrelabel.exe: nw::graph hypergraph connected components benchmark driver.
+    R"(adjoincc.exe: nw::graph hypergraph connected components benchmark driver.
   Usage:
-      hyccrelabel.exe (-h | --help)
-      hyccrelabel.exe [-f FILE...] [--version ID...] [-n NUM] [--succession STR] [--relabel] [--clean] [--direction DIR] [-dvV] [--log FILE] [--log-header] [THREADS]...
+      adjoincc.exe (-h | --help)
+      adjoincc.exe [-f FILE...] [--version ID...] [-n NUM] [--succession STR] [--relabel] [--clean] [--direction DIR] [-dvV] [--log FILE] [--log-header] [THREADS]...
 
   Options:
       -h, --help            show this screen
@@ -73,7 +73,7 @@ int main(int argc, char* argv[]) {
   for (auto&& file : files) {
     auto reader = [&](std::string file, bool verbose, size_t& nrealedges, size_t& nrealnodes) {
       //auto aos_a   = load_graph<directed>(file);
-      auto aos_a   = read_mm_relabeling<nw::graph::undirected>(file, nrealedges, nrealnodes);
+      auto aos_a   = read_mm_adjoin<nw::graph::undirected>(file, nrealedges, nrealnodes);
       if (0 == aos_a.size()) {
         return read_and_relabel_adj_hypergraph_pair(file, nrealedges, nrealnodes);
       }

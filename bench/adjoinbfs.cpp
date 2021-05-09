@@ -22,10 +22,10 @@ using namespace nw::hypergraph;
 using namespace nw::graph;
 
 static constexpr const char USAGE[] =
-    R"(hyperbfsrelabel.exe: nw::graph hypergraph breadth-first search benchmark driver.
+    R"(adjoin.exe: nw::graph hypergraph breadth-first search benchmark driver.
   Usage:
-      hyperbfsrelabel.exe (-h | --help)
-      hyperbfsrelabel.exe -f FILE... [-r NODE | -s FILE] [-a NUM] [-b NUM] [-B NUM] [-n NUM] [--seed NUM] [--version ID...] [--succession STR] [--relabel] [--clean] [--direction DIR]  [--log FILE] [--log-header] [-dvV] [THREADS]...
+      adjoin.exe (-h | --help)
+      adjoin.exe -f FILE... [-r NODE | -s FILE] [-a NUM] [-b NUM] [-B NUM] [-n NUM] [--seed NUM] [--version ID...] [--succession STR] [--relabel] [--clean] [--direction DIR]  [--log FILE] [--log-header] [-dvV] [THREADS]...
 
   Options:
       -h, --help            show this screen
@@ -294,7 +294,7 @@ int main(int argc, char* argv[]) {
   for (auto&& file : files) {
     auto reader = [&](std::string file, bool verbose, size_t& nrealedges, size_t& nrealnodes) {
       //auto aos_a   = load_graph<directed>(file);
-      auto aos_a   = read_mm_relabeling<nw::graph::directed>(file, nrealedges, nrealnodes);
+      auto aos_a = read_mm_adjoin<nw::graph::directed>(file, nrealedges, nrealnodes);
       if (0 == aos_a.size()) {
         return read_and_relabel_adj_hypergraph_pair(file, nrealedges, nrealnodes);
       }
