@@ -15,7 +15,7 @@
 #include <algorithms/bfs.hpp>
 #include <util/AtomicBitVector.hpp>
 #include <docopt.h>
-#include "algorithms/relabel_x.hpp"
+#include "algorithms/adjoin_x.hpp"
 
 using namespace nw::hypergraph::bench;
 using namespace nw::hypergraph;

@@ -16,7 +16,7 @@
 #include "Log.hpp"
 #include "common.hpp"
 #include "io/mmio.hpp"
-#include "algorithms/relabel_x.hpp"
+#include "algorithms/adjoin_x.hpp"
 
 
 using namespace nw::hypergraph::bench;
