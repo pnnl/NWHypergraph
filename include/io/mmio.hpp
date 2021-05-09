@@ -12,105 +12,105 @@
 #include <util/timer.hpp>
 #include <mmio.hpp>
 
-void mm_fill_adjoin(std::istream& inputStream, nw::graph::edge_list<nw::graph::directed>& A, size_t nedges, size_t nnodes, 
+template<class EdgeList>
+void mm_fill_adjoin(std::istream& inputStream, 
+EdgeList& A, 
+size_t nedges, size_t nnodes, 
 size_t nNonzeros, bool file_symmetry, bool pattern) {
-
   A.reserve(nNonzeros);
   A.open_for_push_back();
-
-  for (size_t i = 0; i < nNonzeros; ++i) {
-    size_t d0, d1;
-    double d2;
-
+  if (nedges > nnodes) {
     if (pattern) {
-      inputStream >> d0 >> d1;
-    } else {
-      inputStream >> d0 >> d1 >> d2;
+      for (size_t i = 0; i < nNonzeros; ++i) {
+        size_t d0, d1;
+        inputStream >> d0 >> d1;
+
+        A.push_back(d0, d1 + nedges);
+      }
     }
-    if (nedges > nnodes)
-      d1 += nedges;
-    else
-      d0 += nnodes;
-    A.push_back(d0, d1);
+    else {
+      for (size_t i = 0; i < nNonzeros; ++i) {
+        size_t d0, d1;
+        double d2;
+        inputStream >> d0 >> d1 >> d2;
+
+        A.push_back(d0, d1 + nedges);
+      }
+    }
+  }
+  else {
+    if (pattern) {
+      for (size_t i = 0; i < nNonzeros; ++i) {
+        size_t d0, d1;
+        inputStream >> d0 >> d1;
+
+        A.push_back(d0 + nnodes, d1);
+      }
+    }
+    else {
+      for (size_t i = 0; i < nNonzeros; ++i) {
+        size_t d0, d1;
+        double d2;
+        inputStream >> d0 >> d1 >> d2;
+
+        A.push_back(d0 + nnodes, d1);
+      }
+    }
   }
   A.close_for_push_back();
 }
 
-template<typename T>
-void mm_fill_adjoin(std::istream& inputStream, nw::graph::edge_list<nw::graph::directed, T>& A, size_t nedges, size_t nnodes, 
+template<typename EdgeList, typename T>
+void mm_fill_adjoin(std::istream& inputStream, 
+EdgeList& A, 
+size_t nedges, size_t nnodes, 
 size_t nNonzeros, bool file_symmetry, bool pattern) {
 
   A.reserve((file_symmetry ? 2 : 1) * nNonzeros);
   A.open_for_push_back();
-  for (size_t i = 0; i < nNonzeros; ++i) {
-    std::string buffer;
-    size_t      d0, d1;
-    T           v(1.0);
+  if (nedges > nnodes) {
+    for (size_t i = 0; i < nNonzeros; ++i) {
+      std::string buffer;
+      size_t      d0, d1;
+      T           v(1.0);
 
-    std::getline(inputStream, buffer);
-    if (pattern) {
-      std::stringstream(buffer) >> d0 >> d1;
-    } else {
-      std::stringstream(buffer) >> d0 >> d1 >> v;
-    }
-    if (nedges > nnodes)
+      std::getline(inputStream, buffer);
+      if (pattern) {
+        std::stringstream(buffer) >> d0 >> d1;
+      } else {
+        std::stringstream(buffer) >> d0 >> d1 >> v;
+      }
+
       d1 += nedges;
-    else
-      d0 += nnodes;
-    A.push_back(d0, d1, v);
 
-    if (file_symmetry && (d0 != d1)) {
-      A.push_back(d1, d0, v);
+      A.push_back(d0, d1, v);
+
+      if (file_symmetry && (d0 != d1)) {
+        A.push_back(d1, d0, v);
+      }
     }
   }
-  A.close_for_push_back();
-}
+  else {
+    for (size_t i = 0; i < nNonzeros; ++i) {
+      std::string buffer;
+      size_t      d0, d1;
+      T           v(1.0);
 
-void mm_fill_adjoin(std::istream& inputStream, nw::graph::edge_list<nw::graph::undirected>& A, size_t nedges, size_t nnodes, 
-size_t nNonzeros, bool file_symmetry, bool pattern) {
+      std::getline(inputStream, buffer);
+      if (pattern) {
+        std::stringstream(buffer) >> d0 >> d1;
+      } else {
+        std::stringstream(buffer) >> d0 >> d1 >> v;
+      }
 
-  A.reserve(nNonzeros);
-  A.open_for_push_back();
-
-  for (size_t i = 0; i < nNonzeros; ++i) {
-    size_t d0, d1;
-    double d2;
-
-    if (pattern) {
-      inputStream >> d0 >> d1;
-    } else {
-      inputStream >> d0 >> d1 >> d2;
-    }
-    if (nedges > nnodes)
-      d1 += nedges;
-    else
       d0 += nnodes;
-    A.push_back(d0, d1);
-  }
-  A.close_for_push_back();
-}
 
-template<typename T>
-void mm_fill_relabeling(std::istream& inputStream, nw::graph::edge_list<nw::graph::undirected, T>& A, size_t nedges, size_t nnodes, 
-size_t nNonzeros, bool file_symmetry, bool pattern) {
-  assert(file_symmetry);
-  A.reserve(nNonzeros);
-  A.open_for_push_back();
-  for (size_t i = 0; i < nNonzeros; ++i) {
-    std::string buffer;
-    size_t      d0, d1;
-    T           v(1.0);
-    std::getline(inputStream, buffer);
-    if (pattern) {
-      std::stringstream(buffer) >> d0 >> d1;
-    } else {
-      std::stringstream(buffer) >> d0 >> d1 >> v;
-    }
-    if (nedges > nnodes)
-      d1 += nedges;
-    else
-      d0 += nnodes;
-    A.push_back(d0, d1, v);
+      A.push_back(d0, d1, v);
+
+      if (file_symmetry && (d0 != d1)) {
+        A.push_back(d1, d0, v);
+      }
+    }    
   }
   A.close_for_push_back();
 }
