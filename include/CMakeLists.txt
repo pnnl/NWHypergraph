@@ -29,7 +29,7 @@ target_sources(NW_HYPERGRAPH
   io/mmio.hpp
   util/slinegraph_helper.hpp
   s_overlap.hpp
-  algorithms/relabel_x.hpp
+  algorithms/adjoin_x.hpp
   algorithms/hyper_connected_components.hpp
   algorithms/hyper_breadth_first_search.hpp
   algorithms/s_connected_components.hpp

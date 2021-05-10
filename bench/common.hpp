@@ -18,6 +18,8 @@
 #include <bitset>
 
 #include "io/hypergraph_io.hpp"
+#include "containers/compressed_hy.hpp"
+#include "containers/edge_list_hy.hpp"
 
 using namespace nw::graph;
 
@@ -132,6 +134,35 @@ load_adjacency(std::string file) {
   else {
     std::cerr << "Did not recognize graph input file " << file << std::endl;;
     exit(1);
+  }
+}
+
+auto graph_reader(std::string file, int idx, std::string direction) {
+  auto aos_a = load_graph<directed>(file);
+  if (0 == aos_a.size()) {
+    auto&& [hyperedges, hypernodes] = load_adjacency<>(file);
+    // Run relabeling. This operates directly on the incoming edglist.
+    if (-1 != idx) {
+      auto&& iperm = nw::hypergraph::relabel_by_degree(
+          hyperedges, hypernodes, idx, direction);
+    }
+    std::cout << "num_hyperedges = " << hyperedges.size()
+              << " num_hypernodes = " << hypernodes.size() << std::endl;
+    return std::tuple(hyperedges, hypernodes);
+  } else {
+    // Run relabeling. This operates directly on the incoming edglist.
+    if (-1 != idx) {
+      std::cout << "relabeling edge_list by degree..." << std::endl;
+      auto&& iperm =
+          1 == idx ? nw::hypergraph::relabel_by_degree<1>(aos_a, direction)
+                   : nw::hypergraph::relabel_by_degree<0>(aos_a, direction);
+    }
+    adjacency<0> hyperedges(aos_a);
+    adjacency<1> hypernodes(aos_a);
+
+    std::cout << "num_hyperedges = " << hyperedges.size()
+              << " num_hypernodes = " << hypernodes.size() << std::endl;
+    return std::tuple(hyperedges, hypernodes);
   }
 }
 

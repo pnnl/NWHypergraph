@@ -57,6 +57,8 @@ int main(int argc, char* argv[]) {
   long num_bins= args["-B"].asLong();
   long loader_version = args["--loader-version"].asLong();
   bool adjoin  = args["--adjoin"].asBool();
+  long idx = args["--relabel"].asLong();
+  std::string direction = args["--direction"].asString();
 
   std::vector ids     = parse_ids(args["--version"].asStringList());
   std::vector threads = parse_n_threads(args["THREADS"].asStringList());
@@ -71,42 +73,8 @@ int main(int argc, char* argv[]) {
 
   Times_WithS<bool> times;
 
-  // Appease clang.
-  //
-  // These are captured in lambdas later, and if I use structured bindings
-  // they have to be listed as explicit captures (this is according to the 17
-  // standard). That's a little bit noisy where it happens, so I just give
-  // them real symbols here rather than the local bindings.
   for (auto&& file : files) {
-    auto reader = [&](std::string file) {
-      auto aos_a = load_graph<directed>(file);
-      const long idx = args["--relabel"].asLong();
-      if (0 == aos_a.size()) {
-        auto&& [hyperedges, hypernodes] = load_adjacency<>(file);
-        // Run relabeling. This operates directly on the incoming edglist.
-        if (-1 != idx) {
-          nw::hypergraph::relabel_by_degree(hyperedges, hypernodes, idx, args["--direction"].asString());
-        }
-        std::cout << "num_hyperedges = " << hyperedges.size() << " num_hypernodes = " << hypernodes.size() << std::endl;
-        return std::tuple(hyperedges, hypernodes);
-      }
-      else {
-        // Run relabeling. This operates directly on the incoming edglist.
-        if (-1 != idx) {
-          std::cout << "relabeling edge_list by degree..." << std::endl;
-          if (1 == idx)
-            nw::hypergraph::relabel_by_degree<1>(aos_a, args["--direction"].asString());
-          else
-            nw::hypergraph::relabel_by_degree<0>(aos_a, args["--direction"].asString());
-        }
-        adjacency<0> hyperedges(aos_a);
-        adjacency<1> hypernodes(aos_a); 
-      
-        std::cout << "num_hyperedges = " << hyperedges.size() << " num_hypernodes = " << hypernodes.size() << std::endl;
-        return std::tuple(hyperedges, hypernodes);
-      }
-    };
-    auto&&[ hyperedges, hypernodes] = reader(file);
+    auto&& [hyperedges, hypernodes] = graph_reader(file, idx, direction);
     auto&& hyperedge_degrees = hyperedges.degrees(std::execution::par_unseq);
 
     if (verbose) {
@@ -114,51 +82,60 @@ int main(int argc, char* argv[]) {
       hyperedges.stream_stats();
     }
 
-    for (auto&& s : s_values) {
-    auto&& s_adj = twograph_reader(loader_version, verbose, features, hyperedges, hypernodes, hyperedge_degrees, s, num_bins);
-
     if (debug) {
       hypernodes.stream_indices();
       hyperedges.stream_indices();
     }
 
-    for (auto&& thread : threads) {
-      
-      auto _ = set_n_threads(thread);
-      for (auto&& id : ids) {
-        auto verifier = [&](auto&& E) {
-            //only verify #cc in the result
-          std::unordered_map<vertex_id_t, size_t> m;
-          for (auto& c : E) {
-            ++m[c];
-          }
-          size_t numc = 0;
-          for (auto& [k, v] : m) {
-            if (1 < v)
-              ++numc;
-          }
-          std::unordered_set<vertex_id_t> uni_comps(E.begin(), E.end());
-          std::cout << m.size() << " components found" << std::endl;
-          std::cout << numc << " non-singleton components found" << std::endl;
-        };
+    for (auto&& s : s_values) {
+      auto&& s_adj =
+          twograph_reader(loader_version, verbose, features, hyperedges,
+                          hypernodes, hyperedge_degrees, s, num_bins);
 
-        auto record = [&](auto&& op) { times.record(file, id, thread, s, std::forward<decltype(op)>(op), verifier, true); };
-        for (int j = 0, e = trials; j < e; ++j) {
-          switch (id) {
-            case 0:
-              record([&] { return linegraph_ccv1(std::execution::par_unseq, hypernodes, s_adj); });
-              break;
-            case 1:
-              record([&] { return linegraph_Afforest(std::execution::par_unseq, hypernodes, s_adj); });
-              break;
-            default:
-              std::cout << "Unknown algorithm version " << id << "\n";
+      for (auto&& thread : threads) {
+        auto _ = set_n_threads(thread);
+        for (auto&& id : ids) {
+          auto verifier = [&](auto&& E) {
+            // only verify #cc in the result
+            std::unordered_map<vertex_id_t, size_t> m;
+            for (auto& c : E) {
+              ++m[c];
+            }
+            size_t numc = 0;
+            for (auto& [k, v] : m) {
+              if (1 < v) ++numc;
+            }
+            std::unordered_set<vertex_id_t> uni_comps(E.begin(), E.end());
+            std::cout << m.size() << " components found" << std::endl;
+            std::cout << numc << " non-singleton components found" << std::endl;
+          };
+
+          auto record = [&](auto&& op) {
+            times.record(file, id, thread, s, std::forward<decltype(op)>(op),
+                         verifier, true);
+          };
+          for (int j = 0, e = trials; j < e; ++j) {
+            switch (id) {
+              case 0:
+                record([&] {
+                  return linegraph_ccv1(std::execution::par_unseq, hypernodes,
+                                        s_adj);
+                });
+                break;
+              case 1:
+                record([&] {
+                  return linegraph_Afforest(std::execution::par_unseq,
+                                            hypernodes, s_adj);
+                });
+                break;
+              default:
+                std::cout << "Unknown algorithm version " << id << "\n";
+            }
           }
         }
-      }
-    }//for thread
-    }//for s
-  }//for file
+      }  // for thread
+    }    // for s
+  }      // for file
 
   times.print(std::cout);
 
