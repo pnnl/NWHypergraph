@@ -26,7 +26,7 @@ static constexpr const char USAGE[] =
     R"(scc.exe: s-overlap connected components benchmark driver.
   Usage:
       scc.exe (-h | --help)
-      scc.exe [-f FILE...] [--version ID...] [--feature ID...] [--loader-version ID] [-n NUM] [-B NUM] [-s NUM...] [--relabel NUM] [--direction DIR] [--adjoin NUM] [-dvV] [--log FILE] [--log-header] [THREADS]...
+      scc.exe [-f FILE...] [--version ID...] [--feature ID...] [--loader-version ID] [-n NUM] [-B NUM] [-s NUM...] [--relabel NUM] [--direction DIR] [--adjoin] [-dvV] [--log FILE] [--log-header] [THREADS]...
 
   Options:
       -h, --help            show this screen
@@ -39,7 +39,7 @@ static constexpr const char USAGE[] =
       -s NUM                s value of soverlap [default: 1]
       --relabel NUM         relabel the hypergraph - 0(hyperedge)/1(hypernode) [default: -1]
       --direction DIR       hypergraph relabeling direction - ascending/descending [default: ascending]
-      --adjoin NUM          adjoin hyperedge(0) with hypernode(1) [default: -1]
+      --adjoin              adjoin the smaller set among edges and hypernodes with the larger set
       --log FILE            log times to a file
       --log-header          add a header to the log file
       -d, --debug           run in debug mode
@@ -56,7 +56,7 @@ int main(int argc, char* argv[]) {
   long trials  = args["-n"].asLong();
   long num_bins= args["-B"].asLong();
   long loader_version = args["--loader-version"].asLong();
-  long adjoin  = args["--adjoin"].asLong();
+  bool adjoin  = args["--adjoin"].asBool();
 
   std::vector ids     = parse_ids(args["--version"].asStringList());
   std::vector threads = parse_n_threads(args["THREADS"].asStringList());
