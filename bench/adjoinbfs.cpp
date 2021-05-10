@@ -292,22 +292,8 @@ int main(int argc, char* argv[]) {
   // standard). That's a little bit noisy where it happens, so I just give
   // them real symbols here rather than the local bindings.
   for (auto&& file : files) {
-    auto reader = [&](std::string file, bool verbose, size_t& nrealedges, size_t& nrealnodes) {
-      //auto aos_a   = load_graph<directed>(file);
-      auto aos_a = read_mm_adjoin<nw::graph::directed>(file, nrealedges, nrealnodes);
-      if (0 == aos_a.size()) {
-        return read_and_relabel_adj_hypergraph_pair(file, nrealedges, nrealnodes);
-      }
-
-      nw::graph::adjacency<0> g(aos_a);
-      nw::graph::adjacency<1> g_t(aos_a);
-      if (verbose) {
-        g.stream_stats();
-      }
-      return std::tuple(g, g_t);
-    };
-    size_t num_realedges, num_realnodes;
-    auto&& [g, g_t]    = reader(file, verbose, num_realedges, num_realnodes);
+    size_t num_realedges = 0, num_realnodes = 0;
+    auto&& [g, g_t]    = graph_reader_adjoin(file, verbose, num_realedges, num_realnodes);
 
     std::cout << "size of the merged adjacency = " << g.size() << std::endl;
     std::cout << "num_hyperedges = " << num_realedges << " num_hypernodes = " << num_realnodes << std::endl;

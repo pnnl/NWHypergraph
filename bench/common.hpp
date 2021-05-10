@@ -18,6 +18,7 @@
 #include <bitset>
 
 #include "io/hypergraph_io.hpp"
+#include "io/mmio.hpp"
 #include "containers/compressed_hy.hpp"
 #include "containers/edge_list_hy.hpp"
 
@@ -137,10 +138,11 @@ load_adjacency(std::string file) {
   }
 }
 
+template<directedness edge_directedness = directed, typename... Attributes>
 auto graph_reader(std::string file, int idx, std::string direction) {
-  auto aos_a = load_graph<directed>(file);
+  auto aos_a = load_graph<edge_directedness, Attributes...>(file);
   if (0 == aos_a.size()) {
-    auto&& [hyperedges, hypernodes] = load_adjacency<>(file);
+    auto&& [hyperedges, hypernodes] = load_adjacency<Attributes...>(file);
     // Run relabeling. This operates directly on the incoming edglist.
     if (-1 != idx) {
       auto&& iperm = nw::hypergraph::relabel_by_degree(
@@ -157,13 +159,30 @@ auto graph_reader(std::string file, int idx, std::string direction) {
           1 == idx ? nw::hypergraph::relabel_by_degree<1>(aos_a, direction)
                    : nw::hypergraph::relabel_by_degree<0>(aos_a, direction);
     }
-    adjacency<0> hyperedges(aos_a);
-    adjacency<1> hypernodes(aos_a);
+    nw::graph::adjacency<0, Attributes...> hyperedges(aos_a);
+    nw::graph::adjacency<1, Attributes...> hypernodes(aos_a);
 
     std::cout << "num_hyperedges = " << hyperedges.size()
               << " num_hypernodes = " << hypernodes.size() << std::endl;
     return std::tuple(hyperedges, hypernodes);
   }
+}
+
+template<directedness edge_directedness = undirected, typename... Attributes>
+auto graph_reader_adjoin(std::string file, bool verbose, size_t& nrealedges,
+                         size_t& nrealnodes) {
+  // auto aos_a   = load_graph<directed>(file);
+  auto aos_a =
+      read_mm_adjoin<edge_directedness, Attributes...>(file, nrealedges, nrealnodes);
+  if (0 == aos_a.size()) {
+    return read_and_relabel_adj_hypergraph_pair(file, nrealedges, nrealnodes);
+  }
+  nw::graph::adjacency<0, Attributes...> g(aos_a);
+  nw::graph::adjacency<1, Attributes...> g_t(aos_a);
+  if (verbose) {
+    g.stream_stats();
+  }
+  return std::tuple(g, g_t);
 }
 
 template <int Adj, directedness Directedness, class... Attributes>
