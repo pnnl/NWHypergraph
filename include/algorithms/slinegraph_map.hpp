@@ -21,7 +21,7 @@ namespace hypergraph {
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_map_blocked(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
 std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
-  std::vector<std::vector<std::pair<vertex_id_t, vertex_id_t>>> two_graphs(num_bins);
+  std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_bins);
   size_t M = edges.size();
   size_t N = nodes.size();
   if (1 < s) {
@@ -77,7 +77,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_map_cyclic(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
 std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
-  std::vector<std::vector<std::pair<vertex_id_t, vertex_id_t>>> two_graphs(num_bins);
+  std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_bins);
   size_t M = edges.size();
   size_t N = nodes.size();
   if (1 < s) {
@@ -132,10 +132,143 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
   return squeeze_edgelist(two_graphs);
 }
 
+/*
+ * This to_two_graph operates on adjoined hypergraph.
+ * The hypergraph can be relabeled by degree.
+ * */
+template<directedness edge_directedness = undirected, class ExecutionPolicy, class Hypergraph, class... Attributes>
+auto to_two_graph_adjoin_cyclic(ExecutionPolicy&& ep, Hypergraph& h, 
+std::vector<index_t>& degrees, std::vector<vertex_id_t>& iperm, 
+size_t nrealedges, size_t nrealnodes, 
+size_t s = 1, int num_bins = 32) {
+  std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t, Attributes...>>> two_graphs(num_bins);
+  auto start = std::begin(iperm);
+  auto end = std::begin(iperm) + nrealedges;
+  std::vector<vertex_id_t> frontier(start, end);
+  if (1 < s) {
+    if (0 == sizeof...(Attributes)) {
+      nw::util::life_timer _(__func__);
+      tbb::parallel_for(
+          nw::graph::cyclic(frontier, num_bins),
+          [&](auto& i) {
+            int worker_index = tbb::task_arena::current_thread_index();
+            for (auto&& hyperE = i.begin(); hyperE != i.end(); ++hyperE) {
+              // auto&& [hyperE, hyperE_ngh] = *j;
+              if (degrees[hyperE] < s) continue;
+              std::map<size_t, size_t> K;
+              for (auto&& [hyperN] : h[hyperE]) {
+                for (auto&& [anotherhyperE] : h[hyperN]) {
+                  if (degrees[anotherhyperE] < s) continue;
+                  if (hyperE < anotherhyperE) ++K[anotherhyperE];
+                }
+              }
+              for (auto&& [anotherhyperE, val] : K) {
+                if (val >= s)
+                  two_graphs[worker_index].push_back(
+                      std::make_tuple<vertex_id_t, vertex_id_t>(
+                          std::forward<vertex_id_t>(hyperE),
+                          std::forward<vertex_id_t>(anotherhyperE)));
+              }
+            }
+          },
+          tbb::auto_partitioner());
+    }
+    else{
+      nw::util::life_timer _(__func__);
+      tbb::parallel_for(
+          nw::graph::cyclic(frontier, num_bins),
+          [&](auto& i) {
+            int worker_index = tbb::task_arena::current_thread_index();
+            for (auto&& hyperE = i.begin(); hyperE != i.end(); ++hyperE) {
+              // auto&& [hyperE, hyperE_ngh] = *j;
+              if (degrees[hyperE] < s) continue;
+              std::map<size_t, size_t> K;
+              for (auto&& [hyperN] : h[hyperE]) {
+                for (auto&& [anotherhyperE] : h[hyperN]) {
+                  if (degrees[anotherhyperE] < s) continue;
+                  if (hyperE < anotherhyperE) ++K[anotherhyperE];
+                }
+              }
+              for (auto&& [anotherhyperE, val] : K) {
+                if (val >= s) {
+                  auto e =
+                      std::make_tuple<vertex_id_t, vertex_id_t, Attributes...>(
+                          std::forward<vertex_id_t>(hyperE),
+                          std::forward<vertex_id_t>(anotherhyperE), val);
+                  two_graphs[worker_index].push_back(e);
+                }
+              }
+            }
+          },
+          tbb::auto_partitioner());
+    }
+  }
+  else {
+    if (0 == sizeof...(Attributes)) {
+      nw::util::life_timer _(__func__);
+      tbb::parallel_for(
+          nw::graph::cyclic(frontier, num_bins),
+          [&](auto& i) {
+            int worker_index = tbb::task_arena::current_thread_index();
+            for (auto&& hyperE = i.begin(); hyperE != i.end(); ++hyperE) {
+              // auto&& [hyperE, hyperE_ngh] = *j;
+              std::map<size_t, size_t> K;
+              for (auto&& [hyperN] : h[hyperE]) {
+                for (auto&& [anotherhyperE] : h[hyperN]) {
+                  if (hyperE < anotherhyperE) ++K[anotherhyperE];
+                }
+              }
+              for (auto&& [anotherhyperE, val] : K) {
+                two_graphs[worker_index].push_back(
+                    std::make_pair<vertex_id_t, vertex_id_t>(
+                        std::forward<vertex_id_t>(hyperE),
+                        std::forward<vertex_id_t>(anotherhyperE)));
+              }
+            }
+          },
+          tbb::auto_partitioner());
+    } else {
+      nw::util::life_timer _(__func__);
+      tbb::parallel_for(
+          nw::graph::cyclic(frontier, num_bins),
+          [&](auto& i) {
+            int worker_index = tbb::task_arena::current_thread_index();
+            for (auto&& hyperE = i.begin(); hyperE != i.end(); ++hyperE) {
+              // auto&& [hyperE, hyperE_ngh] = *j;
+              std::map<size_t, size_t> K;
+              for (auto&& [hyperN] : h[hyperE]) {
+                for (auto&& [anotherhyperE] : h[hyperN]) {
+                  if (hyperE < anotherhyperE) ++K[anotherhyperE];
+                }
+              }
+              for (auto&& [anotherhyperE, val] : K) {
+                two_graphs[worker_index].push_back(
+                    std::make_tuple<vertex_id_t, vertex_id_t, Attributes...>(
+                        std::forward<vertex_id_t>(hyperE),
+                        std::forward<vertex_id_t>(anotherhyperE), 1));
+              }
+            }
+          },
+          tbb::auto_partitioner());
+    }
+    nw::graph::edge_list<edge_directedness, Attributes...> result(0);
+    result.open_for_push_back();
+    //do this in serial
+    std::for_each(tbb::counting_iterator<int>(0), tbb::counting_iterator<int>(num_bins), [&](auto i) {
+      std::for_each(two_graphs[i].begin(), two_graphs[i].end(), [&](auto&& e){
+        result.push_back(e);
+      });
+    });
+    result.close_for_push_back();
+    return result;
+  }
+  return squeeze_edgelist(two_graphs);
+}
+
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_map_blocked_with_counter(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
 std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
-  std::vector<std::vector<std::pair<vertex_id_t, vertex_id_t>>> two_graphs(num_bins);
+  std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_bins);
   size_t M = edges.size();
   size_t N = nodes.size();
   std::vector<size_t> num_visits(num_bins, 0), num_counts(num_bins, 0), num_edges(num_bins, 0);
@@ -227,7 +360,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_map_cyclic_with_counter(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
 std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
-  std::vector<std::vector<std::pair<vertex_id_t, vertex_id_t>>> two_graphs(num_bins);
+  std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_bins);
   std::vector<size_t> num_visits(num_bins, 0), num_counts(num_bins, 0), num_edges(num_bins, 0);
   size_t M = edges.size();
   size_t N = nodes.size();
@@ -321,7 +454,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_with_map_parallel2d(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
 std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
-  std::vector<std::vector<std::pair<vertex_id_t, vertex_id_t>>> two_graphs(num_bins);
+  std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_bins);
   size_t M = edges.size();
   size_t N = nodes.size();
   if (1 < s) {

@@ -21,70 +21,39 @@ namespace hypergraph {
 /*
 * Squeeze the edge lists such that the ids are consecutive in the new edge list
 */
-template<directedness edge_directedness = nw::graph::undirected>
-auto squeeze_edgelist(std::vector<std::vector<std::pair<vertex_id_t, vertex_id_t>>> &two_graphs) {
+template<directedness edge_directedness = nw::graph::undirected, typename... T>
+auto squeeze_edgelist(std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t, T...>>> &two_graphs) {
     nw::util::life_timer _(__func__);
-    nw::graph::edge_list<edge_directedness> result(0);
+    nw::graph::edge_list<edge_directedness, T...> result(0);
     //result.open_for_push_back();
     //do this in serial
     vertex_id_t index = 0;
     std::unordered_map<vertex_id_t, vertex_id_t> relabel_map;
     int num_bins = two_graphs.size();
-    std::for_each(tbb::counting_iterator<int>(0), tbb::counting_iterator<int>(num_bins), [&](auto i) {
-      std::for_each(two_graphs[i].begin(), two_graphs[i].end(), [&](auto &&e) {
-        auto &&[x, y] = e;
-        if (relabel_map.end() == relabel_map.find(x)) {
-          //if x has not been relabeled
-          relabel_map[x] = index;
-          ++index;
-        }
-        auto newx = relabel_map[x];
-        if (relabel_map.end() == relabel_map.find(y)) {
-          //if y has not been relabeled
-          relabel_map[y] = index;
-          ++index;
-        }
-        auto newy = relabel_map[y];
-        //std::cout << x << " " << y << " into " << newx << " " << newy << std::endl;
-        result.push_back(newx, newy);
-      });
-    });
-    result.close_for_push_back(false);
-
-    return result;
-}
-/*
-* Squeeze the edge lists such that the ids are consecutive in the new edge list.
-* Here the edge list is weighted.
-*/
-template<directedness edge_directedness = nw::graph::undirected, class T>
-auto squeeze_weighted_edgelist(std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t, T>>> &two_graphs) {
-    nw::util::life_timer _(__func__);
-    nw::graph::edge_list<edge_directedness, T> result(0);
-    //result.open_for_push_back();
-    //do this in serial
-    vertex_id_t index = 0;
-    std::unordered_map<vertex_id_t, vertex_id_t> relabel_map;
-    int num_bins = two_graphs.size();
-    std::for_each(tbb::counting_iterator<int>(0), tbb::counting_iterator<int>(num_bins), [&](auto i) {
-      std::for_each(two_graphs[i].begin(), two_graphs[i].end(), [&](auto &&e) {
-        auto &&[x, y, w] = e;
-        if (relabel_map.end() == relabel_map.find(x)) {
-          //if x has not been relabeled
-          relabel_map[x] = index;
-          ++index;
-        }
-        auto newx = relabel_map[x];
-        if (relabel_map.end() == relabel_map.find(y)) {
-          //if y has not been relabeled
-          relabel_map[y] = index;
-          ++index;
-        }
-        auto newy = relabel_map[y];
-        //std::cout << x << " " << y << " into " << newx << " " << newy << std::endl;
-        result.push_back(newx, newy, w);
-      });
-    });
+    std::for_each(tbb::counting_iterator<int>(0),
+                  tbb::counting_iterator<int>(num_bins), [&](auto i) {
+                    std::for_each(
+                        two_graphs[i].begin(), two_graphs[i].end(),
+                        [&](auto &&elt) {
+                          std::apply([&](vertex_id_t x, vertex_id_t y, T... w) {
+                            if (relabel_map.end() == relabel_map.find(x)) {
+                              // if x has not been relabeled
+                              relabel_map[x] = index;
+                              ++index;
+                            }
+                            auto newx = relabel_map[x];
+                            if (relabel_map.end() == relabel_map.find(y)) {
+                              // if y has not been relabeled
+                              relabel_map[y] = index;
+                              ++index;
+                            }
+                            auto newy = relabel_map[y];
+                            // std::cout << x << " " << y << " into " << newx <<
+                            // " " << newy << std::endl;
+                            result.push_back(newx, newy, w...);
+                          }, elt);
+                        });
+                  });
     result.close_for_push_back(false);
 
     return result;

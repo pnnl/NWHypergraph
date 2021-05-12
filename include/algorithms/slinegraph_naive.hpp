@@ -22,7 +22,7 @@ namespace hypergraph {
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_naive_parallel(ExecutionPolicy&& ep, HyperEdge& e_nbs, HyperNode& n_nbs, size_t s = 1, int num_bins = 32) {
   size_t M = e_nbs.size();
-  std::vector<std::vector<std::pair<vertex_id_t, vertex_id_t>>> two_graphs(num_bins);
+  std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_bins);
   {
   nw::util::life_timer _(__func__);
   tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M), [&](tbb::blocked_range<vertex_id_t>& r) {
@@ -47,7 +47,7 @@ auto to_two_graph_naive_parallel_with_counter(ExecutionPolicy&& ep, HyperEdge& e
 
   size_t M = e_nbs.size();
   std::vector<size_t> num_visits(num_bins, 0), num_edges(num_bins, 0);
-  std::vector<std::vector<std::pair<vertex_id_t, vertex_id_t>>> two_graphs(num_bins);
+  std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_bins);
   {
   nw::util::life_timer _(__func__);
   tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M), [&](tbb::blocked_range<vertex_id_t>& r) {

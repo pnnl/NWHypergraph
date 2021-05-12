@@ -138,6 +138,11 @@ load_adjacency(std::string file) {
   }
 }
 
+/*
+ * This graph reader can read either mtx or hygra (adjacency) file.
+ * And can relabel the ids of either hyperedges or hypernodes by degree
+ * in the direction of ascending (default) or descending.
+ **/
 template<directedness edge_directedness = directed, typename... Attributes>
 auto graph_reader(std::string file, int idx, std::string direction) {
   auto aos_a = load_graph<edge_directedness, Attributes...>(file);
@@ -168,10 +173,54 @@ auto graph_reader(std::string file, int idx, std::string direction) {
   }
 }
 
+/*
+ * This graph reader can read either mtx or hygra (adjacency) file 
+ * in adjoin fashion.
+ * Adjoin will increment the ids of the smaller set of the hyperedges or hypernodes,
+ * such that the ids of both are now contiguous.
+ * And it also can relabel the ids of either hyperedges or hypernodes by degree
+ * in the direction of ascending (default) or descending.
+ **/
 template<directedness edge_directedness = undirected, typename... Attributes>
-auto graph_reader_adjoin(std::string file, bool verbose, size_t& nrealedges,
+auto graph_reader_adjoin_and_relabel(std::string file, int idx, std::string direction, size_t& nrealedges, size_t& nrealnodes) {
+  auto aos_a =
+      read_mm_adjoin<edge_directedness, Attributes...>(file, nrealedges, nrealnodes);
+  std::vector<vertex_id_t> iperm;
+  if (0 == aos_a.size()) {
+    auto&& [hyperedges, hypernodes] = read_and_relabel_adj_hypergraph_pair(file, nrealedges, nrealnodes);
+    // Run relabeling. This operates directly on the incoming edglist.
+    if (-1 != idx) {
+      iperm = nw::hypergraph::relabel_by_degree(
+          hyperedges, hypernodes, idx, direction);
+    }
+    std::cout << "num_hyperedges = " << hyperedges.size()
+              << " num_hypernodes = " << hypernodes.size() << std::endl;
+    return std::tuple(hyperedges, hypernodes, iperm);
+  }
+  else {
+    // Run relabeling. This operates directly on the incoming edglist.
+    if (-1 != idx) {
+      std::cout << "relabeling edge_list by degree..." << std::endl;
+      iperm =
+          1 == idx ? nw::hypergraph::relabel_by_degree<1>(aos_a, direction)
+                   : nw::hypergraph::relabel_by_degree<0>(aos_a, direction);
+    }
+    nw::graph::adjacency<0, Attributes...> g(aos_a);
+    nw::graph::adjacency<1, Attributes...> g_t(aos_a);
+
+    return std::tuple(g, g_t, iperm);
+  }
+}
+
+/*
+ * This graph reader can read either mtx or hygra (adjacency) file 
+ * in adjoin fashion.
+ * Adjoin will increment the ids of the smaller set of the hyperedges or hypernodes,
+ * such that the ids of both are now contiguous.
+ **/
+template<directedness edge_directedness = undirected, typename... Attributes>
+auto graph_reader_adjoin(std::string file, size_t& nrealedges,
                          size_t& nrealnodes) {
-  // auto aos_a   = load_graph<directed>(file);
   auto aos_a =
       read_mm_adjoin<edge_directedness, Attributes...>(file, nrealedges, nrealnodes);
   if (0 == aos_a.size()) {
@@ -179,9 +228,7 @@ auto graph_reader_adjoin(std::string file, bool verbose, size_t& nrealedges,
   }
   nw::graph::adjacency<0, Attributes...> g(aos_a);
   nw::graph::adjacency<1, Attributes...> g_t(aos_a);
-  if (verbose) {
-    g.stream_stats();
-  }
+
   return std::tuple(g, g_t);
 }
 
