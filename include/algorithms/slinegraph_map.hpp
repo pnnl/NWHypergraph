@@ -71,7 +71,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
     result.close_for_push_back();
     return result;
   }
-  return squeeze_edgelist(two_graphs);
+  return create_edgelist_with_squeeze(two_graphs);
 }
 
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
@@ -129,7 +129,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
     result.close_for_push_back();
     return result;
   }
-  return squeeze_edgelist(two_graphs);
+  return create_edgelist_with_squeeze(two_graphs);
 }
 
 /*
@@ -262,7 +262,7 @@ size_t s = 1, int num_bins = 32) {
     result.close_for_push_back();
     return result;
   }
-  return squeeze_edgelist(two_graphs);
+  return create_edgelist_with_squeeze(two_graphs);
 }
 
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
@@ -354,7 +354,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
     result.close_for_push_back();
     return result;
   }
-  return squeeze_edgelist(two_graphs);
+  return create_edgelist_with_squeeze(two_graphs);
 }
 
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
@@ -448,7 +448,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
     result.close_for_push_back();
     return result;
   }
-  return squeeze_edgelist(two_graphs);
+  return create_edgelist_with_squeeze(two_graphs);
 }
 
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
@@ -508,7 +508,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
     result.close_for_push_back();
     return result;
   }
-  return squeeze_edgelist(two_graphs);
+  return create_edgelist_with_squeeze(two_graphs);
 }
 
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>

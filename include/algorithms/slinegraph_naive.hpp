@@ -36,7 +36,7 @@ auto to_two_graph_naive_parallel(ExecutionPolicy&& ep, HyperEdge& e_nbs, HyperNo
     }
   }, tbb::auto_partitioner());
   }
-  return squeeze_edgelist(two_graphs);
+  return create_edgelist_with_squeeze(two_graphs);
 }
 
 /*
@@ -71,7 +71,7 @@ auto to_two_graph_naive_parallel_with_counter(ExecutionPolicy&& ep, HyperEdge& e
     std::cout << v << " ";
   std::cout << std::endl;
   }
-  return squeeze_edgelist(two_graphs);;
+  return create_edgelist_with_squeeze(two_graphs);
 }
 
 /*

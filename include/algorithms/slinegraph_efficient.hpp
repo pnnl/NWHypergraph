@@ -259,7 +259,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
     //when s > 1
     nw::util::life_timer _(__func__);
     to_two_graph_block_range(std::forward<linegraph_t>(two_graphs), edges, nodes, num_bins, 0, M, hyperedgedegrees, s); 
-    return squeeze_edgelist<edge_directedness>(two_graphs);
+    return create_edgelist_with_squeeze<edge_directedness>(two_graphs);
   }//else
 }
 
@@ -304,7 +304,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
         to_two_graph_block_range(std::forward<linegraph_t>(two_graphs), edges, nodes, num_bins, 
         M / num_bins * num_bins, M, hyperedgedegrees, s);
     }
-    return squeeze_edgelist(two_graphs);
+    return create_edgelist_with_squeeze(two_graphs);
   }//else
 }
 
@@ -382,7 +382,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
         }
       }, tbb::auto_partitioner());
     }
-    return squeeze_edgelist(two_graphs);
+    return create_edgelist_with_squeeze(two_graphs);
   }//else
 }
 
@@ -462,7 +462,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
         }
       }, tbb::auto_partitioner());
     }
-    return squeeze_edgelist(two_graphs);
+    return create_edgelist_with_squeeze(two_graphs);
   }//else
 }
 
@@ -563,7 +563,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
         std::cout << v << " ";
       std::cout << std::endl;
     }
-    return squeeze_edgelist(two_graphs);
+    return create_edgelist_with_squeeze(two_graphs);
   }//else
 }
 
@@ -644,7 +644,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
      
     }, tbb::auto_partitioner());
     }
-    return squeeze_edgelist<undirected, T>(two_graphs);
+    return create_edgelist_with_squeeze<undirected, T>(two_graphs);
   }//else
 }
 
@@ -737,7 +737,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
      
     }, tbb::auto_partitioner());
     }
-    return squeeze_edgelist(two_graphs);
+    return create_edgelist_with_squeeze(two_graphs);
   }//else
 }
 
@@ -847,7 +847,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
       std::cout << v << " ";
     std::cout << std::endl;
     }
-    return squeeze_edgelist(two_graphs);
+    return create_edgelist_with_squeeze(two_graphs);
   }//else
 }
 
@@ -954,7 +954,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
     << nintersections << " intersections performed, " 
     << nedges << " edges added" << std::endl;
   }
-    return squeeze_edgelist(two_graphs);
+    return create_edgelist_with_squeeze(two_graphs);
   }//else
 }
 
