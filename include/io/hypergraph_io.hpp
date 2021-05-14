@@ -73,7 +73,7 @@ auto adj_hypergraph_fill(std::istream& inputStream) {
 * combine biadjacency into adjacency. Return g and its transpose
 * Transform a bipartite graph into a general graph
 */
-auto adj_hypergraph_pair_fill_and_relabel(std::istream& inputStream,
+auto adj_hypergraph_pair_fill_and_adjoin(std::istream& inputStream,
 const size_t n0, const size_t m0, const size_t n1, const size_t m1) {
   vertex_id_t tmp;
   std::string buffer;
@@ -119,7 +119,7 @@ const size_t n0, const size_t m0, const size_t n1, const size_t m1) {
 * combine biadjacency into adjacency. Return g and its transpose
 * Transform a bipartite graph into a general graph
 */
-auto adj_hypergraph_pair_fill_and_relabel_v1(std::istream& inputStream,
+auto adj_hypergraph_pair_fill_and_adjoin_v1(std::istream& inputStream,
 const size_t n0, const size_t m0, const size_t n1, const size_t m1) {
   vertex_id_t tmp;
   size_t N = n0 + n1;
@@ -171,7 +171,7 @@ const size_t n0, const size_t m0, const size_t n1, const size_t m1) {
 * combine biadjacency into an adjacency
 * Transform a bipartite graph into a general graph
 */
-auto adj_hypergraph_fill_and_relabel(std::istream& inputStream,
+auto adj_hypergraph_fill_and_adjoin(std::istream& inputStream,
 const size_t n0, const size_t m0, const size_t n1, const size_t m1) {
   vertex_id_t tmp;
   std::string buffer;
@@ -246,7 +246,7 @@ const size_t n0, const size_t m0, const size_t n1, const size_t m1) {
   return adjacency<0>(std::move(v0), std::move(e0));
 }
 
-auto read_and_relabel_adj_hypergraph_pair(std::istream& inputStream, size_t& nreal_edges, size_t& nreal_nodes) {
+auto read_and_adjoin_adj_hypergraph_pair(std::istream& inputStream, size_t& nreal_edges, size_t& nreal_nodes) {
   std::string buffer;
   inputStream >> buffer;
 
@@ -262,10 +262,10 @@ auto read_and_relabel_adj_hypergraph_pair(std::istream& inputStream, size_t& nre
   inputStream >> m1;
   //std::cout << nreal_nodes << " " << m0 << " " << nreal_edges << " " << m1 << std::endl;
 
-  return adj_hypergraph_pair_fill_and_relabel_v1(inputStream, nreal_nodes, m0, nreal_edges, m1);
+  return adj_hypergraph_pair_fill_and_adjoin_v1(inputStream, nreal_nodes, m0, nreal_edges, m1);
 }
 
-auto read_and_relabel_adj_hypergraph(std::istream& inputStream, size_t& nreal_edges, size_t& nreal_nodes) {
+auto read_and_adjoin_adj_hypergraph(std::istream& inputStream, size_t& nreal_edges, size_t& nreal_nodes) {
   std::string buffer;
   inputStream >> buffer;
 
@@ -281,27 +281,27 @@ auto read_and_relabel_adj_hypergraph(std::istream& inputStream, size_t& nreal_ed
   inputStream >> m1;
   //std::cout << nreal_nodes << " " << m0 << " " << nreal_edges << " " << m1 << std::endl;
 
-  return adj_hypergraph_fill_and_relabel(inputStream, nreal_nodes, m0, nreal_edges, m1);
+  return adj_hypergraph_fill_and_adjoin(inputStream, nreal_nodes, m0, nreal_edges, m1);
 }
 
-auto read_and_relabel_adj_hypergraph_pair(const std::string& filename, size_t& nreal_edges, size_t& nreal_nodes) {
+auto read_and_adjoin_adj_hypergraph_pair(const std::string& filename, size_t& nreal_edges, size_t& nreal_nodes) {
   nw::util::life_timer _(__func__);
   std::ifstream file(filename, std::ifstream::in);
   if (!file.is_open()) {
     std::cerr << "Can not open file: " << filename << std::endl;
     throw;
   }
-  return read_and_relabel_adj_hypergraph_pair(file, nreal_edges, nreal_nodes);
+  return read_and_adjoin_adj_hypergraph_pair(file, nreal_edges, nreal_nodes);
 }
 
-auto read_and_relabel_adj_hypergraph(const std::string& filename, size_t& nreal_edges, size_t& nreal_nodes) {
+auto read_and_adjoin_adj_hypergraph(const std::string& filename, size_t& nreal_edges, size_t& nreal_nodes) {
   nw::util::life_timer _(__func__);
   std::ifstream file(filename, std::ifstream::in);
   if (!file.is_open()) {
     std::cerr << "Can not open file: " << filename << std::endl;
     throw;
   }
-  return read_and_relabel_adj_hypergraph(file, nreal_edges, nreal_nodes);
+  return read_and_adjoin_adj_hypergraph(file, nreal_edges, nreal_nodes);
 }
 
 

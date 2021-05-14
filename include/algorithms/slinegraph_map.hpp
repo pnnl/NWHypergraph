@@ -8,6 +8,7 @@
 // Author: Xu Tony Liu
 //
 #pragma once
+#include <numeric>
 #include <cyclic_range_adapter.hpp>
 
 #include "util/slinegraph_helper.hpp"
@@ -136,122 +137,74 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
  * This to_two_graph operates on adjoined hypergraph.
  * The hypergraph can be relabeled by degree.
  * */
-template<directedness edge_directedness = undirected, class ExecutionPolicy, class Hypergraph, class... Attributes>
+template<directedness edge_directedness = undirected, class ExecutionPolicy, class Hypergraph>
 auto to_two_graph_adjoin_cyclic(ExecutionPolicy&& ep, Hypergraph& h, 
-std::vector<index_t>& degrees, std::vector<vertex_id_t>& iperm, 
+std::vector<index_t>& degrees, std::vector<vertex_id_t>& iperm,
 size_t nrealedges, size_t nrealnodes, 
 size_t s = 1, int num_bins = 32) {
-  std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t, Attributes...>>> two_graphs(num_bins);
-  auto start = std::begin(iperm);
-  auto end = std::begin(iperm) + nrealedges;
-  std::vector<vertex_id_t> frontier(start, end);
-  if (1 < s) {
-    if (0 == sizeof...(Attributes)) {
-      nw::util::life_timer _(__func__);
-      tbb::parallel_for(
-          nw::graph::cyclic(frontier, num_bins),
-          [&](auto& i) {
-            int worker_index = tbb::task_arena::current_thread_index();
-            for (auto&& hyperE = i.begin(); hyperE != i.end(); ++hyperE) {
-              // auto&& [hyperE, hyperE_ngh] = *j;
-              if (degrees[hyperE] < s) continue;
-              std::map<size_t, size_t> K;
-              for (auto&& [hyperN] : h[hyperE]) {
-                for (auto&& [anotherhyperE] : h[hyperN]) {
-                  if (degrees[anotherhyperE] < s) continue;
-                  if (hyperE < anotherhyperE) ++K[anotherhyperE];
-                }
-              }
-              for (auto&& [anotherhyperE, val] : K) {
-                if (val >= s)
-                  two_graphs[worker_index].push_back(
-                      std::make_tuple<vertex_id_t, vertex_id_t>(
-                          std::forward<vertex_id_t>(hyperE),
-                          std::forward<vertex_id_t>(anotherhyperE)));
-              }
-            }
-          },
-          tbb::auto_partitioner());
-    }
-    else{
-      nw::util::life_timer _(__func__);
-      tbb::parallel_for(
-          nw::graph::cyclic(frontier, num_bins),
-          [&](auto& i) {
-            int worker_index = tbb::task_arena::current_thread_index();
-            for (auto&& hyperE = i.begin(); hyperE != i.end(); ++hyperE) {
-              // auto&& [hyperE, hyperE_ngh] = *j;
-              if (degrees[hyperE] < s) continue;
-              std::map<size_t, size_t> K;
-              for (auto&& [hyperN] : h[hyperE]) {
-                for (auto&& [anotherhyperE] : h[hyperN]) {
-                  if (degrees[anotherhyperE] < s) continue;
-                  if (hyperE < anotherhyperE) ++K[anotherhyperE];
-                }
-              }
-              for (auto&& [anotherhyperE, val] : K) {
-                if (val >= s) {
-                  auto e =
-                      std::make_tuple<vertex_id_t, vertex_id_t, Attributes...>(
-                          std::forward<vertex_id_t>(hyperE),
-                          std::forward<vertex_id_t>(anotherhyperE), val);
-                  two_graphs[worker_index].push_back(e);
-                }
-              }
-            }
-          },
-          tbb::auto_partitioner());
-    }
+  std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_bins);
+  std::vector<vertex_id_t> frontier(nrealedges); 
+  if (iperm.empty()) {
+    std::for_each(ep, counting_iterator<vertex_id_t>(0),
+                  counting_iterator<vertex_id_t>(nrealedges), [&](auto i) {
+                    frontier[i] = i;
+                  });
   }
   else {
-    if (0 == sizeof...(Attributes)) {
-      nw::util::life_timer _(__func__);
-      tbb::parallel_for(
-          nw::graph::cyclic(frontier, num_bins),
-          [&](auto& i) {
-            int worker_index = tbb::task_arena::current_thread_index();
-            for (auto&& hyperE = i.begin(); hyperE != i.end(); ++hyperE) {
-              // auto&& [hyperE, hyperE_ngh] = *j;
-              std::map<size_t, size_t> K;
-              for (auto&& [hyperN] : h[hyperE]) {
-                for (auto&& [anotherhyperE] : h[hyperN]) {
-                  if (hyperE < anotherhyperE) ++K[anotherhyperE];
-                }
+    auto start = std::begin(iperm);
+    auto end = std::begin(iperm) + nrealedges;
+    std::copy(ep, start, end, frontier.begin());
+  }
+  if (1 < s) {
+    nw::util::life_timer _(__func__);
+    tbb::parallel_for(
+        nw::graph::cyclic(frontier, num_bins),
+        [&](auto& i) {
+          int worker_index = tbb::task_arena::current_thread_index();
+          for (auto&& j = i.begin(); j != i.end(); ++j) {
+            auto&& [hyperE, w] = *j;
+            if (degrees[hyperE] < s) continue;
+            std::map<size_t, size_t> K;
+            for (auto&& [hyperN] : h[hyperE]) {
+              for (auto&& [anotherhyperE] : h[hyperN]) {
+                if (degrees[anotherhyperE] < s) continue;
+                if (hyperE < anotherhyperE) ++K[anotherhyperE];
               }
-              for (auto&& [anotherhyperE, val] : K) {
+            }
+            for (auto&& [anotherhyperE, val] : K) {
+              if (val >= s)
                 two_graphs[worker_index].push_back(
-                    std::make_pair<vertex_id_t, vertex_id_t>(
+                    std::make_tuple<vertex_id_t, vertex_id_t>(
                         std::forward<vertex_id_t>(hyperE),
                         std::forward<vertex_id_t>(anotherhyperE)));
+            }
+          }
+        },
+        tbb::auto_partitioner());
+  } else {
+    nw::util::life_timer _(__func__);
+    tbb::parallel_for(
+        nw::graph::cyclic(frontier, num_bins),
+        [&](auto& i) {
+          int worker_index = tbb::task_arena::current_thread_index();
+          for (auto&& j = i.begin(); j != i.end(); ++j) {
+            auto&& [hyperE, w] = *j;
+            std::map<size_t, size_t> K;
+            for (auto&& [hyperN] : h[hyperE]) {
+              for (auto&& [anotherhyperE] : h[hyperN]) {
+                if (hyperE < anotherhyperE) ++K[anotherhyperE];
               }
             }
-          },
-          tbb::auto_partitioner());
-    } else {
-      nw::util::life_timer _(__func__);
-      tbb::parallel_for(
-          nw::graph::cyclic(frontier, num_bins),
-          [&](auto& i) {
-            int worker_index = tbb::task_arena::current_thread_index();
-            for (auto&& hyperE = i.begin(); hyperE != i.end(); ++hyperE) {
-              // auto&& [hyperE, hyperE_ngh] = *j;
-              std::map<size_t, size_t> K;
-              for (auto&& [hyperN] : h[hyperE]) {
-                for (auto&& [anotherhyperE] : h[hyperN]) {
-                  if (hyperE < anotherhyperE) ++K[anotherhyperE];
-                }
-              }
-              for (auto&& [anotherhyperE, val] : K) {
-                two_graphs[worker_index].push_back(
-                    std::make_tuple<vertex_id_t, vertex_id_t, Attributes...>(
-                        std::forward<vertex_id_t>(hyperE),
-                        std::forward<vertex_id_t>(anotherhyperE), 1));
-              }
+            for (auto&& [anotherhyperE, val] : K) {
+              two_graphs[worker_index].push_back(
+                  std::make_pair<vertex_id_t, vertex_id_t>(
+                      std::forward<vertex_id_t>(hyperE),
+                      std::forward<vertex_id_t>(anotherhyperE)));
             }
-          },
-          tbb::auto_partitioner());
-    }
-    nw::graph::edge_list<edge_directedness, Attributes...> result(0);
+          }
+        },
+        tbb::auto_partitioner());
+    nw::graph::edge_list<edge_directedness> result(0);
     result.open_for_push_back();
     //do this in serial
     std::for_each(tbb::counting_iterator<int>(0), tbb::counting_iterator<int>(num_bins), [&](auto i) {

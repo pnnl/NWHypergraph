@@ -34,7 +34,7 @@ static constexpr const char USAGE[] =
       -B NUM                number of bins [default: 32]
       --relabel NUM         relabel the graph - 0(hyperedge)/1(hypernode) [default: -1]
       -c, --clean           clean the graph or not
-      --direction DIR       graph relabeling direction - ascending/descending [default: descending]
+      --direction DIR       graph relabeling direction - ascending/descending [default: ascending]
       --log FILE            log times to a file
       --log-header          add a header to the log file
       -d, --debug           run in debug mode
@@ -67,7 +67,7 @@ int main(int argc, char* argv[]) {
   // standard). That's a little bit noisy where it happens, so I just give
   // them real symbols here rather than the local bindings.
   for (auto&& file : files) {
-    auto reader = [&](std::string file, bool verbose) {
+    auto reader = [&](std::string file) {
       auto aos_a   = load_graph<directed>(file);
       const long idx = args["--relabel"].asLong();
       if (0 == aos_a.size()) {
@@ -84,9 +84,9 @@ int main(int argc, char* argv[]) {
         if (-1 != idx) {
           std::cout << "relabeling edge_list by degree..." << std::endl;
           if (1 == idx)
-            nw::hypergraph::relabel_by_degree<1>(aos_a, args["--direction"].asString());
+            nw::hypergraph::relabel_by_degree<1, directed>(aos_a, args["--direction"].asString());
           else
-            nw::hypergraph::relabel_by_degree<0>(aos_a, args["--direction"].asString());
+            nw::hypergraph::relabel_by_degree<0, directed>(aos_a, args["--direction"].asString());
         }
         adjacency<0> hyperedges(aos_a);
         adjacency<1> hypernodes(aos_a);
@@ -95,7 +95,7 @@ int main(int argc, char* argv[]) {
       }
     };
 
-    auto&&[ hyperedges, hypernodes] = reader(file, verbose);
+    auto&&[ hyperedges, hypernodes, iperm] = graph_reader<directed>(file, args["--relabel"].asLong(), args["--direction"].asString());
     auto&& hyperedge_degrees = hyperedges.degrees(std::execution::par_unseq);
 
     if (debug) {

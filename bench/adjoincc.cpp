@@ -72,7 +72,7 @@ int main(int argc, char* argv[]) {
   // them real symbols here rather than the local bindings.
   for (auto&& file : files) {
     size_t num_realedges = 0, num_realnodes = 0;
-    auto&& [g, g_t]    = graph_reader_adjoin(file, num_realedges, num_realnodes);
+    auto&& [g, g_t, iperm]    = graph_reader_adjoin(file, num_realedges, num_realnodes);
     std::cout << "num_hyperedges = " << num_realedges << " num_hypernodes = " << num_realnodes << std::endl;
     std::cout << "size of the merged adjacency = " << g.size() << std::endl;
 

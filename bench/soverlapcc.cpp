@@ -74,7 +74,8 @@ int main(int argc, char* argv[]) {
   Times_WithS<bool> times;
 
   for (auto&& file : files) {
-    auto&& [hyperedges, hypernodes] = graph_reader(file, idx, direction);
+    size_t nrealedges = 0, nrealnodes = 0;
+    auto&& [hyperedges, hypernodes, iperm] = graph_reader<undirected>(file, idx, direction, adjoin, nrealedges, nrealnodes);
     auto&& hyperedge_degrees = hyperedges.degrees(std::execution::par_unseq);
 
     if (verbose) {
@@ -90,7 +91,7 @@ int main(int argc, char* argv[]) {
     for (auto&& s : s_values) {
       auto&& s_adj =
           twograph_reader(loader_version, verbose, features, hyperedges,
-                          hypernodes, hyperedge_degrees, s, num_bins);
+                          hypernodes, hyperedge_degrees, iperm, nrealedges, nrealnodes, s, num_bins);
 
       for (auto&& thread : threads) {
         auto _ = set_n_threads(thread);

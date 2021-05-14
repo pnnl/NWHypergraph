@@ -10,7 +10,7 @@
 
 #pragma once
 #include <util/timer.hpp>
-
+#include <optional>
 #include "algorithms/slinegraph_efficient.hpp"
 #include "algorithms/slinegraph_map.hpp"
 #include "algorithms/slinegraph_naive.hpp"
@@ -22,7 +22,10 @@ namespace hypergraph {
 
 auto twograph_reader(int loader_version, bool verbose, std::bitset<8> &features,
                      adjacency<0> &edges, adjacency<1> &nodes,
-                     std::vector<nw::graph::index_t> &edgedegrees, size_t s = 1,
+                     std::vector<nw::graph::index_t> &edgedegrees,
+                     std::vector<vertex_id_t>& iperm,
+                     size_t nrealedges, size_t nrealnodes, 
+                     size_t s = 1,
                      int num_bins = 32) {
   switch (loader_version) {
     case 0: {
@@ -115,6 +118,21 @@ auto twograph_reader(int loader_version, bool verbose, std::bitset<8> &features,
           populate_linegraph_from_neighbor_map<undirected>(neighbor_count, s);
       // where when an empty edge list is passed in, an adjacency still have two
       // elements
+      if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
+      nw::graph::adjacency<0> s_adj(linegraph);
+      std::cout << "line graph edges = " << linegraph.size()
+                << ", adjacency size = " << s_adj.size()
+                << ", max= " << s_adj.max() << std::endl;
+      return s_adj;
+    }
+    case 7: {
+      nw::graph::edge_list<undirected> &&linegraph =
+          to_two_graph_adjoin_cyclic<undirected>(
+              std::execution::par_unseq, edges, edgedegrees,
+              iperm,
+              nrealedges, nrealnodes, s, num_bins);
+      // where when an empty edge list is passed in, an adjacency still have
+      // two elements
       if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
       nw::graph::adjacency<0> s_adj(linegraph);
       std::cout << "line graph edges = " << linegraph.size()
