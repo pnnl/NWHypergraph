@@ -17,15 +17,19 @@ void mm_fill_adjoin(std::istream& inputStream,
 EdgeList& A, 
 size_t nedges, size_t nnodes, 
 size_t nNonzeros, bool file_symmetry, bool pattern) {
-  A.reserve(nNonzeros);
+  //A.reserve(nNonzeros);
+  A.reserve((file_symmetry ? 2 : 1) * nNonzeros);
   A.open_for_push_back();
   if (nedges > nnodes) {
     if (pattern) {
       for (size_t i = 0; i < nNonzeros; ++i) {
         size_t d0, d1;
         inputStream >> d0 >> d1;
-
+        
         A.push_back(d0, d1 + nedges);
+        if (file_symmetry && (d0 != d1)) {
+          A.push_back(d1 + nedges, d0);
+        }
       }
     }
     else {
@@ -35,6 +39,9 @@ size_t nNonzeros, bool file_symmetry, bool pattern) {
         inputStream >> d0 >> d1 >> d2;
 
         A.push_back(d0, d1 + nedges);
+        if (file_symmetry && (d0 != d1)) {
+          A.push_back(d1 + nedges, d0);
+        }
       }
     }
   }
@@ -43,8 +50,10 @@ size_t nNonzeros, bool file_symmetry, bool pattern) {
       for (size_t i = 0; i < nNonzeros; ++i) {
         size_t d0, d1;
         inputStream >> d0 >> d1;
-
         A.push_back(d0 + nnodes, d1);
+        if (file_symmetry && (d0 != d1)) {
+          A.push_back(d1, d0 + nnodes);
+        }
       }
     }
     else {
@@ -54,6 +63,9 @@ size_t nNonzeros, bool file_symmetry, bool pattern) {
         inputStream >> d0 >> d1 >> d2;
 
         A.push_back(d0 + nnodes, d1);
+        if (file_symmetry && (d0 != d1)) {
+          A.push_back(d1, d0 + nnodes);
+        }
       }
     }
   }
@@ -150,7 +162,7 @@ nw::graph::edge_list<sym, Attributes...> read_mm_adjoin(const std::string& filen
   std::stringstream(string_input) >> numRealEdges >> numRealNodes >> nNonzeros;
 
   nw::graph::edge_list<sym, Attributes...> A(numRealEdges);
-  mm_fill_adjoin(inputStream, A, numRealEdges, numRealNodes, nNonzeros, file_symmetry, (header[3] == "pattern"));
+  mm_fill_adjoin<nw::graph::edge_list<sym, Attributes...>, Attributes...>(inputStream, A, numRealEdges, numRealNodes, nNonzeros, file_symmetry, (header[3] == "pattern"));
   A.set_origin(filename);
   
   return A;

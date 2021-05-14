@@ -179,9 +179,10 @@ auto graph_reader_relabel(std::string file, int idx, std::string direction) {
   // Run relabeling. This operates directly on the incoming edglist.
   if (-1 != idx) {
     std::cout << "relabeling edge_list by degree..." << std::endl;
-    iperm =
-          1 == idx ? nw::hypergraph::relabel_by_degree<1>(aos_a, direction)
-                   : nw::hypergraph::relabel_by_degree<0>(aos_a, direction);
+    if (1 == idx)
+      iperm = nw::hypergraph::relabel_by_degree<1>(aos_a, direction);
+    else
+      iperm = nw::hypergraph::relabel_by_degree<0>(aos_a, direction);
   }
   nw::graph::adjacency<0, Attributes...> hyperedges(aos_a);
   nw::graph::adjacency<1, Attributes...> hypernodes(aos_a);
@@ -211,6 +212,8 @@ auto graph_reader_adjoin_and_relabel(std::string file, const int idx, std::strin
       iperm = nw::hypergraph::relabel_by_degree<>(
           hyperedges, hypernodes, idx, direction);
     }
+    std::cout << "num_realedges = " << nrealedges
+            << " num_realnodes = " << nrealnodes << std::endl; 
     std::cout << "num_hyperedges = " << hyperedges.size()
               << " num_hypernodes = " << hypernodes.size() << std::endl;
     return std::tuple(hyperedges, hypernodes, iperm);
@@ -225,7 +228,10 @@ auto graph_reader_adjoin_and_relabel(std::string file, const int idx, std::strin
     }
     nw::graph::adjacency<0, Attributes...> g(aos_a);
     nw::graph::adjacency<1, Attributes...> g_t(aos_a);
-
+    std::cout << "num_realedges = " << nrealedges
+            << " num_realnodes = " << nrealnodes << std::endl;    
+    std::cout << "num_hyperedges = " << g.size()
+            << " num_hypernodes = " << g_t.size() << std::endl;
     return std::tuple(g, g_t, iperm);
   }
 }
@@ -236,21 +242,28 @@ auto graph_reader_adjoin_and_relabel(std::string file, const int idx, std::strin
  * Adjoin will increment the ids of the smaller set of the hyperedges or hypernodes,
  * such that the ids of both are now contiguous.
  **/
-template<directedness edge_directedness = directed, typename... Attributes>
+template <directedness edge_directedness = directed, typename... Attributes>
 auto graph_reader_adjoin(std::string file, size_t& nrealedges,
                          size_t& nrealnodes) {
-  auto aos_a =
-      read_mm_adjoin<edge_directedness, Attributes...>(file, nrealedges, nrealnodes);
+  auto aos_a = read_mm_adjoin<edge_directedness, Attributes...>(
+      file, nrealedges, nrealnodes);
   if (0 == aos_a.size()) {
-    auto&& [hyperedges, hypernodes] = read_and_adjoin_adj_hypergraph_pair(file, nrealedges, nrealnodes);
+    auto&& [hyperedges, hypernodes] =
+        read_and_adjoin_adj_hypergraph_pair(file, nrealedges, nrealnodes);
+    std::cout << "num_realedges = " << nrealedges
+            << " num_realnodes = " << nrealnodes << std::endl;
+      std::cout << "num_hyperedges = " << hyperedges.size()
+            << " num_hypernodes = " << hypernodes.size() << std::endl;
     return std::tuple(hyperedges, hypernodes, std::vector<vertex_id_t>());
   }
   nw::graph::adjacency<0, Attributes...> g(aos_a);
   nw::graph::adjacency<1, Attributes...> g_t(aos_a);
-
+  std::cout << "num_realedges = " << nrealedges
+            << " num_realnodes = " << nrealnodes << std::endl;
+  std::cout << "num_hyperedges = " << g.size()
+            << " num_hypernodes = " << g_t.size() << std::endl;
   return std::tuple(g, g_t, std::vector<vertex_id_t>());
 }
-
 
 template<directedness edge_directedness = directed, typename... Attributes>
 auto graph_reader(std::string file, int idx, std::string direction, bool adjoin, size_t& nrealedges, size_t& nrealnodes) {

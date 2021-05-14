@@ -75,7 +75,20 @@ int main(int argc, char* argv[]) {
 
   for (auto&& file : files) {
     size_t nrealedges = 0, nrealnodes = 0;
-    auto&& [hyperedges, hypernodes, iperm] = graph_reader<undirected>(file, idx, direction, adjoin, nrealedges, nrealnodes);
+    auto&& [hyperedges, hypernodes, iperm] = graph_reader<directed>(file, idx, direction, adjoin, nrealedges, nrealnodes);
+    if (verbose) {
+      hyperedges.stream_indices();
+      hypernodes.stream_indices();
+    }
+    if (-1 != idx)
+      assert(!iperm.empty());
+    
+    if (adjoin) {
+      std::cout << "size of the merged adjacency = " << hyperedges.size() << std::endl;
+      assert(0 != nrealedges);
+      assert(0 != nrealnodes);
+    }
+
     auto&& hyperedge_degrees = hyperedges.degrees(std::execution::par_unseq);
 
     if (verbose) {

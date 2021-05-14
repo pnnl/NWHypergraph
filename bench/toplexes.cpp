@@ -67,34 +67,6 @@ int main(int argc, char* argv[]) {
   // standard). That's a little bit noisy where it happens, so I just give
   // them real symbols here rather than the local bindings.
   for (auto&& file : files) {
-    auto reader = [&](std::string file) {
-      auto aos_a   = load_graph<directed>(file);
-      const long idx = args["--relabel"].asLong();
-      if (0 == aos_a.size()) {
-        auto&& [hyperedges, hypernodes] = load_adjacency<>(file);
-        // Run relabeling. This operates directly on the incoming edglist.
-        if (-1 != idx) {
-          nw::hypergraph::relabel_by_degree(hyperedges, hypernodes, idx, args["--direction"].asString());
-        }
-        std::cout << "num_hyperedges = " << hyperedges.size() << " num_hypernodes = " << hypernodes.size() << std::endl;
-        return std::tuple(hyperedges, hypernodes);
-      }
-      else {
-        // Run relabeling. This operates directly on the incoming edglist.
-        if (-1 != idx) {
-          std::cout << "relabeling edge_list by degree..." << std::endl;
-          if (1 == idx)
-            nw::hypergraph::relabel_by_degree<1, directed>(aos_a, args["--direction"].asString());
-          else
-            nw::hypergraph::relabel_by_degree<0, directed>(aos_a, args["--direction"].asString());
-        }
-        adjacency<0> hyperedges(aos_a);
-        adjacency<1> hypernodes(aos_a);
-        std::cout << "num_hyperedges = " << hyperedges.size() << " num_hypernodes = " << hypernodes.size() << std::endl;
-        return std::tuple(hyperedges, hypernodes);
-      }
-    };
-
     auto&&[ hyperedges, hypernodes, iperm] = graph_reader<directed>(file, args["--relabel"].asLong(), args["--direction"].asString());
     auto&& hyperedge_degrees = hyperedges.degrees(std::execution::par_unseq);
 
