@@ -127,7 +127,7 @@ size_t nNonzeros, bool file_symmetry, bool pattern) {
   A.close_for_push_back();
 }
 
-//loader for mmio
+//loader for mmio_adjoin
 template<nw::graph::directedness sym, typename... Attributes>
 nw::graph::edge_list<sym, Attributes...> read_mm_adjoin(const std::string& filename, size_t& numRealEdges, size_t& numRealNodes) {
   nw::util::life_timer _(__func__);
@@ -161,7 +161,7 @@ nw::graph::edge_list<sym, Attributes...> read_mm_adjoin(const std::string& filen
   size_t nNonzeros;
   std::stringstream(string_input) >> numRealEdges >> numRealNodes >> nNonzeros;
 
-  nw::graph::edge_list<sym, Attributes...> A(numRealEdges);
+  nw::graph::edge_list<sym, Attributes...> A(numRealEdges + numRealNodes);
   mm_fill_adjoin<nw::graph::edge_list<sym, Attributes...>, Attributes...>(inputStream, A, numRealEdges, numRealNodes, nNonzeros, file_symmetry, (header[3] == "pattern"));
   A.set_origin(filename);
   

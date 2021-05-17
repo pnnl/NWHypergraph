@@ -246,7 +246,13 @@ const size_t n0, const size_t m0, const size_t n1, const size_t m1) {
   return adjacency<0>(std::move(v0), std::move(e0));
 }
 
-auto read_and_adjoin_adj_hypergraph_pair(std::istream& inputStream, size_t& nreal_edges, size_t& nreal_nodes) {
+auto read_and_adjoin_adj_hypergraph_pair(const std::string& filename, size_t& nreal_edges, size_t& nreal_nodes) {
+  nw::util::life_timer _(__func__);
+  std::ifstream inputStream(filename, std::ifstream::in);
+  if (!inputStream.is_open()) {
+    std::cerr << "Can not open file: " << filename << std::endl;
+    throw;
+  }
   std::string buffer;
   inputStream >> buffer;
 
@@ -265,7 +271,13 @@ auto read_and_adjoin_adj_hypergraph_pair(std::istream& inputStream, size_t& nrea
   return adj_hypergraph_pair_fill_and_adjoin_v1(inputStream, nreal_nodes, m0, nreal_edges, m1);
 }
 
-auto read_and_adjoin_adj_hypergraph(std::istream& inputStream, size_t& nreal_edges, size_t& nreal_nodes) {
+auto read_and_adjoin_adj_hypergraph(const std::string& filename, size_t& nreal_edges, size_t& nreal_nodes) {
+  nw::util::life_timer _(__func__);
+  std::ifstream inputStream(filename, std::ifstream::in);
+  if (!inputStream.is_open()) {
+    std::cerr << "Can not open file: " << filename << std::endl;
+    throw;
+  }
   std::string buffer;
   inputStream >> buffer;
 
@@ -282,26 +294,6 @@ auto read_and_adjoin_adj_hypergraph(std::istream& inputStream, size_t& nreal_edg
   //std::cout << nreal_nodes << " " << m0 << " " << nreal_edges << " " << m1 << std::endl;
 
   return adj_hypergraph_fill_and_adjoin(inputStream, nreal_nodes, m0, nreal_edges, m1);
-}
-
-auto read_and_adjoin_adj_hypergraph_pair(const std::string& filename, size_t& nreal_edges, size_t& nreal_nodes) {
-  nw::util::life_timer _(__func__);
-  std::ifstream file(filename, std::ifstream::in);
-  if (!file.is_open()) {
-    std::cerr << "Can not open file: " << filename << std::endl;
-    throw;
-  }
-  return read_and_adjoin_adj_hypergraph_pair(file, nreal_edges, nreal_nodes);
-}
-
-auto read_and_adjoin_adj_hypergraph(const std::string& filename, size_t& nreal_edges, size_t& nreal_nodes) {
-  nw::util::life_timer _(__func__);
-  std::ifstream file(filename, std::ifstream::in);
-  if (!file.is_open()) {
-    std::cerr << "Can not open file: " << filename << std::endl;
-    throw;
-  }
-  return read_and_adjoin_adj_hypergraph(file, nreal_edges, nreal_nodes);
 }
 
 

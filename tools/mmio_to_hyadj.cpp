@@ -43,7 +43,7 @@ int main(int argc, char* argv[]) {
 
   auto aos_a   = load_graph<directed>(input_file);
   if (0 == aos_a.size()) {
-    std::cerr << "not matrix market file, convert abort" << std::endl;
+    std::cerr << input_file << " is not matrix market file, convert abort" << std::endl;
     exit(1);
   }
   adjacency<0> E(aos_a);
