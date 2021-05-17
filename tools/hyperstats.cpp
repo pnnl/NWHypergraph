@@ -68,7 +68,6 @@ int main(int argc, char* argv[]) {
   for (std::size_t i = 0; i < op.size(); ++i) {
     std::get<2>(files[i]) = op[i];
   }
-  Times<bool> times;
 
   // Appease clang.
   //
@@ -193,8 +192,6 @@ int main(int argc, char* argv[]) {
         std::cerr << "unrecognized flag" << std::endl;
     }
   } //for file
-
-  times.print(std::cout);
 
   return 0;
 }
