@@ -133,7 +133,7 @@ public:
         auto new_col = as_pyarray<std::vector<Index_t>>(std::move(new_y));
         auto new_data = as_pyarray<std::vector<Attributes...>>(std::move(new_w));
         //create a new hypergraph from the new rol, col and data
-        NWHypergraph<Index_t, Attributes...> newh(new_row, new_col, new_data);
+        //NWHypergraph<Index_t, Attributes...> newh(new_row, new_col, new_data);
 
         //create a mapping from the new id to old id from the equal class
         std::map<Index_t, std::set<Index_t>> dict;
@@ -152,7 +152,8 @@ public:
             }
         }
 
-        return std::tuple{newh, dict};
+        //return std::tuple{newh, dict};
+        return dict;
     }
 
     decltype(auto) collapse_nodes(bool return_equivalence_class = false) {
@@ -177,7 +178,7 @@ public:
         auto new_row = as_pyarray<std::vector<Index_t>>(std::move(new_y));
         auto new_data = as_pyarray<std::vector<Attributes...>>(std::move(new_w));
         //create a new hypergraph from the new rol, col and data
-        NWHypergraph<Index_t, Attributes...> newh(new_col, new_row, new_data);
+        //NWHypergraph<Index_t, Attributes...> newh(new_col, new_row, new_data);
 
         //create a mapping from the new id to old id from the equal class
         std::map<Index_t, std::set<Index_t>> dict;
@@ -196,7 +197,8 @@ public:
             }
         }
 
-        return std::tuple{newh, dict};
+        //return std::tuple{newh, dict};
+        return dict;
     }
 
     decltype(auto) collapse_nodes_and_edges(bool return_equivalence_class = false) {
@@ -235,7 +237,7 @@ public:
         auto new_col = as_pyarray<std::vector<Index_t>>(std::move(new_y));
         auto new_data = as_pyarray<std::vector<Attributes...>>(std::move(new_w));
         //create a new hypergraph from the new rol, col and data
-        NWHypergraph<Index_t, Attributes...> newh(new_row, new_col, new_data);
+        //NWHypergraph<Index_t, Attributes...> newh(new_row, new_col, new_data);
 
         std::map<Index_t, std::set<Index_t>> dict;
         if (return_equivalence_class) {
@@ -253,7 +255,8 @@ public:
             }
         }
 
-        return std::tuple{newh, dict};
+        //return std::tuple{newh, dict};
+        return dict;
     }
 
     std::vector<std::map<size_t, size_t>> get_edge_neighbor_counts() const { return edge_neighbor_count_; }
