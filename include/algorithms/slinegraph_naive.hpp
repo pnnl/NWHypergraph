@@ -62,14 +62,22 @@ auto to_two_graph_naive_parallel_with_counter(ExecutionPolicy&& ep, HyperEdge& e
       }
     }
   }, tbb::auto_partitioner());
-  std::cout << "#visits for each thread:" << std::endl;
-  for (auto &v : num_visits)
-    std::cout << v << " ";
-  std::cout << std::endl;
-  std::cout << "#edges for each thread:" << std::endl;
-  for (auto &v : num_edges)
-    std::cout << v << " ";
-  std::cout << std::endl;
+  //std::cout << "#visits for each thread:" << std::endl;
+  std::cout << "Total #visits: ";
+  size_t total_visits = 0;
+  for (auto &v : num_visits) {
+    total_visits += v;
+    //std::cout << v << " ";
+  }
+  std::cout << total_visits << std::endl;
+  size_t total_edges = 0;
+  std::cout << "Total #edges: ";
+  //std::cout << "#edges for each thread:" << std::endl;
+  for (auto &v : num_edges) {
+    total_edges += v;
+    //std::cout << v << " ";
+  }
+  std::cout << total_edges << std::endl;
   }
   return create_edgelist_with_squeeze(two_graphs);
 }
