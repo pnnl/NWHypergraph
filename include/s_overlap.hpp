@@ -127,7 +127,7 @@ auto twograph_reader(int loader_version, bool verbose, std::bitset<8> &features,
     }
     case 7: {
       nw::graph::edge_list<undirected> &&linegraph =
-          to_two_graph_adjoin_cyclic<undirected>(
+          to_two_graph_map_frontier_portal<undirected>(
               std::execution::par_unseq, edges, nodes, edgedegrees,
               iperm,
               nrealedges, nrealnodes, s, num_bins);

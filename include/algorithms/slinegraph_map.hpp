@@ -50,9 +50,11 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
     tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M), [&](tbb::blocked_range<vertex_id_t>& r) {
       int worker_index = tbb::task_arena::current_thread_index();    
       for (auto hyperE = r.begin(), e = r.end(); hyperE != e; ++hyperE) {
+        std::cout << "hyperE= " << hyperE << std::endl;
         std::map<size_t, size_t> K;
         for (auto &&[hyperN] : edges[hyperE]) {
           for (auto &&[anotherhyperE] : nodes[hyperN]) {
+            std::cout << anotherhyperE << " ";
             if (hyperE < anotherhyperE) ++K[anotherhyperE];
           }
         }
@@ -134,36 +136,191 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
 }
 
 /*
- * This to_two_graph operates on adjoined hypergraph.
+ * This to_two_graph operates on hypergraph based frontier.
  * The hypergraph can be relabeled by degree.
  * */
-template<directedness edge_directedness = undirected, class ExecutionPolicy, class Hypergraph>
-auto to_two_graph_adjoin_cyclic(ExecutionPolicy&& ep, Hypergraph& h, 
-std::vector<index_t>& degrees, std::vector<vertex_id_t>& iperm,
+template<directedness edge_directedness = undirected, class ExecutionPolicy, class Hypergraph, class HypergraphT>
+auto to_two_graph_map_frontier(ExecutionPolicy&& ep, Hypergraph& h, HypergraphT& ht,
+std::vector<index_t>& degrees, 
+std::vector<vertex_id_t>& frontier,
+size_t s = 1, int num_bins = 32) {
+  std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_bins);
+  std::cout << "frontier: ";
+  std::copy(frontier.begin(), frontier.end(), std::ostream_iterator<vertex_id_t>(std::cout, " "));
+  std::cout << std::endl;  
+  if (1 < s) {
+    nw::util::life_timer _(__func__);
+    std::for_each(ep, tbb::counting_iterator<size_t>(0ul), tbb::counting_iterator<size_t>(frontier.size()),
+        //nw::graph::cyclic(frontier, num_bins),
+        [&](auto i) {
+          int worker_index = tbb::task_arena::current_thread_index();
+          //for (auto&& j = i.begin(); j != i.end(); ++j) {
+            //auto&& [hyperE, w] = *j;
+            auto hyperE = frontier[i];
+            if (degrees[hyperE] < s) return;
+            std::map<size_t, size_t> K;
+            for (auto&& [hyperN] : h[hyperE]) {
+              for (auto&& [anotherhyperE] : ht[hyperN]) {
+                if (degrees[anotherhyperE] < s) continue;
+                if (hyperE < anotherhyperE) ++K[anotherhyperE];
+              }
+            }
+            for (auto&& [anotherhyperE, val] : K) {
+              if (val >= s)
+                two_graphs[worker_index].push_back(
+                    std::make_tuple<vertex_id_t, vertex_id_t>(
+                        std::forward<vertex_id_t>(hyperE),
+                        std::forward<vertex_id_t>(anotherhyperE)));
+            }
+          //}
+        });
+        //tbb::auto_partitioner());
+  } else {
+    nw::util::life_timer _(__func__);
+    tbb::parallel_for(tbb::blocked_range(0ul, frontier.size()),
+    //std::for_each(frontier.begin(), frontier.end(),
+        //nw::graph::cyclic(frontier, num_bins),
+        [&](auto i) {
+          int worker_index = tbb::task_arena::current_thread_index();
+          for (auto&& j = i.begin(); j != i.end(); ++j) 
+          {
+            //auto&& [hyperE, w] = *j;
+            auto hyperE = frontier[j];
+            std::map<size_t, size_t> K;
+            for (auto&& [hyperN] : h[hyperE]) {
+              for (auto&& [anotherhyperE] : ht[hyperN]) {
+                if (hyperE < anotherhyperE) ++K[anotherhyperE];
+              }
+            }
+            for (auto&& [anotherhyperE, val] : K) {
+              two_graphs[worker_index].push_back(
+                  std::make_tuple<vertex_id_t, vertex_id_t>(
+                      std::forward<vertex_id_t>(hyperE),
+                      std::forward<vertex_id_t>(anotherhyperE)));
+            }
+          }
+        }, tbb::auto_partitioner());
+    nw::graph::edge_list<edge_directedness> result(0);
+    result.open_for_push_back();
+    //do this in serial
+    std::for_each(tbb::counting_iterator<int>(0), tbb::counting_iterator<int>(num_bins), [&](auto i) {
+      std::for_each(two_graphs[i].begin(), two_graphs[i].end(), [&](auto&& e){
+        result.push_back(e);
+      });
+    });
+    result.close_for_push_back();
+    return result;
+  }
+  return create_edgelist_with_squeeze(two_graphs);
+}
+
+/*
+ * This to_two_graph operates on adjoin hypergraph without relabeling by degree.
+ * */
+template<directedness edge_directedness = undirected, class ExecutionPolicy, class Hypergraph, class HypergraphT>
+auto to_two_graph_map_frontier_adjoin(ExecutionPolicy&& ep, Hypergraph& h, HypergraphT& ht,
+std::vector<index_t>& degrees, 
+std::vector<vertex_id_t>& frontier,
 size_t nrealedges, size_t nrealnodes, 
 size_t s = 1, int num_bins = 32) {
   std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_bins);
-  std::vector<vertex_id_t> frontier(nrealedges); 
-  if (iperm.empty()) {
-    std::for_each(ep, counting_iterator<vertex_id_t>(0),
-                  counting_iterator<vertex_id_t>(nrealedges), [&](auto i) {
-                    frontier[i] = i;
-                  });
-  }
-  else {
-    auto start = std::begin(iperm);
-    auto end = std::begin(iperm) + nrealedges;
-    std::copy(ep, start, end, frontier.begin());
-  }
+  std::cout << "frontier: ";
+  std::copy(frontier.begin(), frontier.end(), std::ostream_iterator<vertex_id_t>(std::cout, " "));
+  std::cout << std::endl;  
   if (1 < s) {
     nw::util::life_timer _(__func__);
-    tbb::parallel_for(
-        nw::graph::cyclic(frontier, num_bins),
-        [&](auto& i) {
+    std::for_each(ep, tbb::counting_iterator<int>(0), tbb::counting_iterator<int>(frontier.size()),
+        //nw::graph::cyclic(frontier, num_bins),
+        [&](auto i) {
           int worker_index = tbb::task_arena::current_thread_index();
-          for (auto&& j = i.begin(); j != i.end(); ++j) {
-            auto&& [hyperE, w] = *j;
-            if (degrees[hyperE] < s) continue;
+          //for (auto&& j = i.begin(); j != i.end(); ++j) {
+            //auto&& [hyperE, w] = *j;
+            auto hyperE = frontier[i];
+            std::cout << hyperE << " ";
+            if (degrees[hyperE] < s) return;
+            std::map<size_t, size_t> K;
+            for (auto&& [hyperN] : h[hyperE]) {
+              for (auto&& [anotherhyperE] : ht[hyperN]) {
+                if (degrees[anotherhyperE] < s) continue;
+                if (hyperE < anotherhyperE) ++K[anotherhyperE];
+              }
+            }
+            for (auto&& [anotherhyperE, val] : K) {
+              if (val >= s)
+                two_graphs[worker_index].push_back(
+                    std::make_tuple<vertex_id_t, vertex_id_t>(
+                        std::forward<vertex_id_t>(hyperE),
+                        std::forward<vertex_id_t>(anotherhyperE)));
+            }
+          //}
+        });
+        //tbb::auto_partitioner());
+  } else {
+    {
+      //only time the soverlap part
+      nw::util::life_timer _(__func__);
+      tbb::parallel_for(tbb::blocked_range(0ul, frontier.size()),
+        //nw::graph::cyclic(frontier, num_bins),
+        [&](auto i) {
+          int worker_index = tbb::task_arena::current_thread_index();
+          for (auto&& j = i.begin(); j != i.end(); ++j) 
+          {
+            //auto&& [hyperE, w] = *j;
+            auto hyperE = frontier[j];
+            std::map<size_t, size_t> K;
+            for (auto&& [hyperN] : h[hyperE]) {
+              for (auto&& [anotherhyperE] : ht[hyperN]) {
+                if (hyperE < anotherhyperE) ++K[anotherhyperE];
+              }
+            }
+            for (auto&& [anotherhyperE, val] : K) {
+              two_graphs[worker_index].push_back(
+                  std::make_tuple<vertex_id_t, vertex_id_t>(
+                      std::forward<vertex_id_t>(hyperE),
+                      std::forward<vertex_id_t>(anotherhyperE)));
+            }
+          }
+        }, tbb::auto_partitioner());
+    }
+    nw::graph::edge_list<edge_directedness> result(0);
+    result.open_for_push_back();
+    //do this in serial
+    std::for_each(tbb::counting_iterator<int>(0), tbb::counting_iterator<int>(num_bins), [&](auto i) {
+      std::for_each(two_graphs[i].begin(), two_graphs[i].end(), [&](auto&& e){
+        result.push_back(e);
+      });
+    });
+    result.close_for_push_back();
+    return result;
+  }
+  return create_edgelist_with_squeeze(two_graphs);
+}
+
+/*
+ * This to_two_graph operates on adjoin hypergraph after relabel by degree.
+ * The original ids are stored in the iperm array.
+ * */
+template<directedness edge_directedness = undirected, class ExecutionPolicy, class Hypergraph>
+auto to_two_graph_map_frontier_adjoin_relabel(ExecutionPolicy&& ep, Hypergraph& h,
+std::vector<index_t>& degrees, std::vector<vertex_id_t>& iperm,
+std::vector<vertex_id_t>& frontier,
+size_t nrealedges, size_t nrealnodes, 
+size_t s = 1, int num_bins = 32) {
+  std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_bins);
+  std::cout << "frontier: ";
+  std::copy(frontier.begin(), frontier.end(), std::ostream_iterator<vertex_id_t>(std::cout, " "));
+  std::cout << std::endl;  
+  if (1 < s) {
+    nw::util::life_timer _(__func__);
+    std::for_each(ep, tbb::counting_iterator<int>(0), tbb::counting_iterator<int>(frontier.size()),
+        //nw::graph::cyclic(frontier, num_bins),
+        [&](auto i) {
+          int worker_index = tbb::task_arena::current_thread_index();
+          //for (auto&& j = i.begin(); j != i.end(); ++j) {
+            //auto&& [hyperE, w] = *j;
+            auto hyperE = frontier[i];
+            std::cout << hyperE << " ";
+            if (degrees[hyperE] < s) return;
             std::map<size_t, size_t> K;
             for (auto&& [hyperN] : h[hyperE]) {
               for (auto&& [anotherhyperE] : h[hyperN]) {
@@ -178,32 +335,37 @@ size_t s = 1, int num_bins = 32) {
                         std::forward<vertex_id_t>(hyperE),
                         std::forward<vertex_id_t>(anotherhyperE)));
             }
-          }
-        },
-        tbb::auto_partitioner());
+          //}
+        });
+        //tbb::auto_partitioner());
   } else {
     nw::util::life_timer _(__func__);
-    tbb::parallel_for(
-        nw::graph::cyclic(frontier, num_bins),
-        [&](auto& i) {
+    //tbb::parallel_for(
+      //tbb::blocked_range(0ul, frontier.size()),
+        std::for_each(frontier.begin(), frontier.end(),
+        //nw::graph::cyclic(frontier, num_bins),
+        [&](auto hyperE) {
           int worker_index = tbb::task_arena::current_thread_index();
-          for (auto&& j = i.begin(); j != i.end(); ++j) {
-            auto&& [hyperE, w] = *j;
+          //for (auto&& j = i.begin(); j != i.end(); ++j) 
+          {
+            //auto&& [hyperE, w] = *j;
+            //auto hyperE = frontier[j];
+            std::cout << "hyperE=" << hyperE << std::endl;
             std::map<size_t, size_t> K;
             for (auto&& [hyperN] : h[hyperE]) {
+              std::cout << hyperN << " ";
               for (auto&& [anotherhyperE] : h[hyperN]) {
                 if (hyperE < anotherhyperE) ++K[anotherhyperE];
               }
             }
             for (auto&& [anotherhyperE, val] : K) {
               two_graphs[worker_index].push_back(
-                  std::make_pair<vertex_id_t, vertex_id_t>(
+                  std::make_tuple<vertex_id_t, vertex_id_t>(
                       std::forward<vertex_id_t>(hyperE),
                       std::forward<vertex_id_t>(anotherhyperE)));
             }
           }
-        },
-        tbb::auto_partitioner());
+        }); //, tbb::auto_partitioner()); 
     nw::graph::edge_list<edge_directedness> result(0);
     result.open_for_push_back();
     //do this in serial
@@ -482,6 +644,92 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
     return to_two_graph_map_cyclic_with_counter(ep, edges, nodes, hyperedgedegrees, s, num_bins);
 }
 
+/*
+* Portal for frontier based map soverlap computation algorithms.
+* It can handle:
+* 1) original hypergraph
+* 2) original hypergraph with relabeling by degree on either hyperedges/hypernodes
+* 3) adjoin hypergraph 
+* 4) adjoin hypergraph with relabeling by degree on both hyperedges/hypernodes
+* Portal will build frontier using the ids in the Hypergraph 'h'.
+* These ids could be different from the origial ids of the hyperedges.
+* For adjoin hypergraph, the new ids in h is incremented by the nrealedges/nrealnodes (whichever is larger).
+* For orignal
+*/
+template<directedness edge_directedness = undirected, class ExecutionPolicy, class Hypergraph, class HypergraphT>
+auto to_two_graph_map_frontier_portal(ExecutionPolicy&& ep, Hypergraph& h, HypergraphT& ht,
+std::vector<index_t>& degrees, std::vector<vertex_id_t>& iperm,
+size_t nrealedges, size_t nrealnodes, 
+size_t s = 1, int num_bins = 32) {
+  std::vector<vertex_id_t> frontier; //frontier will contain the number of edges no matter the ids of it
+  if (iperm.empty()) {
+    //without relabel by degree
+    size_t start, end;
+    if (0 == nrealnodes && 0 == nrealedges) {
+      std::cout << "degrees:" << std::endl;
+      for (vertex_id_t i = 0; i < h.size(); ++i) {
+        std::cout << i << ": " << degrees[i] << std::endl;
+      }
+      std::cout << std::endl;
+      // for original hypergraph, without adjoin or relabel by degree
+      start = 0ul;
+      end = h.size();
+      frontier.resize(end - start);
+      std::copy(ep, counting_iterator<vertex_id_t>(start), counting_iterator<vertex_id_t>(end), frontier.begin());
+      return to_two_graph_map_frontier(ep, h, ht, degrees, frontier, s, num_bins);
+    }
+    else {
+      // for adjoin hypergraph, without relabel by degree
+      if (nrealedges > nrealnodes) {
+        start = 0ul;
+        end = nrealedges;
+      } else {
+        start = nrealnodes - 1;
+        end = nrealnodes + nrealedges - 1;
+      }
+      frontier.resize(end - start);
+      std::copy(ep, counting_iterator<vertex_id_t>(start), counting_iterator<vertex_id_t>(end), frontier.begin());
+      return to_two_graph_map_frontier_adjoin(ep, h, ht, degrees, frontier, nrealedges, nrealnodes, s, num_bins);
+    }
+  }
+  else {
+    //with relabel by degree
+    if (0 == nrealnodes && 0 == nrealedges) {
+      // for original hypergraph, with relabel by degree
+      auto start = 0ul;
+      auto end = h.size();
+      frontier.resize(end - start);
+      std::copy(ep, counting_iterator<vertex_id_t>(start), counting_iterator<vertex_id_t>(end), frontier.begin());
+      return to_two_graph_map_frontier(ep, h, ht, degrees, frontier, s, num_bins);
+    }
+    else {
+      /*
+      std::cout << "degrees:" << std::endl;
+      for (vertex_id_t i = 0; i < h.size(); ++i) {
+        std::cout << i << ": " << degrees[i] << std::endl;
+      }
+      std::cout << std::endl;
+      */
+      // for adjoin hypergraph, with relabel by degree
+      size_t start, end;
+      if (nrealedges < nrealnodes) {
+        start = nrealnodes;
+        end = h.size();
+      } else {
+        start = 0ul;
+        end = nrealedges;
+      }
+      frontier.resize(end - start);
+      //std::copy(ep, counting_iterator<vertex_id_t>(start), counting_iterator<vertex_id_t>(end), frontier.begin());
+      std::for_each(ep, tbb::counting_iterator<vertex_id_t>(0ul),
+                    tbb::counting_iterator<vertex_id_t>(end - start),
+                    [&](auto i) { frontier[i] = iperm[i + start]; });
+      return to_two_graph_map_frontier_adjoin_relabel(ep, h, degrees, iperm,
+                                                      frontier, nrealedges,
+                                                      nrealnodes, s, num_bins);
+    }
+  }
+}
 /*
 * counts the neighbor hyperedges of the hyperedges
 */

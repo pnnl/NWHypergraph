@@ -128,32 +128,28 @@ const size_t n0, const size_t m0, const size_t n1, const size_t m1) {
   //v1-e1 is transpose
   std::vector<vertex_id_t> v0(N + 1), v1(N + 1);
   std::vector<vertex_id_t> e0(M), e1(M);
-  for (size_t i = 0, j = n1; i < n0; ++i, ++j)
-  {
+  for (size_t i = 0, j = n1; i < n0; ++i, ++j) {
     inputStream >> tmp;
     v0[i] = tmp;
     //increment each index of hypernodes
     //by m1 (the last index of first adjacency)
     v1[j] = tmp + m1;
   }
-  for (size_t i = 0, j = m1; i < m0; ++i, ++j)
-  {
+  for (size_t i = 0, j = m1; i < m0; ++i, ++j) {
     inputStream >> tmp;
     //increment each neighbor of hypernodes
     //by n0 (num of hypernodes)
     e0[i] = tmp + n0;
     e1[j] = tmp;
   }
-  for (size_t i = n0, j = 0, e = N; i < e; ++i, ++j)
-  {
+  for (size_t i = n0, j = 0, e = N; i < e; ++i, ++j) {
     inputStream >> tmp;
     //increment each index of hyperedges
     //by m0 (the last index of first adjacency)
     v0[i] = tmp + m0;
     v1[j] = tmp;
   }
-  for (size_t i = m0, j = 0, e = M; i < e; ++i, ++j)
-  {
+  for (size_t i = m0, j = 0, e = M; i < e; ++i, ++j) {
     inputStream >> tmp;
     e0[i] = tmp;
     //increment each neighbor of hypernodes

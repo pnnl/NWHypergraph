@@ -179,10 +179,12 @@ auto graph_reader_relabel(std::string file, int idx, std::string direction) {
   // Run relabeling. This operates directly on the incoming edglist.
   if (-1 != idx) {
     std::cout << "relabeling edge_list by degree..." << std::endl;
-    if (1 == idx)
+    if (1 == idx) {
       iperm = nw::hypergraph::relabel_by_degree<1>(aos_a, direction);
-    else
+    }
+    else {
       iperm = nw::hypergraph::relabel_by_degree<0>(aos_a, direction);
+    }
   }
   nw::graph::adjacency<0, Attributes...> hyperedges(aos_a);
   nw::graph::adjacency<1, Attributes...> hypernodes(aos_a);
@@ -201,37 +203,148 @@ auto graph_reader_relabel(std::string file, int idx, std::string direction) {
  * in the direction of ascending (default) or descending.
  **/
 template<directedness edge_directedness = directed, typename... Attributes>
-auto graph_reader_adjoin_and_relabel(std::string file, const int idx, std::string direction, size_t& nrealedges, size_t& nrealnodes) {
+auto graph_reader_adjoin_and_relabel(std::string file, const int idx, std::string direction, 
+size_t& nrealedges, size_t& nrealnodes) {
   auto aos_a =
       read_mm_adjoin<edge_directedness, Attributes...>(file, nrealedges, nrealnodes);
-  std::vector<vertex_id_t> iperm;
+  std::vector<vertex_id_t> iperm, perm;
   if (0 == aos_a.size()) {
-    auto&& [hyperedges, hypernodes] = read_and_adjoin_adj_hypergraph_pair(file, nrealedges, nrealnodes);
+    auto&& [h, ht] = read_and_adjoin_adj_hypergraph_pair(file, nrealedges, nrealnodes);
+
+    auto&& degrees = h.template degrees();
+    std::cout << "before adjoin:" << std::endl;
+    std::cout << "edge set:" << std::endl;
+    for (vertex_id_t i = 0; i < nrealedges; ++i) {
+      std::cout << i << " ";
+    }
+    std::cout << std::endl;
+    std::cout << "node set:" << std::endl;
+    for (vertex_id_t i = 0; i < nrealnodes; ++i) {
+      std::cout << i << " ";
+    }
+    std::cout << std::endl << std::endl;
+
+    std::cout << "after adjoin:" << std::endl;
+    if (nrealedges < nrealnodes) {
+      std::cout << "edge set:" << std::endl;
+      for (vertex_id_t i = nrealnodes; i < h.size(); ++i) {
+        std::cout << i << "(" << degrees[i] << ") ";
+      }
+      std::cout << std::endl;
+      std::cout << "node set:" << std::endl;
+      for (vertex_id_t i = 0; i < nrealnodes; ++i) {
+        std::cout << i << "(" << degrees[i] << ") ";
+      }
+      std::cout << std::endl << std::endl;
+    } else {
+      std::cout << "edge set:" << std::endl;
+      for (vertex_id_t i = 0; i < nrealedges; ++i) {
+        std::cout << i << "(" << degrees[i] << ") ";
+      }
+      std::cout << std::endl;
+      std::cout << "node set:" << std::endl;
+      for (vertex_id_t i = nrealedges; i < h.size(); ++i) {
+        std::cout << i << "(" << degrees[i] << ") ";
+      }
+      std::cout << std::endl << std::endl;
+    }
+
     // Run relabeling. This operates directly on the incoming edglist.
     if (-1 != idx) {
-      iperm = nw::hypergraph::relabel_by_degree<>(
-          hyperedges, hypernodes, idx, direction);
+      nw::util::life_timer _("relabel_by_degree");
+      auto&& iperm =
+            h.permute_by_degree(direction, std::execution::par_unseq);
+      std::cout << "relabeling adjacency by degree..." << std::endl;
+      ht.relabel_to_be_indexed(iperm, std::execution::par_unseq);
+      std::cout << "iperm: ";
+      for (auto i : iperm)
+        std::cout << i << " ";
+      std::cout << std::endl;
+      auto&& edge_degrees = h.template degrees();
+      std::cout << "after relabel:" << std::endl;
+      if (nrealedges < nrealnodes) {
+        std::cout << "edge set:" << std::endl;
+        for (vertex_id_t i = nrealnodes; i < h.size(); ++i) {
+          std::cout << i << "(" << degrees[i] << ")->" << iperm[i] << "("
+                    << edge_degrees[iperm[i]] << ")\n";
+        }
+        std::cout << std::endl;
+        std::cout << "node set:" << std::endl;
+        for (vertex_id_t i = 0; i < nrealnodes; ++i) {
+          std::cout << i << "(" << degrees[i] << ")->" << iperm[i]
+                    << "(" << edge_degrees[iperm[i]] << ")\n";
+        }
+        std::cout << std::endl << std::endl;
+      } else {
+        std::cout << "edge set:" << std::endl;
+        for (vertex_id_t i = 0; i < nrealedges; ++i) {
+          std::cout << iperm[i] << " ";
+        }
+        std::cout << std::endl;
+        std::cout << "node set:" << std::endl;
+        for (vertex_id_t i = nrealedges; i < h.size(); ++i) {
+          std::cout << iperm[i] << " ";
+        }
+        std::cout << std::endl << std::endl;
+      }
+      std::cout << std::endl << std::endl;
+
+      std::cout << "num_realedges = " << nrealedges
+                << " num_realnodes = " << nrealnodes << std::endl;
+      return std::tuple(h, ht, iperm);
     }
+
+        auto&& edge_degrees = h.template degrees();
+    std::cout << "after relabel:" << std::endl;
+    if (nrealedges < nrealnodes) {
+      std::cout << "edge set:" << std::endl;
+      for (vertex_id_t i = nrealnodes; i < h.size(); ++i) {
+        std::cout << i << "(" << degrees[i] <<  ")->" << iperm[i] << "(" << edge_degrees[iperm[i]] << ")\n";
+      }
+      std::cout << std::endl;
+      std::cout << "node set:" << std::endl;
+      for (vertex_id_t i = 0; i < nrealnodes; ++i) {
+       std::cout << i << "(" << degrees[i] <<  ")->" << iperm[i] << "(" << edge_degrees[iperm[i]] << ")\n";
+      }
+      std::cout << std::endl << std::endl;
+    } else {
+      std::cout << "edge set:" << std::endl;
+      for (vertex_id_t i = 0; i < nrealedges; ++i) {
+        std::cout << iperm[i] << " ";
+      }
+      std::cout << std::endl;
+      std::cout << "node set:" << std::endl;
+      for (vertex_id_t i = nrealedges; i < h.size(); ++i) {
+        std::cout << iperm[i] << " ";
+      }
+      std::cout << std::endl << std::endl;
+    }
+    std::cout << std::endl << std::endl;
+
     std::cout << "num_realedges = " << nrealedges
             << " num_realnodes = " << nrealnodes << std::endl; 
-    std::cout << "num_hyperedges = " << hyperedges.size()
-              << " num_hypernodes = " << hypernodes.size() << std::endl;
-    return std::tuple(hyperedges, hypernodes, iperm);
+    return std::tuple(h, ht, iperm);
   }
   else {
     // Run relabeling. This operates directly on the incoming edglist.
     if (-1 != idx) {
+      //since the adjoin graph is symmetric, when we need to relabel it
+      //we need to operate on both column 0 and column 1
       std::cout << "relabeling edge_list by degree..." << std::endl;
-      iperm =
-          1 == idx ? nw::hypergraph::relabel_by_degree<1, edge_directedness>(aos_a, direction)
-                   : nw::hypergraph::relabel_by_degree<0, edge_directedness>(aos_a, direction);
+      if (1 == idx) {
+        perm = aos_a.template perm_by_degree<1>(direction);
+        iperm = aos_a.relabel(perm);
+      }
+      else {
+        perm = aos_a.template perm_by_degree<0>(direction);
+        iperm = aos_a.relabel(perm);
+      }
     }
+
     nw::graph::adjacency<0, Attributes...> g(aos_a);
     nw::graph::adjacency<1, Attributes...> g_t(aos_a);
     std::cout << "num_realedges = " << nrealedges
             << " num_realnodes = " << nrealnodes << std::endl;    
-    std::cout << "num_hyperedges = " << g.size()
-            << " num_hypernodes = " << g_t.size() << std::endl;
     return std::tuple(g, g_t, iperm);
   }
 }
@@ -266,18 +379,22 @@ auto graph_reader_adjoin(std::string file, size_t& nrealedges,
 }
 
 template<directedness edge_directedness = directed, typename... Attributes>
-auto graph_reader(std::string file, int idx, std::string direction, bool adjoin, size_t& nrealedges, size_t& nrealnodes) {
+auto graph_reader(std::string file, int idx, std::string direction, bool adjoin, 
+size_t& nrealedges, size_t& nrealnodes) {
   if (adjoin) {
+    //adjoin hypergraph will be forced to be symmetric (undirected)
     if (-1 != idx)
-      return graph_reader_adjoin_and_relabel<edge_directedness, Attributes...>(file, idx, direction, nrealedges, nrealnodes);
+      return graph_reader_adjoin_and_relabel<undirected, Attributes...>(file, idx, direction, 
+      nrealedges, nrealnodes);
     else
-      return graph_reader_adjoin<edge_directedness, Attributes...>(file, nrealedges, nrealnodes);
+      return graph_reader_adjoin<undirected, Attributes...>(file, nrealedges, nrealnodes);
   }
-  else
+  else {
     if (-1 != idx)
       return graph_reader_relabel<edge_directedness, Attributes...>(file, idx, direction);
     else
       return graph_reader<edge_directedness, Attributes...>(file);
+  }
 }
 
 template<directedness edge_directedness = directed, typename... Attributes>

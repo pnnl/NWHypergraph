@@ -24,18 +24,18 @@ auto relabel_by_degree(adjacency<0, Attributes...>& edges, adjacency<1, Attribut
 int idx, std::string direction) {
   nw::util::life_timer _("relabel_by_degree");
   if (0 == idx) {
-    auto &&iperm = edges.permute_by_degree(direction, std::execution::par_unseq);
-    assert(iperm.size() == edges.size());
-    nodes.relabel_to_be_indexed(iperm, std::execution::par_unseq);
+    auto &&perm = edges.permute_by_degree(direction, std::execution::par_unseq);
+    assert(perm.size() == edges.size());
+    nodes.relabel_to_be_indexed(perm, std::execution::par_unseq);
     std::cout << "relabeling edge adjacency by degree..." << std::endl;
-    return iperm;
+    return perm;
   }
   else {
-    auto &&iperm = nodes.permute_by_degree(direction, std::execution::par_unseq);
-    assert(iperm.size() == nodes.size());
-    edges.relabel_to_be_indexed(iperm, std::execution::par_unseq);
+    auto &&perm = nodes.permute_by_degree(direction, std::execution::par_unseq);
+    assert(perm.size() == nodes.size());
+    edges.relabel_to_be_indexed(perm, std::execution::par_unseq);
     std::cout << "relabeling nodes adjacency by degree..." << std::endl;
-    return iperm;
+    return perm;
   }
 }
 
