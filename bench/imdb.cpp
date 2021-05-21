@@ -14,10 +14,11 @@
 #include "Log.hpp"
 #include "common.hpp"
 #include "s_overlap.hpp"
+#include "util/slinegraph_helper.hpp"
 #include "containers/edge_list_hy.hpp"
 #include "containers/compressed_hy.hpp"
 #include "algorithms/s_connected_components.hpp"
-
+#include <algorithms/betweenness_centrality.hpp>
 
 #include <fstream>
 #include <iostream>
@@ -79,13 +80,15 @@ int main(int argc, char* argv[]) {
   std::string name_basics_tsv = args["--name"].asString();
   std::string title_principals_tsv = args["--principal"].asString();
 
+  nw::graph::edge_list<nw::graph::directedness::directed> edges(0);
   nw::util::timer               t0("load titles");
   std::ifstream                 title_basics_stream(title_basics_tsv);
   auto                          titles     = xt::load_csv<std::string>(title_basics_stream, '\t');
   auto                          titles_shp = titles.shape();
   std::map<std::string, vertex_id_t> titles_map;
   std::map<vertex_id_t, std::string> titles_map_transpose;
-  for (vertex_id_t i = 0; i < titles_shp[0]; ++i) {
+  //skip the header by starting from i=1
+  for (vertex_id_t i = 1; i < titles_shp[0]; ++i) {
     if (titles(i, 1) == "movie") {
       titles_map[titles(i, 0)] = i;
       titles_map_transpose[i] = titles(i, 0);
@@ -99,10 +102,12 @@ int main(int argc, char* argv[]) {
   auto                          names     = xt::load_csv<std::string>(name_basics_stream, '\t');
   auto                          names_shp = names.shape();
   std::map<std::string, vertex_id_t> names_map;
+  // this vector store the PrimaryName of the actors
   std::vector<std::string> names_map_transpose(names_shp[0]);
-  for (vertex_id_t i = 0; i < names_shp[0]; ++i) {
+  //skip the header by starting from i=1
+  for (vertex_id_t i = 1; i < names_shp[0]; ++i) {
     names_map[names(i, 0)] = i;
-    names_map_transpose[i] = names(i, 0);
+    names_map_transpose[i] = names(i, 1);
   }
   t1.stop();
   std::cout << t1 << std::endl;
@@ -117,11 +122,12 @@ int main(int argc, char* argv[]) {
 
   nw::util::timer t3("build hypergraph");
 
-  nw::graph::edge_list<nw::graph::directedness::directed> edges;
+  
   edges.open_for_push_back();
 
   size_t title_counter = 0;
   size_t name_counter  = 0;
+  //skip the header by starting from i=1
   for (vertex_id_t i = 1; i < shp[0]; ++i) {
     if (title_principals(i, 3) == "actor" || title_principals(i, 3) == "actress") {
 
@@ -133,14 +139,20 @@ int main(int argc, char* argv[]) {
         auto aa  = titles(idx, 2);
         std::cout << title << " " << aa << std::endl;
       }
-      if (titles_map.find(title) == titles_map.end()) {
-	      titles_map[title] = title_counter++;
-      }
-      if (names_map.find(name) == names_map.end()) {
-	      names_map[name] = name_counter++;
-      }
 #endif
-      edges.push_back(titles_map[title], names_map[name]);
+      //if the title does not show, then it is not a movie.
+      auto it_title = titles_map.find(title);
+      if (it_title == titles_map.end()) {
+	      //titles_map[title] = title_counter++;
+        continue;
+      }
+      //same if the person is not an actor
+      auto it_name = names_map.find(name);
+      if (it_name == names_map.end()) {
+	      //names_map[name] = name_counter++;
+        continue;
+      }
+      edges.push_back(it_title->second, it_name->second);
     }
   }
   edges.close_for_push_back(false);
@@ -185,50 +197,37 @@ int main(int argc, char* argv[]) {
       },
       tbb::auto_partitioner());
   }
-  nw::graph::edge_list<nw::graph::directedness::undirected> s_overlap(0);
-  s_overlap.open_for_push_back();
-  // do this in serial
-  std::for_each(tbb::counting_iterator<int>(0),
-                tbb::counting_iterator<int>(num_bins), [&](auto i) {
-                  std::for_each(two_graphs[i].begin(), two_graphs[i].end(),
-                                [&](auto&& e) { s_overlap.push_back(e); });
-                });
-  s_overlap.close_for_push_back(false);
-  std::cout << "linegraph size: " << s_overlap.size() << std::endl;
-#if 0
-  nw::graph::edge_list<nw::graph::directedness::undirected, size_t> s_overlap;
-  s_overlap.open_for_push_back();
-
-  for (size_t i = 0; i < H.size(); ++i) {
-
-    if ((i % 8192) == 0) {
-      std::cout << i << std::endl;
-    }
-
-    for (auto&& [k] : H[i]) {
-      for (auto&& [j] : G[k]) {
-        if (j > i) {
-          s_overlap.push_back(i, j, k);
-        }
-      }
-    }
-  }
-  s_overlap.close_for_push_back();
-#endif
   t5.stop();
   std::cout << t5 << std::endl;
 
-  nw::util::timer t6("build s_overlap adjacency");
-
-  auto L = nw::graph::adjacency<0>(s_overlap);
+  //this dictionary keeps maping from old id (key), to new (value)
+  std::unordered_map<vertex_id_t, vertex_id_t> old_to_new;
+  nw::util::timer t6("squeeze s_overlap");
+  auto&& s_overlap = create_edgelist_with_squeeze<nw::graph::directedness::undirected>(two_graphs, old_to_new);
   t6.stop();
   std::cout << t6 << std::endl;
+  std::cout << "linegraph size: " << s_overlap.size() << std::endl;
+
+  //this dictionary keeps maping from new id (key), to old (value)
+  std::unordered_map<vertex_id_t, vertex_id_t> new_to_old;
+  for (auto& [oldid, newid] : old_to_new) {
+    new_to_old[newid] = oldid;
+  }
+
+  nw::util::timer t7("build s_overlap adjacency");
+
+  auto L = nw::graph::adjacency<0>(s_overlap);
+  t7.stop();
+  std::cout << t7 << std::endl;
 
   // Kevin Bacon is nm0000102
   // David Suchet is nm0837064
   // Kyra Sedgwick is nm0001718
-
+  nw::util::timer t8("compute s-connected components"); 
   auto E = ccv1(L);
+  t8.stop();
+  std::cout << t8 << std::endl;
+
   // only verify #cc in the result
   std::unordered_map<vertex_id_t, std::vector<vertex_id_t>> m;
   for (size_t i = 0, e = E.size(); i < e; ++i) {
@@ -248,7 +247,8 @@ int main(int argc, char* argv[]) {
       if (verbose) {
         std::cout << "Here are the " << s << "-connected components:" << std::endl;
         for (auto& i : v) {
-          std::cout << names_map_transpose[i] << " ";
+          auto oldid = new_to_old[i];
+          std::cout << names_map_transpose[oldid] << ", ";
         }
         std::cout << std::endl;
       }
@@ -257,5 +257,25 @@ int main(int argc, char* argv[]) {
   std::cout << m.size() << " components found" << std::endl;
   std::cout << numc << " non-singleton components found" << std::endl;
 
+  using score_t = float;
+  using accum_t = double;
+  nw::util::timer t9("compute s-betweenness centrality"); 
+  std::vector<score_t> bc = nw::graph::betweenness_brandes<decltype(L), score_t, accum_t>(L, false);
+  t9.stop();
+  std::cout << t9 << std::endl;
+  
+  int nbc = bc.size();
+  float scale = 1.0;
+  if (2 < nbc)
+    scale /= ((nbc - 1) * (nbc - 2));
+  for (size_t i = 0, e = nbc; i < e; ++i) {
+    //normalized
+    score_t score = bc[i] * scale;
+
+    if (0.0 != score) {
+      auto oldid = new_to_old[i];
+      std::cout << names_map_transpose[oldid] << "(" << score << ")" << std::endl;
+    }
+  }
   return 0;
 }
