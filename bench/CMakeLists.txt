@@ -12,6 +12,40 @@ get_filename_component(NW_HYPERGRAPH_CXX_COMPILER ${CMAKE_CXX_COMPILER} NAME)
 configure_file(config.h.in config.h)
 #include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
+include(FetchContent)
+set(XTENSOR_USE_TBB 1)
+
+# xsimd and TBB dependencies are automatically
+# searched when the following is executed
+
+find_package(xtensor QUIET)
+
+if (NOT xtensor_FOUND)
+  message("Installed xtensor not found, using cmake config fetched version")
+  FetchContent_Declare(
+    xtl
+    GIT_REPOSITORY https://github.com/xtensor-stack/xtl
+  )
+
+  FetchContent_GetProperties(xtl)
+  if(NOT xtl_POPULATED)
+    message("  Fetching xtl...")
+
+    FetchContent_Populate(xtl)
+    add_subdirectory(${xtl_SOURCE_DIR} ${xtl_BINARY_DIR})
+  endif()
+
+  FetchContent_Declare(xtensor
+    GIT_REPOSITORY https://github.com/xtensor-stack/xtensor
+  )
+  FetchContent_GetProperties(xtensor)
+  if(NOT xtensor_POPULATED)
+    message("  Fetching xtensor...")
+    FetchContent_Populate(xtensor)
+    add_subdirectory(${xtensor_SOURCE_DIR} ${xtensor_BINARY_DIR} EXCLUDE_FROM_ALL)
+  endif()
+endif()
+
 # -----------------------------------------------------------------------------
 # Create an interface library for the benchmarks to depend on.
 # -----------------------------------------------------------------------------
@@ -55,3 +89,5 @@ target_link_libraries(sbc.exe bench)
 add_executable(top.exe toplexes.cpp)
 target_link_libraries(top.exe bench)
 
+add_executable(imdb.exe imdb.cpp)
+target_link_libraries(imdb.exe bench xtensor)
