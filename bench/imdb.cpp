@@ -99,7 +99,7 @@ int main(int argc, char* argv[]) {
   auto                          names     = xt::load_csv<std::string>(name_basics_stream, '\t');
   auto                          names_shp = names.shape();
   std::map<std::string, vertex_id_t> names_map;
-  std::map<vertex_id_t, std::string> names_map_transpose;
+  std::vector<std::string> names_map_transpose(names_shp[0]);
   for (vertex_id_t i = 0; i < names_shp[0]; ++i) {
     names_map[names(i, 0)] = i;
     names_map_transpose[i] = names(i, 0);
@@ -163,15 +163,12 @@ int main(int argc, char* argv[]) {
   auto&& degrees = H.degrees();
   std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_bins);
   if (1 < s) {
-    tbb::parallel_for(
-      nw::graph::cyclic<decltype(H), vertex_id_t>(std::forward<decltype(H)>(H), num_bins),
-      [&](auto& i) {
-        int worker_index = tbb::task_arena::current_thread_index();
-        for (auto&& j = i.begin(); j != i.end(); ++j) {
-          auto&& [hyperE, hyperE_ngh] = *j;
+    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, H.size()), [&](tbb::blocked_range<vertex_id_t>& r) {
+      int worker_index = tbb::task_arena::current_thread_index();    
+      for (auto hyperE = r.begin(), e = r.end(); hyperE != e; ++hyperE) {
           if (degrees[hyperE] < s) continue;
           std::map<size_t, vertex_id_t> K;
-          for (auto&& [hyperN] : hyperE_ngh) {
+          for (auto&& [hyperN] : H[hyperE]) {
             for (auto&& [anotherhyperE] : G[hyperN]) {
               if (degrees[anotherhyperE] < s) continue;
               if (hyperE < anotherhyperE) ++K[anotherhyperE];
