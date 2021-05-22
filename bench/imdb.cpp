@@ -8,7 +8,6 @@
 // Author: Andrew Lumsdaine, Xu Tony Liu
 //
 
-#include <unordered_set>
 #include <docopt.h>
 #include <edge_list.hpp>
 #include "Log.hpp"
@@ -23,15 +22,11 @@
 #include <fstream>
 #include <iostream>
 
-#include <deque>
 #include <map>
-#include <queue>
 #include <string>
 #include <vector>
 
 #include "xtensor/xcsv.hpp"
-
-#include "bfs_edge_range.hpp"
 
 using namespace nw::hypergraph::bench;
 using namespace nw::hypergraph;
@@ -40,7 +35,7 @@ static constexpr const char USAGE[] =
     R"(imdb.exe: imdb benchmark driver.
   Usage:
       imdb.exe (-h | --help)
-      imdb.exe [--title FILE] [--name FILE] [--principal FILE] [--version ID...] [--loader-version ID] [-B NUM] [-s NUM...] [--relabel NUM] [--direction DIR] [-dvV] [--log FILE] [--log-header] [THREADS]...
+      imdb.exe [--title FILE] [--name FILE] [--principal FILE] [--version ID...] [--loader-version ID] [-B NUM] [-s NUM] [--relabel NUM] [--direction DIR] [-dvV] [--log FILE] [--log-header] [THREADS]...
 
   Options:
       -h, --help            show this screen
@@ -73,14 +68,12 @@ int main(int argc, char* argv[]) {
   std::vector ids     = parse_ids(args["--version"].asStringList());
   std::vector threads = parse_n_threads(args["THREADS"].asStringList());
   auto _ = set_n_threads(threads[0]);
-  std::vector s_values= parse_ids(args["-s"].asStringList());
-  if (s_values.empty()) s_values.push_back(1);
+  index_t s_value= args["-s"].asLong();
 
   std::string title_basics_tsv = args["--title"].asString();
   std::string name_basics_tsv = args["--name"].asString();
   std::string title_principals_tsv = args["--principal"].asString();
 
-  nw::graph::edge_list<nw::graph::directedness::directed> edges(0);
   nw::util::timer               t0("load titles");
   std::ifstream                 title_basics_stream(title_basics_tsv);
   auto                          titles     = xt::load_csv<std::string>(title_basics_stream, '\t');
@@ -116,47 +109,31 @@ int main(int argc, char* argv[]) {
   std::ifstream title_principals_stream(title_principals_tsv);
   auto          title_principals = xt::load_csv<std::string>(title_principals_stream, '\t');
   auto          shp              = title_principals.shape();
-
   t2.stop();
   std::cout << t2 << std::endl;
 
   nw::util::timer t3("build hypergraph");
-
-  
+  nw::graph::edge_list<nw::graph::directedness::directed> edges(0);
   edges.open_for_push_back();
-
-  size_t title_counter = 0;
-  size_t name_counter  = 0;
   //skip the header by starting from i=1
   for (vertex_id_t i = 1; i < shp[0]; ++i) {
     if (title_principals(i, 3) == "actor" || title_principals(i, 3) == "actress") {
-
       auto title = title_principals(i, 0);
       auto name  = title_principals(i, 2);
-#if 0
-      if (name == "nm0837064") {
-        auto idx = titles_map[title];
-        auto aa  = titles(idx, 2);
-        std::cout << title << " " << aa << std::endl;
-      }
-#endif
       //if the title does not show, then it is not a movie.
       auto it_title = titles_map.find(title);
       if (it_title == titles_map.end()) {
-	      //titles_map[title] = title_counter++;
         continue;
       }
       //same if the person is not an actor
       auto it_name = names_map.find(name);
       if (it_name == names_map.end()) {
-	      //names_map[name] = name_counter++;
         continue;
       }
       edges.push_back(it_title->second, it_name->second);
     }
   }
   edges.close_for_push_back(false);
-
   t3.stop();
   std::cout << t3 << std::endl;
   edges.stream_stats();
@@ -171,23 +148,22 @@ int main(int argc, char* argv[]) {
 
   nw::util::timer t5("build s_overlap");
 
-  index_t s = *std::min_element(s_values.begin(), s_values.end());
   auto&& degrees = H.degrees();
   std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_bins);
-  if (1 < s) {
+  if (1 < s_value) {
     tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, H.size()), [&](tbb::blocked_range<vertex_id_t>& r) {
       int worker_index = tbb::task_arena::current_thread_index();    
       for (auto hyperE = r.begin(), e = r.end(); hyperE != e; ++hyperE) {
-          if (degrees[hyperE] < s) continue;
+          if (degrees[hyperE] < s_value) continue;
           std::map<size_t, vertex_id_t> K;
           for (auto&& [hyperN] : H[hyperE]) {
             for (auto&& [anotherhyperE] : G[hyperN]) {
-              if (degrees[anotherhyperE] < s) continue;
+              if (degrees[anotherhyperE] < s_value) continue;
               if (hyperE < anotherhyperE) ++K[anotherhyperE];
             }
           }
           for (auto&& [anotherhyperE, val] : K) {
-            if (val >= s)
+            if (val >= s_value)
               two_graphs[worker_index].push_back(
                   std::make_tuple<vertex_id_t, vertex_id_t>(
                       std::forward<vertex_id_t>(hyperE),
@@ -220,9 +196,6 @@ int main(int argc, char* argv[]) {
   t7.stop();
   std::cout << t7 << std::endl;
 
-  // Kevin Bacon is nm0000102
-  // David Suchet is nm0837064
-  // Kyra Sedgwick is nm0001718
   nw::util::timer t8("compute s-connected components"); 
   auto E = ccv1(L);
   t8.stop();
@@ -245,7 +218,7 @@ int main(int argc, char* argv[]) {
     if (1 < v.size()) {
       ++numc;
       if (verbose) {
-        std::cout << "Here are the " << s << "-connected components:" << std::endl;
+        std::cout << "Here are the " << s_value << "-connected components:" << std::endl;
         for (auto& i : v) {
           auto oldid = new_to_old[i];
           std::cout << names_map_transpose[oldid] << ", ";
@@ -263,7 +236,7 @@ int main(int argc, char* argv[]) {
   std::vector<score_t> bc = nw::graph::betweenness_brandes<decltype(L), score_t, accum_t>(L, false);
   t9.stop();
   std::cout << t9 << std::endl;
-  
+
   int nbc = bc.size();
   float scale = 1.0;
   if (2 < nbc)
