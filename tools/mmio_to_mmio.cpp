@@ -41,16 +41,31 @@ int main(int argc, char* argv[]) {
   std::string output_file = args["-o"].asString();
   bool transpose = args["--transpose"].asBool();
 
-  auto aos_a   = load_graph<directed>(input_file);
-  if (0 == aos_a.size()) {
+  if (!is_mm(input_file)) {
     std::cerr << "not matrix market file, convert abort" << std::endl;
     exit(1);
   }
 
-  if (!transpose)
-    write_mm<0>(output_file, aos_a);
-  else
-    write_mm<1>(output_file, aos_a);
+  directedness direction = get_mm_symmetry(input_file);
 
+  if (directed == direction) {
+    auto aos_a = read_mm<directed>(input_file);
+    std::cout << "general matrix" << std::endl;
+    aos_a.stream_stats();
+
+    if (!transpose)
+      write_mm<0>(output_file, aos_a, "general");
+    else
+      write_mm<1>(output_file, aos_a, "general");
+  } else {
+    auto aos_a = read_mm<undirected>(input_file);
+    std::cout << "symmetric matrix" << std::endl;
+    aos_a.stream_stats();
+
+    if (!transpose)
+      write_mm<0>(output_file, aos_a, "symmetric");
+    else
+      write_mm<1>(output_file, aos_a, "symmetric");
+  }
   return 0;
 }
