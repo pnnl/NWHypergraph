@@ -51,14 +51,12 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
     tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M), [&](tbb::blocked_range<vertex_id_t>& r) {
       int worker_index = tbb::task_arena::current_thread_index();    
       for (auto hyperE = r.begin(), e = r.end(); hyperE != e; ++hyperE) {
-        std::map<size_t, size_t> K;
+        //std::map<size_t, size_t> K;
         for (auto &&[hyperN] : edges[hyperE]) {
           for (auto &&[anotherhyperE] : nodes[hyperN]) {
-            if (hyperE < anotherhyperE) ++K[anotherhyperE];
+            if (hyperE < anotherhyperE) 
+              two_graphs[worker_index].push_back(std::make_pair<vertex_id_t, vertex_id_t>(std::forward<vertex_id_t>(hyperE), std::forward<vertex_id_t>(anotherhyperE)));
           }
-        }
-        for (auto &&[anotherhyperE, val] : K) {
-            two_graphs[worker_index].push_back(std::make_pair<vertex_id_t, vertex_id_t>(std::forward<vertex_id_t>(hyperE), std::forward<vertex_id_t>(anotherhyperE)));
         }
       }
     }, tbb::auto_partitioner());
@@ -111,14 +109,12 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
       int worker_index = tbb::task_arena::current_thread_index();    
       for (auto&& j = i.begin(); j != i.end(); ++j) {
         auto&& [hyperE, hyperE_ngh] = *j;
-        std::map<size_t, size_t> K;
+        //std::map<size_t, size_t> K;
         for (auto &&[hyperN] : hyperE_ngh) {
           for (auto &&[anotherhyperE] : nodes[hyperN]) {
-            if (hyperE < anotherhyperE) ++K[anotherhyperE];
+            if (hyperE < anotherhyperE) 
+              two_graphs[worker_index].push_back(std::make_pair<vertex_id_t, vertex_id_t>(std::forward<vertex_id_t>(hyperE), std::forward<vertex_id_t>(anotherhyperE)));
           }
-        }
-        for (auto &&[anotherhyperE, val] : K) {
-            two_graphs[worker_index].push_back(std::make_pair<vertex_id_t, vertex_id_t>(std::forward<vertex_id_t>(hyperE), std::forward<vertex_id_t>(anotherhyperE)));
         }
       }
     }, tbb::auto_partitioner());  
