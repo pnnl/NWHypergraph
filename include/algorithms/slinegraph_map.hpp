@@ -50,11 +50,9 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
     tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M), [&](tbb::blocked_range<vertex_id_t>& r) {
       int worker_index = tbb::task_arena::current_thread_index();    
       for (auto hyperE = r.begin(), e = r.end(); hyperE != e; ++hyperE) {
-        std::cout << "hyperE= " << hyperE << std::endl;
         std::map<size_t, size_t> K;
         for (auto &&[hyperN] : edges[hyperE]) {
           for (auto &&[anotherhyperE] : nodes[hyperN]) {
-            std::cout << anotherhyperE << " ";
             if (hyperE < anotherhyperE) ++K[anotherhyperE];
           }
         }
