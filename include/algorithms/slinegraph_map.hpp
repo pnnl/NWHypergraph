@@ -46,6 +46,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
     }, tbb::auto_partitioner());
   }
   else {
+    {
     nw::util::life_timer _(__func__);
     tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M), [&](tbb::blocked_range<vertex_id_t>& r) {
       int worker_index = tbb::task_arena::current_thread_index();    
@@ -60,7 +61,8 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
             two_graphs[worker_index].push_back(std::make_pair<vertex_id_t, vertex_id_t>(std::forward<vertex_id_t>(hyperE), std::forward<vertex_id_t>(anotherhyperE)));
         }
       }
-    }, tbb::auto_partitioner());  
+    }, tbb::auto_partitioner());
+    }
     nw::graph::edge_list<edge_directedness> result(0);
     result.open_for_push_back();
     //do this in serial
@@ -103,6 +105,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
     }, tbb::auto_partitioner());
   }
   else {
+    {
     nw::util::life_timer _(__func__);
     tbb::parallel_for(nw::graph::cyclic(edges, num_bins), [&](auto& i) {
       int worker_index = tbb::task_arena::current_thread_index();    
@@ -119,6 +122,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
         }
       }
     }, tbb::auto_partitioner());  
+    }
     nw::graph::edge_list<edge_directedness> result(0);
     result.open_for_push_back();
     //do this in serial
