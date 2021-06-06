@@ -163,11 +163,15 @@ int main(int argc, char* argv[]) {
             }
           }
           for (auto&& [anotherhyperE, val] : K) {
-            if (val >= s_value)
+            if (val >= s_value) {
               two_graphs[worker_index].push_back(
                   std::make_tuple<vertex_id_t, vertex_id_t>(
                       std::forward<vertex_id_t>(hyperE),
                       std::forward<vertex_id_t>(anotherhyperE)));
+              std::cout << names_map_transpose[hyperE] << " and "
+              << names_map_transpose[anotherhyperE] << " has "
+              << val << " collaborations" << std::endl;
+            }
           }
         }
       },
