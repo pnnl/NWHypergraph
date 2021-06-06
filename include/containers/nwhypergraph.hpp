@@ -203,22 +203,21 @@ public:
 
     decltype(auto) collapse_nodes_and_edges(bool return_equivalence_class = false) {
         //collapse nodes first
-        bool transpose = true;
         //std::cout << "before collapse nodes: " << row_.size() << std::endl;
         auto row = as_vector(row_);
         auto col = as_vector(col_);
         auto &&[new_el, equivalence_class_nodes] = collapse_array_x(col, row);
         //std::cout << "after collapse nodes: " << new_el.size() << std::endl;
-        
-            std::vector<Index_t> x(new_el.size());
-            std::vector<Index_t> y(new_el.size());
-            size_t i = 0;
-            for (auto &&[u, v, w] : new_el) {
-                x[i] = u;
-                y[i] = v;
-                ++i;
-            }
-        
+
+        std::vector<Index_t> x(new_el.size());
+        std::vector<Index_t> y(new_el.size());
+        size_t i = 0;
+        for (auto &&[u, v, w] : new_el) {
+          x[i] = u;
+          y[i] = v;
+          ++i;
+        }
+
         //then collapse edges
         auto &&[el, equivalence_class_edges] = collapse_array_x(x, y);
         //std::cout << "after collapse edges: " << el.size() << std::endl;
@@ -308,8 +307,8 @@ public:
     py::list neighbors(Slinegraph<Index_t, Attributes...>& linegraph, Index_t v) {
         return linegraph.s_neighbors(v);
     } 
-    py::ssize_t s_degree(Slinegraph<Index_t, Attributes...>& linegraph, Index_t v) {
-        return linegraph.s_degree(v);
+    py::ssize_t s_neighborhood_size(Slinegraph<Index_t, Attributes...>& linegraph, Index_t v) {
+        return linegraph.s_neighborhood_size(v);
     }
     /*
     * Get the edge size distributation of the hypergraph

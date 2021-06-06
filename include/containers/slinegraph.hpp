@@ -540,6 +540,7 @@ public:
         }
         return l;
     }
+    py::ssize_t s_neighborhood_size(Index_t v) { return g_[v].size(); }
     py::ssize_t s_degree(Index_t v) { return g_[v].size(); }
     int getS() const { return s_; }
     bool isEdgeOverlap() const { return edges_; }
