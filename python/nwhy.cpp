@@ -109,6 +109,7 @@ PYBIND11_MODULE(nwhy, m) {
     .def("s_linegraphs", &NWHypergraph<Index_t, Data_t>::s_linegraphs, 
     "A function which converts a hypergraph to its s line graphs; if edges is true, then it is an edge linegraph",
     py::arg("l"), py::arg("edges") = true)
+    /*
     //s_connected_component
     .def("s_connected_components", py::overload_cast<Slinegraph<Index_t, Data_t> &>(&NWHypergraph<Index_t, Data_t>::s_connected_components),
      "A function which finds the connected components for its s line graph",
@@ -124,6 +125,7 @@ PYBIND11_MODULE(nwhy, m) {
     .def("s_degree", py::overload_cast<Slinegraph<Index_t, Data_t> &, Index_t>(&NWHypergraph<Index_t, Data_t>::s_degree),
      "A function which finds the degree for vertex v of its s line graph",
     py::arg("linegraph"), py::arg("v"))
+    */
     ;
 
     //define Slinegraph python object
@@ -169,7 +171,9 @@ PYBIND11_MODULE(nwhy, m) {
     .def("s_neighbors", &Slinegraph<Index_t, Data_t>::s_neighbors,
     "A function to get neighbors of a vertex", py::arg("v"))
     .def("s_degree", &Slinegraph<Index_t, Data_t>::s_degree,
-    "A function to get the degree of a vertex in the slinegraph", py::arg("v"));
+    "A function to get the degree of a vertex in the slinegraph", py::arg("v"))
+    .def("s_neighborhood_size", &Slinegraph<Index_t, Data_t>::s_neighborhood_size,
+    "A function to get the neighborhood size of a vertex in the slinegraph", py::arg("v"));
 
     //register version information in a module as below
     py::object version = py::cast("0.0.15");

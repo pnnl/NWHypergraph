@@ -158,6 +158,10 @@ NWHypergraph class methods
 		Method in class NWHypergraph.
 		Return the number of vertices in the hypergraph.
 
+	NWHypergraph.order()
+		Method in class NWHypergraph.
+		Return the number of vertices in the hypergraph.
+
 	NWHypergraph.number_of_edges()
 		Method in class NWHypergraph.
 		Return the number of edges in the hypergraph.
@@ -274,3 +278,6 @@ Slinegraph class methods
 		Method in class Slinegraph.
 		Return the degree of vertex `v` in the s-line graph.
 
+	Slinegraph.s_neighborhood_size(v)
+		Method in class Slinegraph.
+		Return the neighborhood size of vertex `v` in the s-line graph.
