@@ -181,9 +181,10 @@ const size_t n0, const size_t m0, const size_t n1, const size_t m1) {
   std::vector<vertex_id_t> e0(M);
   if (n0 >= n1) {
     //if the first adjacency (hypernode) is larger the the second adjacency (hyperedge)
-    //we relabel the latter
-    //here is what v0 contains: v0={0, ..., n0-1, n0,..., n0+n1-1, n0+n1}
-    //where v0[n0+n1]=m0+m1, which is populated later before return
+    //we relabel the latter (increment each hyperedge by n0) and leave indices of first untouched
+    //but we need to increment the neighbors of first by n0
+    //here is what v0 contains: v0={0, ..., n0-1, n0,..., n0+n1-2, n0+n1-1, n0+n1}
+    //where v0[n0+n1]=m0+m1, which is populated right before adjacency construction
     //here is what e0 contains: e0={0, ..., m0-1, m0,..., m0+m1-1}
     for (size_t i = 0; i < n0; ++i) {
       //read in hypernode indices
@@ -213,22 +214,23 @@ const size_t n0, const size_t m0, const size_t n1, const size_t m1) {
     //here is what v0 contains: v0={0, ..., n1-1, n1,..., n1+n0-1, n1+n0}
     //where v0[n0+n1]=m0+m1, which is populated later before return
     //here is what e0 contains: e0={0, ..., m1-1, m1,..., m1+m0-1}
-    for (size_t i = 0; i < n0; ++i) {
+    for (size_t i = n1, e = N; i < e; ++i) {
       inputStream >> tmp;
       //increment the first index by
       //the last offset of the second adjacency
       v0[i] = tmp + m1;
     }
-    for (size_t i = 0; i < m0; ++i) {
+    for (size_t i = m1, e = M; i < e; ++i) {
       inputStream >> tmp;
+      //the offset of the first index remains the same
       e0[i] = tmp;
     }
-    for (size_t i = n0, e = N; i < e; ++i) {
+    for (size_t i = 0, e = n1; i < e; ++i) {
       inputStream >> tmp;
       //the second index remains the same
       v0[i] = tmp;
     }
-    for (size_t i = m0, e = M; i < e; ++i) {
+    for (size_t i = 0, e = m1; i < e; ++i) {
       inputStream >> tmp;
       //increment each neighbor of the second adjacency
       //by n1 the num of indices of first adjacency
@@ -236,9 +238,7 @@ const size_t n0, const size_t m0, const size_t n1, const size_t m1) {
     }
   }
   v0[N] = M;
-  //create use move constructor
-  return std::tuple(adjacency<0>(std::move(v0), std::move(e0)),
-  adjacency<1>(std::move(v0), std::move(e0)));
+  return std::tuple(v0, e0);
 }
 
 auto read_and_adjoin_adj_hypergraph_pair(const std::string& filename, size_t& nreal_edges, size_t& nreal_nodes) {
@@ -263,7 +263,8 @@ auto read_and_adjoin_adj_hypergraph_pair(const std::string& filename, size_t& nr
   inputStream >> m1;
   //std::cout << nreal_nodes << " " << m0 << " " << nreal_edges << " " << m1 << std::endl;
 
-  return adj_hypergraph_fill_and_adjoin(inputStream, nreal_nodes, m0, nreal_edges, m1);
+  auto&& [v0, e0] = adj_hypergraph_fill_and_adjoin(inputStream, nreal_nodes, m0, nreal_edges, m1);
+  return std::tuple(adjacency<0>(std::move(v0), std::move(e0)), adjacency<1>(std::move(v0), std::move(e0))); 
 }
 
 auto read_and_adjoin_adj_hypergraph(const std::string& filename, size_t& nreal_edges, size_t& nreal_nodes) {
@@ -287,8 +288,8 @@ auto read_and_adjoin_adj_hypergraph(const std::string& filename, size_t& nreal_e
   inputStream >> nreal_edges;
   inputStream >> m1;
   //std::cout << nreal_nodes << " " << m0 << " " << nreal_edges << " " << m1 << std::endl;
-
-  return adj_hypergraph_fill_and_adjoin(inputStream, nreal_nodes, m0, nreal_edges, m1);
+  auto&& [v0, e0] = adj_hypergraph_fill_and_adjoin(inputStream, nreal_nodes, m0, nreal_edges, m1);
+  return adjacency<0>(std::move(v0), std::move(e0));
 }
 
 

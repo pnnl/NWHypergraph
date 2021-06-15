@@ -895,9 +895,13 @@ size_t s = 1, int num_bins = 32) {
     else {
       // for adjoin hypergraph, without relabel by degree
       if (nrealedges > nrealnodes) {
+        //if nrealedges is greater than nrealnodes,
+        //then in the adjacency, hyperedges are in the front from index 0 to nrealedges
         start = 0ul;
         end = nrealedges;
       } else {
+        //if nrealedges is smaller than nrealnodes,
+        // then in the adjacency, hyperedges are in the back from index nrealnodes to nrealnode + nrealedges
         start = nrealnodes;
         end = nrealnodes + nrealedges;
       }
