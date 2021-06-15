@@ -78,7 +78,7 @@ int main(int argc, char* argv[]) {
     //std::vector<index_t> hyperedge_degrees;
     auto&& [hyperedges, hypernodes, iperm] = graph_reader<directed>(file, idx, direction, adjoin, nrealedges, nrealnodes);
     auto&& hyperedge_degrees = hyperedges.degrees(std::execution::par_unseq);
-    if (verbose) {
+    if (debug) {
       hyperedges.stream_indices();
       hypernodes.stream_indices();
       
@@ -87,26 +87,19 @@ int main(int argc, char* argv[]) {
       for (auto d : hyperedge_degrees)
         std::cout << d << " ";
       std::cout << std::endl;
-    }
-    if (-1 != idx)
-      assert(!iperm.empty());
-    
-    if (adjoin) {
-      std::cout << "size of the merged adjacency = " << hyperedges.size() << std::endl;
-      assert(0 != nrealedges);
-      assert(0 != nrealnodes);
-    }
+      if (-1 != idx) assert(!iperm.empty());
 
-   
+      if (adjoin) {
+        std::cout << "size of the adjoin graph = " << hyperedges.size()
+                  << std::endl;
+        assert(0 != nrealedges);
+        assert(0 != nrealnodes);
+      }
+    }
 
     if (verbose) {
-      //hypernodes.stream_stats();
-      //hyperedges.stream_stats();
-    }
-
-    if (debug) {
-      hypernodes.stream_indices();
-      hyperedges.stream_indices();
+      hypernodes.stream_stats();
+      hyperedges.stream_stats();
     }
 
     for (auto&& s : s_values) {
@@ -120,12 +113,24 @@ int main(int argc, char* argv[]) {
           auto verifier = [&](auto&& E) {
             // only verify #cc in the result
             std::unordered_map<vertex_id_t, size_t> m;
-            for (auto& c : E) {
+            for (auto& c : E)
               ++m[c];
-            }
             size_t numc = 0;
-            for (auto& [k, v] : m) {
-              if (1 < v) ++numc;
+            if (!debug) {
+              for (auto& [k, v] : m) {
+                if (1 < v) {
+                  ++numc;
+                }
+              }
+            } else {
+              std::cout << "Non-singletons: ";
+              for (auto& [k, v] : m) {
+                if (1 < v) {
+                  std::cout << k << " ";
+                  ++numc;
+                }
+              }
+              std::cout << std::endl;
             }
             std::unordered_set<vertex_id_t> uni_comps(E.begin(), E.end());
             std::cout << m.size() << " components found" << std::endl;

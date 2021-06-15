@@ -124,6 +124,10 @@ const size_t n0, const size_t m0, const size_t n1, const size_t m1) {
   vertex_id_t tmp;
   size_t N = n0 + n1;
   size_t M = m0 + m1;
+  //from 0 to n0 - 1 are the hypernode csr indices
+  //from next 0 to m0 - 1 are the hypernode incident lists
+  //from next 0 to n1 - 1 are the hyperedge csr indices
+  //from next 0 to m1 - 1 are the hyperedge incident lists
   //v0-e0 is graph
   //v1-e1 is transpose
   std::vector<vertex_id_t> v0(N + 1), v1(N + 1);
@@ -132,8 +136,8 @@ const size_t n0, const size_t m0, const size_t n1, const size_t m1) {
     inputStream >> tmp;
     v0[i] = tmp;
     //increment each index of hypernodes
-    //by m1 (the last index of first adjacency)
-    v1[j] = tmp + m1;
+    //by m0 (the last index of first adjacency)
+    v1[j] = tmp + m0;
   }
   for (size_t i = 0, j = m1; i < m0; ++i, ++j) {
     inputStream >> tmp;
@@ -154,7 +158,7 @@ const size_t n0, const size_t m0, const size_t n1, const size_t m1) {
     e0[i] = tmp;
     //increment each neighbor of hypernodes
     //by n1 (num of hyperedges)
-    e1[j] = tmp + n1;
+    e1[j] = tmp + n0;
   }
   v0[N] = M;
   v1[N] = M;
@@ -176,14 +180,14 @@ const size_t n0, const size_t m0, const size_t n1, const size_t m1) {
   std::vector<vertex_id_t> v0(N + 1);
   std::vector<vertex_id_t> e0(M);
   if (n0 >= n1) {
-    //if the first adjacency is larger the the second adjacency
+    //if the first adjacency (hypernode) is larger the the second adjacency (hyperedge)
     //we relabel the latter
     //here is what v0 contains: v0={0, ..., n0-1, n0,..., n0+n1-1, n0+n1}
     //where v0[n0+n1]=m0+m1, which is populated later before return
     //here is what e0 contains: e0={0, ..., m0-1, m0,..., m0+m1-1}
     for (size_t i = 0; i < n0; ++i) {
+      //read in hypernode indices
       inputStream >> tmp;
-      
       v0[i] = tmp;
     }
     for (size_t i = 0; i < m0; ++i) {
@@ -232,14 +236,9 @@ const size_t n0, const size_t m0, const size_t n1, const size_t m1) {
     }
   }
   v0[N] = M;
-  /*
-  //create an empty adjacency then move data into it
-  adjacency<0> g(N, M);
-  g.move(std::move(v0), std::move(e0));
-  return g;
-  */
   //create use move constructor
-  return adjacency<0>(std::move(v0), std::move(e0));
+  return std::tuple(adjacency<0>(std::move(v0), std::move(e0)),
+  adjacency<1>(std::move(v0), std::move(e0)));
 }
 
 auto read_and_adjoin_adj_hypergraph_pair(const std::string& filename, size_t& nreal_edges, size_t& nreal_nodes) {
@@ -264,7 +263,7 @@ auto read_and_adjoin_adj_hypergraph_pair(const std::string& filename, size_t& nr
   inputStream >> m1;
   //std::cout << nreal_nodes << " " << m0 << " " << nreal_edges << " " << m1 << std::endl;
 
-  return adj_hypergraph_pair_fill_and_adjoin_v1(inputStream, nreal_nodes, m0, nreal_edges, m1);
+  return adj_hypergraph_fill_and_adjoin(inputStream, nreal_nodes, m0, nreal_edges, m1);
 }
 
 auto read_and_adjoin_adj_hypergraph(const std::string& filename, size_t& nreal_edges, size_t& nreal_nodes) {
@@ -373,7 +372,6 @@ auto write_adj_hypergraph(const std::string& filename, adjacency<0>& E, adjacenc
   file << m0 << std::endl;
   file << n1 << std::endl;
   file << m1 << std::endl;
-  vertex_id_t tmp;
 
 
   for (size_t i = 0; i < n0; ++i) {

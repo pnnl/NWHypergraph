@@ -209,121 +209,27 @@ size_t& nrealedges, size_t& nrealnodes) {
       read_mm_adjoin<edge_directedness, Attributes...>(file, nrealedges, nrealnodes);
   std::vector<vertex_id_t> iperm, perm;
   if (0 == aos_a.size()) {
-    auto&& [h, ht] = read_and_adjoin_adj_hypergraph_pair(file, nrealedges, nrealnodes);
-
-    auto&& degrees = h.template degrees();
-    std::cout << "before adjoin:" << std::endl;
-    std::cout << "edge set:" << std::endl;
-    for (vertex_id_t i = 0; i < nrealedges; ++i) {
-      std::cout << i << " ";
-    }
-    std::cout << std::endl;
-    std::cout << "node set:" << std::endl;
-    for (vertex_id_t i = 0; i < nrealnodes; ++i) {
-      std::cout << i << " ";
-    }
-    std::cout << std::endl << std::endl;
-
-    std::cout << "after adjoin:" << std::endl;
-    if (nrealedges < nrealnodes) {
-      std::cout << "edge set:" << std::endl;
-      for (vertex_id_t i = nrealnodes; i < h.size(); ++i) {
-        std::cout << i << "(" << degrees[i] << ") ";
-      }
-      std::cout << std::endl;
-      std::cout << "node set:" << std::endl;
-      for (vertex_id_t i = 0; i < nrealnodes; ++i) {
-        std::cout << i << "(" << degrees[i] << ") ";
-      }
-      std::cout << std::endl << std::endl;
-    } else {
-      std::cout << "edge set:" << std::endl;
-      for (vertex_id_t i = 0; i < nrealedges; ++i) {
-        std::cout << i << "(" << degrees[i] << ") ";
-      }
-      std::cout << std::endl;
-      std::cout << "node set:" << std::endl;
-      for (vertex_id_t i = nrealedges; i < h.size(); ++i) {
-        std::cout << i << "(" << degrees[i] << ") ";
-      }
-      std::cout << std::endl << std::endl;
-    }
-
-    // Run relabeling. This operates directly on the incoming edglist.
+    //we get adjoin graph and its transpose
+    auto&& [g, gt] = read_and_adjoin_adj_hypergraph_pair(file, nrealedges, nrealnodes);
     if (-1 != idx) {
+      // Run relabeling. This operates directly on adjoin graph and its transpose.
+      // Note that g and gt are symmetric,
+      // therefore the permutation of g is also the permuation of its transpose
       nw::util::life_timer _("relabel_by_degree");
       auto&& iperm =
-            h.permute_by_degree(direction, std::execution::par_unseq);
+            g.permute_by_degree(direction, std::execution::par_unseq);
       std::cout << "relabeling adjacency by degree..." << std::endl;
-      ht.relabel_to_be_indexed(iperm, std::execution::par_unseq);
-      std::cout << "iperm: ";
-      for (auto i : iperm)
-        std::cout << i << " ";
-      std::cout << std::endl;
-      auto&& edge_degrees = h.template degrees();
-      std::cout << "after relabel:" << std::endl;
-      if (nrealedges < nrealnodes) {
-        std::cout << "edge set:" << std::endl;
-        for (vertex_id_t i = nrealnodes; i < h.size(); ++i) {
-          std::cout << i << "(" << degrees[i] << ")->" << iperm[i] << "("
-                    << edge_degrees[iperm[i]] << ")\n";
-        }
-        std::cout << std::endl;
-        std::cout << "node set:" << std::endl;
-        for (vertex_id_t i = 0; i < nrealnodes; ++i) {
-          std::cout << i << "(" << degrees[i] << ")->" << iperm[i]
-                    << "(" << edge_degrees[iperm[i]] << ")\n";
-        }
-        std::cout << std::endl << std::endl;
-      } else {
-        std::cout << "edge set:" << std::endl;
-        for (vertex_id_t i = 0; i < nrealedges; ++i) {
-          std::cout << iperm[i] << " ";
-        }
-        std::cout << std::endl;
-        std::cout << "node set:" << std::endl;
-        for (vertex_id_t i = nrealedges; i < h.size(); ++i) {
-          std::cout << iperm[i] << " ";
-        }
-        std::cout << std::endl << std::endl;
-      }
-      std::cout << std::endl << std::endl;
+      g.relabel_to_be_indexed(iperm, std::execution::par_unseq);
+      gt.relabel_to_be_indexed(iperm, std::execution::par_unseq);
 
       std::cout << "num_realedges = " << nrealedges
                 << " num_realnodes = " << nrealnodes << std::endl;
-      return std::tuple(h, ht, iperm);
+      return std::tuple(g, gt, iperm);
     }
-
-        auto&& edge_degrees = h.template degrees();
-    std::cout << "after relabel:" << std::endl;
-    if (nrealedges < nrealnodes) {
-      std::cout << "edge set:" << std::endl;
-      for (vertex_id_t i = nrealnodes; i < h.size(); ++i) {
-        std::cout << i << "(" << degrees[i] <<  ")->" << iperm[i] << "(" << edge_degrees[iperm[i]] << ")\n";
-      }
-      std::cout << std::endl;
-      std::cout << "node set:" << std::endl;
-      for (vertex_id_t i = 0; i < nrealnodes; ++i) {
-       std::cout << i << "(" << degrees[i] <<  ")->" << iperm[i] << "(" << edge_degrees[iperm[i]] << ")\n";
-      }
-      std::cout << std::endl << std::endl;
-    } else {
-      std::cout << "edge set:" << std::endl;
-      for (vertex_id_t i = 0; i < nrealedges; ++i) {
-        std::cout << iperm[i] << " ";
-      }
-      std::cout << std::endl;
-      std::cout << "node set:" << std::endl;
-      for (vertex_id_t i = nrealedges; i < h.size(); ++i) {
-        std::cout << iperm[i] << " ";
-      }
-      std::cout << std::endl << std::endl;
-    }
-    std::cout << std::endl << std::endl;
 
     std::cout << "num_realedges = " << nrealedges
             << " num_realnodes = " << nrealnodes << std::endl; 
-    return std::tuple(h, ht, iperm);
+    return std::tuple(g, gt, iperm);
   }
   else {
     // Run relabeling. This operates directly on the incoming edglist.
@@ -361,13 +267,14 @@ auto graph_reader_adjoin(std::string file, size_t& nrealedges,
   auto aos_a = read_mm_adjoin<edge_directedness, Attributes...>(
       file, nrealedges, nrealnodes);
   if (0 == aos_a.size()) {
-    auto&& [hyperedges, hypernodes] =
+    //after adjoin, we have adjoin graph and its transpose
+    auto&& [g, g_t] =
         read_and_adjoin_adj_hypergraph_pair(file, nrealedges, nrealnodes);
     std::cout << "num_realedges = " << nrealedges
             << " num_realnodes = " << nrealnodes << std::endl;
-      std::cout << "num_hyperedges = " << hyperedges.size()
-            << " num_hypernodes = " << hypernodes.size() << std::endl;
-    return std::tuple(hyperedges, hypernodes, std::vector<vertex_id_t>());
+      std::cout << "num_hyperedges = " << g.size()
+            << " num_hypernodes = " << g_t.size() << std::endl;
+    return std::tuple(g, g_t, std::vector<vertex_id_t>());
   }
   nw::graph::adjacency<0, Attributes...> g(aos_a);
   nw::graph::adjacency<1, Attributes...> g_t(aos_a);

@@ -140,6 +140,21 @@ auto twograph_reader(int loader_version, bool verbose, std::bitset<8> &features,
                 << ", max= " << s_adj.max() << std::endl;
       return s_adj;
     }
+    case 8: {
+      nw::graph::edge_list<undirected> &&linegraph =
+          to_two_graph_hashmap_frontier_portal<undirected>(
+              std::execution::par_unseq, edges, nodes, edgedegrees,
+              iperm,
+              nrealedges, nrealnodes, s, num_bins);
+      // where when an empty edge list is passed in, an adjacency still have
+      // two elements
+      if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
+      nw::graph::adjacency<0> s_adj(linegraph);
+      std::cout << "line graph edges = " << linegraph.size()
+                << ", adjacency size = " << s_adj.size()
+                << ", max= " << s_adj.max() << std::endl;
+      return s_adj;
+    }
     default: {
       std::cerr << "unknown soverlap computation loader" << std::endl;
       return nw::graph::adjacency<0>(0);
