@@ -14,6 +14,7 @@
 #include "algorithms/slinegraph_efficient.hpp"
 #include "algorithms/slinegraph_map.hpp"
 #include "algorithms/slinegraph_naive.hpp"
+#include "algorithms/slinegraph_adjoin.hpp"
 
 using namespace nw::graph;
 

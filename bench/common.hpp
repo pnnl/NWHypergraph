@@ -215,16 +215,22 @@ size_t& nrealedges, size_t& nrealnodes) {
       // Run relabeling. This operates directly on adjoin graph and its transpose.
       // Note that g and gt are symmetric,
       // therefore the permutation of g is also the permuation of its transpose
-      nw::util::life_timer _("relabel_by_degree");
+      nw::util::ms_timer t("relabel_by_degree");
       auto&& iperm =
             g.permute_by_degree(direction, std::execution::par_unseq);
-      std::cout << "relabeling adjacency by degree..." << std::endl;
       g.relabel_to_be_indexed(iperm, std::execution::par_unseq);
-      gt.relabel_to_be_indexed(iperm, std::execution::par_unseq);
+      auto&& iperm_t =
+            gt.permute_by_degree(direction, std::execution::par_unseq);
+      gt.relabel_to_be_indexed(iperm_t, std::execution::par_unseq);
+      t.stop();
+      std::cout << t << std::endl;
 
       std::cout << "num_realedges = " << nrealedges
                 << " num_realnodes = " << nrealnodes << std::endl;
-      return std::tuple(g, gt, iperm);
+      if (0 == idx)
+        return std::tuple(g, gt, iperm);
+      else 
+        return std::tuple(g, gt, iperm_t);
     }
 
     std::cout << "num_realedges = " << nrealedges
@@ -237,6 +243,7 @@ size_t& nrealedges, size_t& nrealnodes) {
       //since the adjoin graph is symmetric, when we need to relabel it
       //we need to operate on both column 0 and column 1
       std::cout << "relabeling edge_list by degree..." << std::endl;
+      nw::util::ms_timer t("relabel_by_degree");
       if (1 == idx) {
         perm = aos_a.template perm_by_degree<1>(direction);
         iperm = aos_a.relabel(perm);
@@ -245,6 +252,8 @@ size_t& nrealedges, size_t& nrealnodes) {
         perm = aos_a.template perm_by_degree<0>(direction);
         iperm = aos_a.relabel(perm);
       }
+      t.stop();
+      std::cout << t << std::endl;
     }
 
     nw::graph::adjacency<0, Attributes...> g(aos_a);
