@@ -171,6 +171,7 @@ size_t s = 1, int num_bins = 32) {
         });
         //tbb::auto_partitioner());
   } else {
+    {
     nw::util::life_timer _(__func__);
     tbb::parallel_for(tbb::blocked_range(0ul, frontier.size()),
     //std::for_each(frontier.begin(), frontier.end(),
@@ -194,6 +195,7 @@ size_t s = 1, int num_bins = 32) {
             }
           }
         }, tbb::auto_partitioner());
+      }
     nw::graph::edge_list<edge_directedness> result(0);
     result.open_for_push_back();
     //do this in serial
@@ -247,6 +249,7 @@ size_t s = 1, int num_bins = 32) {
         });
         //tbb::auto_partitioner());
   } else {
+    {
     nw::util::life_timer _(__func__);
     tbb::parallel_for(tbb::blocked_range(0ul, frontier.size()),
     //std::for_each(frontier.begin(), frontier.end(),
@@ -270,6 +273,7 @@ size_t s = 1, int num_bins = 32) {
             }
           }
         }, tbb::auto_partitioner());
+      }
     nw::graph::edge_list<edge_directedness> result(0);
     result.open_for_push_back();
     //do this in serial
