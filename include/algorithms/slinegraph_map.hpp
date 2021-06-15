@@ -898,8 +898,8 @@ size_t s = 1, int num_bins = 32) {
         start = 0ul;
         end = nrealedges;
       } else {
-        start = nrealnodes - 1;
-        end = nrealnodes + nrealedges - 1;
+        start = nrealnodes;
+        end = nrealnodes + nrealedges;
       }
       frontier.resize(end - start);
       std::copy(ep, counting_iterator<vertex_id_t>(start), counting_iterator<vertex_id_t>(end), frontier.begin());
