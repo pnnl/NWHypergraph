@@ -75,7 +75,6 @@ int main(int argc, char* argv[]) {
 
   for (auto&& file : files) {
     size_t nrealedges = 0, nrealnodes = 0;
-    //std::vector<index_t> hyperedge_degrees;
     auto&& [hyperedges, hypernodes, iperm] = graph_reader<directed>(file, idx, direction, adjoin, nrealedges, nrealnodes);
     auto&& hyperedge_degrees = hyperedges.degrees(std::execution::par_unseq);
     if (debug) {

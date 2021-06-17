@@ -35,26 +35,25 @@ auto to_two_graph_map_frontier_blocked(ExecutionPolicy&& ep, Hypergraph& h,
   if (1 < s) {
     nw::util::life_timer _(__func__);
     tbb::parallel_for(
-        tbb::blocked_range(0ul, frontier.size()),
-        [&](auto i) {
+        tbb::blocked_range<size_t>(0ul, frontier.size()),
+        [&](const tbb::blocked_range<size_t>& r) {
           int worker_index = tbb::task_arena::current_thread_index();
-          for (auto&& j = i.begin(); j != i.end(); ++j) {
-            auto hyperE = frontier[j];
-            if (degrees[hyperE] < s) return;
-            std::map<size_t, size_t> K;
+          for (size_t i = r.begin(), e = r.end(); i != e; ++i) {
+            auto hyperE = frontier[i];
+            if (degrees[hyperE] < s) continue;
+            std::map<size_t, size_t> overlaps;
             for (auto&& [hyperN] : h[hyperE]) {
               for (auto&& [anotherhyperE] : ht[hyperN]) {
                 if (degrees[anotherhyperE] < s) continue;
-                if (hyperE < anotherhyperE) ++K[anotherhyperE];
+                if (hyperE < anotherhyperE) ++overlaps[anotherhyperE];
               }
             }
-            for (auto&& [anotherhyperE, val] : K) {
+            for (auto& [anotherhyperE, val] : overlaps)
               if (val >= s)
-                two_graphs[worker_index].push_back(
-                    std::make_tuple<vertex_id_t, vertex_id_t>(
-                        std::forward<vertex_id_t>(hyperE),
-                        std::forward<vertex_id_t>(anotherhyperE)));
-            }
+              two_graphs[worker_index].push_back(
+                  std::make_tuple<vertex_id_t, vertex_id_t>(
+                      std::forward<vertex_id_t>(hyperE),
+                      std::forward<vertex_id_t>(anotherhyperE)));
           }
         },
         tbb::auto_partitioner());
@@ -62,13 +61,11 @@ auto to_two_graph_map_frontier_blocked(ExecutionPolicy&& ep, Hypergraph& h,
     {
       nw::util::life_timer _(__func__);
       tbb::parallel_for(
-          tbb::blocked_range(0ul, frontier.size()),
-          // nw::graph::cyclic(frontier, num_bins),
-          [&](auto i) {
+          tbb::blocked_range<size_t>(0ul, frontier.size()),
+          [&](const tbb::blocked_range<size_t>& r) {
             int worker_index = tbb::task_arena::current_thread_index();
-            for (auto&& j = i.begin(); j != i.end(); ++j) {
-              // auto&& [hyperE, w] = *j;
-              auto hyperE = frontier[j];
+            for (size_t i = r.begin(), e = r.end(); i != e; ++i) {
+              auto hyperE = frontier[i];
               std::set<size_t> overlaps;
               for (auto&& [hyperN] : h[hyperE]) {
                 for (auto&& [anotherhyperE] : ht[hyperN]) {
@@ -114,12 +111,12 @@ auto to_two_graph_map_frontier_cyclic(ExecutionPolicy&& ep, Hypergraph& h,
     nw::util::life_timer _(__func__);
     tbb::parallel_for(
         nw::graph::cyclic(frontier, num_bins),
-        [&](auto i) {
+        [&](auto& i) {
           int worker_index = tbb::task_arena::current_thread_index();
-          for (auto&& j = i.begin(); j != i.end(); ++j) {
+          for (auto&& j = i.begin(), e = i.end(); j != e; ++j) {
             auto&& [tmp, w] = *j;
             auto hyperE = frontier[tmp];
-            if (degrees[hyperE] < s) return;
+            if (degrees[hyperE] < s) continue;
             std::map<size_t, size_t> K;
             for (auto&& [hyperN] : h[hyperE]) {
               for (auto&& [anotherhyperE] : ht[hyperN]) {
@@ -142,7 +139,7 @@ auto to_two_graph_map_frontier_cyclic(ExecutionPolicy&& ep, Hypergraph& h,
       nw::util::life_timer _(__func__);
       tbb::parallel_for(
           nw::graph::cyclic(frontier, num_bins),
-          [&](auto i) {
+          [&](auto& i) {
             int worker_index = tbb::task_arena::current_thread_index();
             for (auto&& j = i.begin(); j != i.end(); ++j) {
               auto&& [tmp, w] = *j;
@@ -212,11 +209,11 @@ auto to_two_graph_hashmap_frontier_blocked(ExecutionPolicy&& ep, Hypergraph& h,
     nw::util::life_timer _(__func__);
     tbb::parallel_for(
         tbb::blocked_range(0ul, frontier.size()),
-        [&](auto i) {
+        [&](auto& i) {
           int worker_index = tbb::task_arena::current_thread_index();
-          for (auto&& j = i.begin(); j != i.end(); ++j) {
+          for (auto j = i.begin(); j != i.end(); ++j) {
             auto hyperE = frontier[j];
-            if (degrees[hyperE] < s) return;
+            if (degrees[hyperE] < s) continue;
             std::unordered_map<size_t, size_t> K;
             for (auto&& [hyperN] : h[hyperE]) {
               for (auto&& [anotherhyperE] : ht[hyperN]) {
@@ -239,11 +236,9 @@ auto to_two_graph_hashmap_frontier_blocked(ExecutionPolicy&& ep, Hypergraph& h,
       nw::util::life_timer _(__func__);
       tbb::parallel_for(
           tbb::blocked_range(0ul, frontier.size()),
-          // nw::graph::cyclic(frontier, num_bins),
-          [&](auto i) {
+          [&](auto& i) {
             int worker_index = tbb::task_arena::current_thread_index();
-            for (auto&& j = i.begin(); j != i.end(); ++j) {
-              // auto&& [hyperE, w] = *j;
+            for (auto j = i.begin(); j != i.end(); ++j) {
               auto hyperE = frontier[j];
               std::unordered_set<size_t> overlaps;
               for (auto&& [hyperN] : h[hyperE]) {
@@ -290,12 +285,12 @@ auto to_two_graph_hashmap_frontier_cyclic(ExecutionPolicy&& ep, Hypergraph& h,
     nw::util::life_timer _(__func__);
     tbb::parallel_for(
         nw::graph::cyclic(frontier, num_bins),
-        [&](auto i) {
+        [&](auto& i) {
           int worker_index = tbb::task_arena::current_thread_index();
           for (auto&& j = i.begin(); j != i.end(); ++j) {
             auto&& [tmp, w] = *j;
             auto hyperE = frontier[tmp];
-            if (degrees[hyperE] < s) return;
+            if (degrees[hyperE] < s) continue;
             std::unordered_map<size_t, size_t> K;
             for (auto&& [hyperN] : h[hyperE]) {
               for (auto&& [anotherhyperE] : ht[hyperN]) {
@@ -370,91 +365,6 @@ auto to_two_graph_hashmap_frontier_cyclic(ExecutionPolicy&& ep, Hypergraph& h,
   }
   return create_edgelist_with_squeeze(two_graphs);
 }
-
-
-
-/*
- * This to_two_graph operates on hypergraph based frontier. Use an unordered_map instead of map.
- * The hypergraph can be relabeled by degree.
- * */
-template <directedness edge_directedness = undirected, class ExecutionPolicy,
-          class Hypergraph, class HypergraphT>
-auto to_two_graph_hashmap_frontier(ExecutionPolicy&& ep, Hypergraph& h,
-                                   HypergraphT& ht,
-                                   std::vector<index_t>& degrees,
-                                   std::vector<vertex_id_t>& frontier,
-                                   size_t s = 1, int num_bins = 32) {
-  std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(
-      num_bins);
-  if (1 < s) {
-    nw::util::life_timer _(__func__);
-    std::for_each(ep, tbb::counting_iterator<size_t>(0ul),
-                  tbb::counting_iterator<size_t>(frontier.size()),
-                  // nw::graph::cyclic(frontier, num_bins),
-                  [&](auto i) {
-                    int worker_index = tbb::task_arena::current_thread_index();
-                    // for (auto&& j = i.begin(); j != i.end(); ++j) {
-                    // auto&& [hyperE, w] = *j;
-                    auto hyperE = frontier[i];
-                    if (degrees[hyperE] < s) return;
-                    std::unordered_map<size_t, size_t> K;
-                    for (auto&& [hyperN] : h[hyperE]) {
-                      for (auto&& [anotherhyperE] : ht[hyperN]) {
-                        if (degrees[anotherhyperE] < s) continue;
-                        if (hyperE < anotherhyperE) ++K[anotherhyperE];
-                      }
-                    }
-                    for (auto&& [anotherhyperE, val] : K) {
-                      if (val >= s)
-                        two_graphs[worker_index].push_back(
-                            std::make_tuple<vertex_id_t, vertex_id_t>(
-                                std::forward<vertex_id_t>(hyperE),
-                                std::forward<vertex_id_t>(anotherhyperE)));
-                    }
-                    //}
-                  });
-    // tbb::auto_partitioner());
-  } else {
-    //clock the soverlap separately
-    {
-      nw::util::life_timer _(__func__);
-      tbb::parallel_for(
-          tbb::blocked_range(0ul, frontier.size()),
-          // nw::graph::cyclic(frontier, num_bins),
-          [&](auto i) {
-            int worker_index = tbb::task_arena::current_thread_index();
-            for (auto&& j = i.begin(); j != i.end(); ++j) {
-              // auto&& [hyperE, w] = *j;
-              auto hyperE = frontier[j];
-              std::unordered_set<size_t> overlaps;
-              for (auto&& [hyperN] : h[hyperE]) {
-                for (auto&& [anotherhyperE] : ht[hyperN]) {
-                  if (hyperE < anotherhyperE) overlaps.insert(anotherhyperE);
-                }
-              }
-              for (auto& anotherhyperE : overlaps)
-                two_graphs[worker_index].push_back(
-                    std::make_tuple<vertex_id_t, vertex_id_t>(
-                        std::forward<vertex_id_t>(hyperE),
-                        std::forward<vertex_id_t>(anotherhyperE)));
-            }
-          },
-          tbb::auto_partitioner());
-    }
-    nw::graph::edge_list<edge_directedness> result(0);
-    result.open_for_push_back();
-    // do this in serial
-    std::for_each(tbb::counting_iterator<int>(0),
-                  tbb::counting_iterator<int>(num_bins), [&](auto i) {
-                    std::for_each(two_graphs[i].begin(), two_graphs[i].end(),
-                                  [&](auto&& e) { result.push_back(e); });
-                  });
-    result.close_for_push_back();
-    return result;
-  }
-  return create_edgelist_with_squeeze(two_graphs);
-}
-
 
 /*
 * Portal for frontier based map soverlap computation algorithms.

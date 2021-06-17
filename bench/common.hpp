@@ -146,6 +146,8 @@ auto graph_reader(std::string file) {
   auto aos_a = load_graph<edge_directedness, Attributes...>(file);
   if (0 == aos_a.size()) {
     auto&&[hyperedges, hypernodes] = load_adjacency<Attributes...>(file);
+    std::cout << "num_hyperedges = " << hyperedges.size()
+              << " num_hypernodes = " << hypernodes.size() << std::endl;
     return std::tuple(hyperedges, hypernodes, std::vector<vertex_id_t>());
   }
   nw::graph::adjacency<0, Attributes...> hyperedges(aos_a);
