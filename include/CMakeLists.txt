@@ -27,6 +27,7 @@ target_sources(NW_HYPERGRAPH
   containers/slinegraph.hpp
   io/hypergraph_io.hpp
   io/mmio.hpp
+  io/csv_io.hpp
   util/slinegraph_helper.hpp
   s_overlap.hpp
   algorithms/adjoin_x.hpp

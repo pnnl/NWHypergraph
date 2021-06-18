@@ -19,6 +19,7 @@
 
 #include "io/hypergraph_io.hpp"
 #include "io/mmio.hpp"
+#include "io/csv_io.hpp"
 #include "containers/compressed_hy.hpp"
 #include "containers/edge_list_hy.hpp"
 
@@ -113,9 +114,14 @@ nw::graph::edge_list<Directedness, Attributes...> load_graph(std::string file) {
     nw::util::life_timer _("read mm");
     return nw::graph::read_mm<Directedness, Attributes...>(file);
   }
-  else {
-    //std::cerr << "Did not recognize graph input file " << file << "\n";
+  else if (type == AdjHypergraphHeader.c_str() || type == WghAdjHypergraphHeader.c_str()) {
+    //std::cout << "Reading adjacency input " << file << " (slow)" << std::endl;
     return nw::graph::edge_list<Directedness, Attributes...>(0);
+  }
+  else {
+    std::cout << "Reading CSV input " << file << " (slow)" << std::endl;
+    nw::util::life_timer _("read csv");
+    return read_csv_as_edge_list<Directedness, Attributes...>(file);
   }
 }
 template<class... Attributes>
@@ -125,11 +131,11 @@ load_adjacency(std::string file) {
   std::string type;
   in >> type;
   if (type == "AdjacencyHypergraph") {
-    std::cout << "Reading adjacency hypergraph input " << file << " (slow)" << std::endl;
+    std::cout << "Reading adjacency input " << file << " (slow)" << std::endl;
     return nw::hypergraph::read_adj_hypergraph<Attributes...>(file);
   }
   else if (type == "WeightedAdjacencyHypergraph") {
-    std::cout << "Reading weighted adjacency hypergraph input " << file << " (slow)" << std::endl;
+    std::cout << "Reading weighted adjacency input " << file << " (slow)" << std::endl;
     return nw::hypergraph::read_weighted_adj_hypergraph<Attributes...>(file);
   }
   else {
