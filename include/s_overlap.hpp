@@ -9,27 +9,79 @@
 //
 
 #pragma once
-#include <util/timer.hpp>
-#include <optional>
 #include "algorithms/slinegraph_efficient.hpp"
 #include "algorithms/slinegraph_map.hpp"
 #include "algorithms/slinegraph_naive.hpp"
 #include "algorithms/slinegraph_adjoin.hpp"
 
-using namespace nw::graph;
-
 namespace nw {
 namespace hypergraph {
 
+enum soverlap_version {
+  Efficient_Blocked = 0,
+  Efficient_Cyclic = 1,
+  Naive = 2,
+  Map_Blocked = 3,
+  Map_Cyclic = 4,
+  Ensemble_Blocked = 5,
+  Ensemble_Cyclic = 6,
+  Map_Frontier_Blocked = 7,
+  Map_Frontier_Cyclic = 8,
+  HashMap_Frontier_Blocked = 9,
+  HashMap_Frontier_Cyclic = 10,
+  Efficient_Frontier_Blocked = 11,
+  Efficient_Frontier_Cyclic = 12,
+  Unknown
+};
+
+soverlap_version operator++(soverlap_version& value, int) {
+  soverlap_version current = value;
+  if (Unknown < current + 1) value = Efficient_Blocked;
+  else value = static_cast<soverlap_version>(value + 1);
+
+  return current;
+}
+
+std::ostream& operator<<(std::ostream& out, const soverlap_version value){
+    static std::map<soverlap_version, std::string> strings;
+    if (0 == strings.size()){
+#define INSERT_ELEMENT(p) strings[p] = #p
+        INSERT_ELEMENT(Efficient_Blocked);     
+        INSERT_ELEMENT(Efficient_Cyclic);     
+        INSERT_ELEMENT(Naive);     
+        INSERT_ELEMENT(Map_Blocked);     
+        INSERT_ELEMENT(Map_Cyclic);     
+        INSERT_ELEMENT(Ensemble_Blocked);      
+        INSERT_ELEMENT(Ensemble_Cyclic);     
+        INSERT_ELEMENT(Map_Frontier_Blocked);     
+        INSERT_ELEMENT(Map_Frontier_Cyclic);  
+        INSERT_ELEMENT(HashMap_Frontier_Blocked);      
+        INSERT_ELEMENT(HashMap_Frontier_Cyclic);     
+        INSERT_ELEMENT(Efficient_Frontier_Blocked);     
+        INSERT_ELEMENT(Efficient_Frontier_Cyclic);   
+        INSERT_ELEMENT(Unknown);           
+#undef INSERT_ELEMENT
+    }   
+
+    return out << strings[value];
+}
+
+void print_soverlap_version() {
+  for (int i = Efficient_Blocked; i < Unknown; ++i) {
+    std::cout << i << ")" << static_cast<soverlap_version>(i) << " ";
+  }
+  std::cout << std::endl;
+}
+
 auto twograph_reader(int loader_version, bool verbose, std::bitset<8> &features,
-                     adjacency<0> &edges, adjacency<1> &nodes,
+                     nw::graph::adjacency<0> &edges, nw::graph::adjacency<1> &nodes,
                      std::vector<nw::graph::index_t> &edgedegrees,
                      std::vector<vertex_id_t>& iperm,
                      size_t nrealedges, size_t nrealnodes, 
                      size_t s = 1,
                      int num_bins = 32) {
   switch (loader_version) {
-    case 0: {
+    case Efficient_Blocked: {
       nw::graph::edge_list<undirected> &&linegraph =
           to_two_graph_efficient_parallel_portal<undirected>(
               verbose, features, std::execution::par_unseq, edges, nodes,
@@ -43,7 +95,7 @@ auto twograph_reader(int loader_version, bool verbose, std::bitset<8> &features,
                 << ", max = " << s_adj.max() << std::endl;
       return s_adj;
     }
-    case 1: {
+    case Efficient_Cyclic: {
       nw::graph::edge_list<undirected> &&linegraph =
           to_two_graph_efficient_parallel_cyclic_portal<undirected>(
               verbose, std::execution::par_unseq, edges, nodes, edgedegrees, s,
@@ -57,7 +109,7 @@ auto twograph_reader(int loader_version, bool verbose, std::bitset<8> &features,
                 << ", max = " << s_adj.max() << std::endl;
       return s_adj;
     }
-    case 2: {
+    case Naive: {
       nw::graph::edge_list<undirected> &&linegraph =
           to_two_graph_naive_parallel_portal<undirected>(
               verbose, std::execution::par_unseq, edges, nodes, s, num_bins);
@@ -70,7 +122,7 @@ auto twograph_reader(int loader_version, bool verbose, std::bitset<8> &features,
                 << ", max = " << s_adj.max() << std::endl;
       return s_adj;
     }
-    case 3: {
+    case Map_Blocked: {
       nw::graph::edge_list<undirected> &&linegraph =
           to_two_graph_map_blocked_portal<undirected>(
               verbose, std::execution::par_unseq, edges, nodes, edgedegrees, s,
@@ -84,7 +136,7 @@ auto twograph_reader(int loader_version, bool verbose, std::bitset<8> &features,
                 << ", max = " << s_adj.max() << std::endl;
       return s_adj;
     }
-    case 4: {
+    case Map_Cyclic: {
       nw::graph::edge_list<undirected> &&linegraph =
           to_two_graph_map_cyclic_portal<undirected>(
               verbose, std::execution::par_unseq, edges, nodes, edgedegrees, s,
@@ -98,7 +150,7 @@ auto twograph_reader(int loader_version, bool verbose, std::bitset<8> &features,
                 << ", max = " << s_adj.max() << std::endl;
       return s_adj;
     }
-    case 5: {
+    case Ensemble_Blocked: {
       std::vector<std::map<size_t, size_t>> neighbor_count =
           to_two_graph_count_neighbors_blocked(edges, nodes);
       nw::graph::edge_list<undirected> &&linegraph =
@@ -112,7 +164,7 @@ auto twograph_reader(int loader_version, bool verbose, std::bitset<8> &features,
                 << ", max= " << s_adj.max() << std::endl;
       return s_adj;
     }
-    case 6: {
+    case Ensemble_Cyclic: {
       std::vector<std::map<size_t, size_t>> neighbor_count =
           to_two_graph_count_neighbors_cyclic(edges, nodes);
       nw::graph::edge_list<undirected> &&linegraph =
@@ -126,7 +178,7 @@ auto twograph_reader(int loader_version, bool verbose, std::bitset<8> &features,
                 << ", max = " << s_adj.max() << std::endl;
       return s_adj;
     }
-    case 7: {
+    case Map_Frontier_Blocked: {
       nw::graph::edge_list<undirected> &&linegraph =
           to_two_graph_map_frontier_blocked_portal<undirected>(
               std::execution::par_unseq, edges, nodes, edgedegrees,
@@ -141,7 +193,7 @@ auto twograph_reader(int loader_version, bool verbose, std::bitset<8> &features,
                 << ", max = " << s_adj.max() << std::endl;
       return s_adj;
     }
-    case 8: {
+    case Map_Frontier_Cyclic: {
       nw::graph::edge_list<undirected> &&linegraph =
           to_two_graph_map_frontier_cyclic_portal<undirected>(
               std::execution::par_unseq, edges, nodes, edgedegrees,
@@ -156,7 +208,7 @@ auto twograph_reader(int loader_version, bool verbose, std::bitset<8> &features,
                 << ", max = " << s_adj.max() << std::endl;
       return s_adj;
     }
-    case 9: {
+    case HashMap_Frontier_Blocked: {
       nw::graph::edge_list<undirected> &&linegraph =
           to_two_graph_hashmap_frontier_blocked_portal<undirected>(
               std::execution::par_unseq, edges, nodes, edgedegrees,
@@ -171,7 +223,7 @@ auto twograph_reader(int loader_version, bool verbose, std::bitset<8> &features,
                 << ", max = " << s_adj.max() << std::endl;
       return s_adj;
     }
-    case 10: {
+    case HashMap_Frontier_Cyclic: {
       nw::graph::edge_list<undirected> &&linegraph =
           to_two_graph_hashmap_frontier_cyclic_portal<undirected>(
               std::execution::par_unseq, edges, nodes, edgedegrees,
@@ -186,7 +238,7 @@ auto twograph_reader(int loader_version, bool verbose, std::bitset<8> &features,
                 << ", max = " << s_adj.max() << std::endl;
       return s_adj;
     }
-    case 11: {
+    case Efficient_Frontier_Blocked: {
       nw::graph::edge_list<undirected> &&linegraph =
           to_two_graph_efficient_frontier_blocked_portal<undirected>(
               std::execution::par_unseq, edges, nodes, edgedegrees,
@@ -201,7 +253,7 @@ auto twograph_reader(int loader_version, bool verbose, std::bitset<8> &features,
                 << ", max = " << s_adj.max() << std::endl;
       return s_adj;
     }
-    case 12: {
+    case Efficient_Frontier_Cyclic: {
       nw::graph::edge_list<undirected> &&linegraph =
           to_two_graph_efficient_frontier_cyclic_portal<undirected>(
               std::execution::par_unseq, edges, nodes, edgedegrees,
@@ -216,6 +268,7 @@ auto twograph_reader(int loader_version, bool verbose, std::bitset<8> &features,
                 << ", max = " << s_adj.max() << std::endl;
       return s_adj;
     }
+    case Unknown:
     default: {
       std::cerr << "unknown soverlap computation loader" << std::endl;
       return nw::graph::adjacency<0>(0);
