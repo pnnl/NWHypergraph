@@ -130,7 +130,6 @@ size_t nNonzeros, bool file_symmetry, bool pattern) {
 //loader for mmio_adjoin
 template<nw::graph::directedness sym, typename... Attributes>
 nw::graph::edge_list<sym, Attributes...> read_mm_adjoin(const std::string& filename, size_t& numRealEdges, size_t& numRealNodes) {
-  nw::util::life_timer _(__func__);
   std::ifstream inputStream(filename);
   std::string              string_input;
   bool                     file_symmetry = false;

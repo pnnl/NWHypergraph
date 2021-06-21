@@ -450,11 +450,28 @@ nw::graph::edge_list<sym, Attributes...> read_adjacency_adjoin(const std::string
   file >> nreal_edges;
   file >> m1;
 
+  auto&& [v0, e0] = adjacency_fill_adjoin(file, nreal_nodes, m0, nreal_edges, m1);
   //set an empty edge list, because the max of column 0 and column 1 are unknown
-  nw::graph::edge_list<sym, Attributes...> A(0);
+  nw::graph::edge_list<sym, Attributes...> A(nreal_nodes + nreal_edges);
   A.reserve(m1);
   A.set_origin(filename);
-  adjacency_fill_adjoin(file, A, nreal_nodes, m0, nreal_edges, m1);
+  A.open_for_push_back();
+  vertex_id_t start, end;
+  if (nreal_edges > nreal_nodes) {
+    start = 0;
+    end  = nreal_edges;
+  }
+  else {
+    start = nreal_nodes;
+    end = nreal_edges + nreal_nodes;
+  }
+  for (vertex_id_t i = start; i < end; ++i) {
+    for (size_t j = v0[i]; j < v0[i + 1]; ++j) {
+      A.push_back(i, e0[j]);
+    }
+  }
+  A.close_for_push_back();
+  //adjacency_fill_adjoin(file, A, nreal_nodes, m0, nreal_edges, m1);
 
   return A;
 }
