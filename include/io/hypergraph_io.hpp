@@ -249,24 +249,14 @@ void adjacency_fill(std::istream& inputStream, Edgelist& A,
 const size_t nnodes, const size_t m0, const size_t nedges, const size_t m1) {
   A.open_for_push_back();
   vertex_id_t tmp;
-  //populate the node-edge adjacency
-  std::vector<vertex_id_t> v0(nnodes + 1);
+  //skip the node-edge adjacency
   for (size_t i = 0; i < nnodes; ++i) {
     inputStream >> tmp;
-    v0[i] = tmp;
   }
-  std::vector<vertex_id_t> e0(m0);
   for (size_t i = 0; i < m0; ++i) {
     inputStream >> tmp;
-    e0[i] = tmp;
   }
-  v0[nnodes] = m0;
-  for (vertex_id_t v = 0; v < nnodes; ++v) {
-    for (size_t j = v0[v]; j < v0[v + 1]; ++j) {
-      A.push_back(e0[j], v);
-    }
-  }
-  
+
   //populate the edge-node adjacency
   std::vector<vertex_id_t> v1(nedges + 1);
   for (size_t i = 0; i < nedges; ++i) {
@@ -282,6 +272,54 @@ const size_t nnodes, const size_t m0, const size_t nedges, const size_t m1) {
   for (vertex_id_t e = 0; e < nedges; ++e) {
     for (size_t j = v1[e]; j < v1[e + 1]; ++j) {
       A.push_back(e, e1[j]);
+    }
+  }
+  A.close_for_push_back();
+}
+
+/* 
+* Fill edgelist.
+* Convention is that column 0 stores hyperedges,
+* column 1 stores hypernodes.
+*/
+template<class Edgelist>
+void adjacency_fill_adjoin(std::istream& inputStream, Edgelist& A,
+const size_t nnodes, const size_t m0, const size_t nedges, const size_t m1) {
+  A.open_for_push_back();
+  vertex_id_t tmp;
+  //skip the node-edge adjacency
+  for (size_t i = 0; i < nnodes; ++i) {
+    inputStream >> tmp;
+  }
+  for (size_t i = 0; i < m0; ++i) {
+    inputStream >> tmp;
+  }
+
+  //populate the edge-node adjacency
+  std::vector<vertex_id_t> v1(nedges + 1);
+  for (size_t i = 0; i < nedges; ++i) {
+    inputStream >> tmp;
+    v1[i] = tmp;
+  }
+  std::vector<vertex_id_t> e1(m1);
+  for (size_t i = 0; i < m1; ++i) {
+    inputStream >> tmp;
+    e1[i] = tmp;
+  }
+  v1[nedges] = m1;
+  if (nnodes > nedges) {
+    // shift hyperedge id
+    for (vertex_id_t e = 0; e < nedges; ++e) {
+      for (size_t j = v1[e]; j < v1[e + 1]; ++j) {
+        A.push_back(e + nnodes, e1[j]);
+      }
+    }
+  } else {
+    // shift hypernode id
+    for (vertex_id_t e = 0; e < nedges; ++e) {
+      for (size_t j = v1[e]; j < v1[e + 1]; ++j) {
+        A.push_back(e, e1[j] + nedges);
+      }
     }
   }
   A.close_for_push_back();
@@ -380,8 +418,8 @@ nw::graph::edge_list<sym, Attributes...> read_adjacency(const std::string& filen
   file >> nedges;
   file >> m1;
 
-  nw::graph::edge_list<sym, Attributes...> A(nnodes + nedges);
-  A.reserve(m0 + m1);
+  nw::graph::edge_list<sym, Attributes...> A(nedges);
+  A.reserve(m1);
   A.set_origin(filename);
   adjacency_fill(file, A, nnodes, m0, nedges, m1);
 
@@ -412,17 +450,10 @@ nw::graph::edge_list<sym, Attributes...> read_adjacency_adjoin(const std::string
   file >> nreal_edges;
   file >> m1;
 
-  auto&& [v0, e0] = adjacency_fill_adjoin(file, nreal_nodes, m0, nreal_edges, m1);
-  nw::graph::edge_list<sym, Attributes...> A(nreal_nodes + nreal_edges);
-  A.reserve(m0 + m1);
+  nw::graph::edge_list<sym, Attributes...> A(nreal_edges);
+  A.reserve(m1);
   A.set_origin(filename);
-  A.open_for_push_back();
-  for (vertex_id_t i = 0, e = nreal_nodes + nreal_edges; i < e; ++i) {
-    for (size_t j = v0[i]; j < v0[i + 1]; ++j) {
-      A.push_back(i, e0[j]);
-    }
-  }
-  A.close_for_push_back();
+  adjacency_fill_adjoin(file, A, nreal_nodes, m0, nreal_edges, m1);
 
   return A;
 }
