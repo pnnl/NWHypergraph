@@ -121,7 +121,7 @@ nw::graph::edge_list<Directedness, Attributes...> load_graph(std::string file) {
   else {
     std::cout << "Reading CSV input " << file << " (slow)" << std::endl;
     nw::util::life_timer _("read csv");
-    return read_csv_as_edge_list<Directedness, Attributes...>(file);
+    return read_csv<Directedness, Attributes...>(file);
   }
 }
 template<class... Attributes>
