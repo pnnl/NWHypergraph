@@ -14,7 +14,6 @@
 
 #include <edge_list.hpp>
 #include <compressed.hpp>
-#include <util/timer.hpp>
 using namespace nw::graph;
 
 namespace nw {
@@ -171,10 +170,9 @@ const size_t n0, const size_t m0, const size_t n1, const size_t m1) {
 * combine biadjacency into an adjacency
 * Transform a bipartite graph into a general graph
 */
-auto adj_hypergraph_fill_and_adjoin(std::istream& inputStream,
+auto adjacency_fill_adjoin(std::istream& inputStream,
 const size_t n0, const size_t m0, const size_t n1, const size_t m1) {
   vertex_id_t tmp;
-  std::string buffer;
   size_t N = n0 + n1;
   size_t M = m0 + m1;
   std::vector<vertex_id_t> v0(N + 1);
@@ -241,8 +239,55 @@ const size_t n0, const size_t m0, const size_t n1, const size_t m1) {
   return std::tuple(v0, e0);
 }
 
+/* 
+* Fill edgelist.
+* Convention is that column 0 stores hyperedges,
+* column 1 stores hypernodes.
+*/
+template<class Edgelist>
+void adjacency_fill(std::istream& inputStream, Edgelist& A,
+const size_t nnodes, const size_t m0, const size_t nedges, const size_t m1) {
+  A.open_for_push_back();
+  vertex_id_t tmp;
+  //populate the node-edge adjacency
+  std::vector<vertex_id_t> v0(nnodes + 1);
+  for (size_t i = 0; i < nnodes; ++i) {
+    inputStream >> tmp;
+    v0[i] = tmp;
+  }
+  std::vector<vertex_id_t> e0(m0);
+  for (size_t i = 0; i < m0; ++i) {
+    inputStream >> tmp;
+    e0[i] = tmp;
+  }
+  v0[nnodes] = m0;
+  for (vertex_id_t v = 0; v < nnodes; ++v) {
+    for (size_t j = v0[v]; j < v0[v + 1]; ++j) {
+      A.push_back(e0[j], v);
+    }
+  }
+  
+  //populate the edge-node adjacency
+  std::vector<vertex_id_t> v1(nedges + 1);
+  for (size_t i = 0; i < nedges; ++i) {
+    inputStream >> tmp;
+    v1[i] = tmp;
+  }
+  std::vector<vertex_id_t> e1(m1);
+  for (size_t i = 0; i < m1; ++i) {
+    inputStream >> tmp;
+    e1[i] = tmp;
+  }
+  v1[nedges] = m1;
+  for (vertex_id_t e = 0; e < nedges; ++e) {
+    for (size_t j = v1[e]; j < v1[e + 1]; ++j) {
+      A.push_back(e, e1[j]);
+    }
+  }
+  A.close_for_push_back();
+}
+
 auto read_and_adjoin_adj_hypergraph_pair(const std::string& filename, size_t& nreal_edges, size_t& nreal_nodes) {
-  nw::util::life_timer _(__func__);
   std::ifstream inputStream(filename, std::ifstream::in);
   if (!inputStream.is_open()) {
     std::cerr << "Can not open file: " << filename << std::endl;
@@ -263,12 +308,11 @@ auto read_and_adjoin_adj_hypergraph_pair(const std::string& filename, size_t& nr
   inputStream >> m1;
   //std::cout << nreal_nodes << " " << m0 << " " << nreal_edges << " " << m1 << std::endl;
 
-  auto&& [v0, e0] = adj_hypergraph_fill_and_adjoin(inputStream, nreal_nodes, m0, nreal_edges, m1);
+  auto&& [v0, e0] = adjacency_fill_adjoin(inputStream, nreal_nodes, m0, nreal_edges, m1);
   return std::tuple(adjacency<0>(std::move(v0), std::move(e0)), adjacency<1>(std::move(v0), std::move(e0))); 
 }
 
 auto read_and_adjoin_adj_hypergraph(const std::string& filename, size_t& nreal_edges, size_t& nreal_nodes) {
-  nw::util::life_timer _(__func__);
   std::ifstream inputStream(filename, std::ifstream::in);
   if (!inputStream.is_open()) {
     std::cerr << "Can not open file: " << filename << std::endl;
@@ -288,14 +332,15 @@ auto read_and_adjoin_adj_hypergraph(const std::string& filename, size_t& nreal_e
   inputStream >> nreal_edges;
   inputStream >> m1;
   //std::cout << nreal_nodes << " " << m0 << " " << nreal_edges << " " << m1 << std::endl;
-  auto&& [v0, e0] = adj_hypergraph_fill_and_adjoin(inputStream, nreal_nodes, m0, nreal_edges, m1);
+  auto&& [v0, e0] = adjacency_fill_adjoin(inputStream, nreal_nodes, m0, nreal_edges, m1);
   return adjacency<0>(std::move(v0), std::move(e0));
 }
 
-
+/*
+ * Read the adjacency hypergraph as bi-adjacency
+ **/
 template <typename... Attributes>
 auto read_adj_hypergraph(const std::string& filename) {
-  nw::util::life_timer _(__func__);
   std::ifstream file(filename, std::ifstream::in);
   if (!file.is_open()) {
     std::cerr << "Can not open file: " << filename << std::endl;
@@ -308,7 +353,78 @@ auto read_adj_hypergraph(const std::string& filename) {
     std::cerr << "Unsupported format" << std::endl;
     throw;
   }
-  return adj_hypergraph_fill(file);;
+  return adj_hypergraph_fill(file);
+}
+
+/*
+ * Read the adjacency graph as an edgelist.
+ **/
+template<nw::graph::directedness sym, typename... Attributes>
+nw::graph::edge_list<sym, Attributes...> read_adjacency(const std::string& filename) {
+  std::ifstream file(filename, std::ifstream::in);
+  if (!file.is_open()) {
+    std::cerr << "Can not open file: " << filename << std::endl;
+    throw;
+  }
+  std::string header;
+  file >> header;
+
+  if (AdjHypergraphHeader.c_str() != header) {
+    std::cerr << "Unsupported adjacency format" << std::endl;
+    throw;
+  }
+
+  size_t nnodes, m0, nedges, m1;
+  file >> nnodes;
+  file >> m0;
+  file >> nedges;
+  file >> m1;
+
+  nw::graph::edge_list<sym, Attributes...> A(nnodes + nedges);
+  A.reserve(m0 + m1);
+  A.set_origin(filename);
+  adjacency_fill(file, A, nnodes, m0, nedges, m1);
+
+  return A;
+}
+
+/*
+ * Read the adjacency hypergraph into adjoin graph in the format of an edgelist.
+ **/
+template<nw::graph::directedness sym, typename... Attributes>
+nw::graph::edge_list<sym, Attributes...> read_adjacency_adjoin(const std::string& filename, size_t& nreal_edges, size_t& nreal_nodes) {
+  std::ifstream file(filename, std::ifstream::in);
+  if (!file.is_open()) {
+    std::cerr << "Can not open file: " << filename << std::endl;
+    throw;
+  }
+  std::string header;
+  file >> header;
+
+  if (AdjHypergraphHeader.c_str() != header) {
+    std::cerr << "Unsupported adjacency format" << std::endl;
+    throw;
+  }
+
+  size_t m0, m1;
+  file >> nreal_nodes;
+  file >> m0;
+  file >> nreal_edges;
+  file >> m1;
+
+  auto&& [v0, e0] = adjacency_fill_adjoin(file, nreal_nodes, m0, nreal_edges, m1);
+  nw::graph::edge_list<sym, Attributes...> A(nreal_nodes + nreal_edges);
+  A.reserve(m0 + m1);
+  A.set_origin(filename);
+  A.open_for_push_back();
+  for (vertex_id_t i = 0, e = nreal_nodes + nreal_edges; i < e; ++i) {
+    for (size_t j = v0[i]; j < v0[i + 1]; ++j) {
+      A.push_back(i, e0[j]);
+    }
+  }
+  A.close_for_push_back();
+
+  return A;
 }
 
 template <typename... Attributes>
