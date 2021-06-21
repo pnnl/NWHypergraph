@@ -278,9 +278,9 @@ const size_t nnodes, const size_t m0, const size_t nedges, const size_t m1) {
 }
 
 /* 
-* Fill edgelist.
-* Convention is that column 0 stores hyperedges,
-* column 1 stores hypernodes.
+* Fill edgelist, where each edge is from hyperedge to hypernode.
+* Convention is that column 0 are hyperedges,
+* column 1 are hypernodes.
 */
 template<class Edgelist>
 void adjacency_fill_adjoin(std::istream& inputStream, Edgelist& A,
@@ -307,15 +307,15 @@ const size_t nnodes, const size_t m0, const size_t nedges, const size_t m1) {
     e1[i] = tmp;
   }
   v1[nedges] = m1;
-  if (nnodes > nedges) {
-    // shift hyperedge id
+  if (nnodes >= nedges) {
+    // shift hyperedge id by nnodes
     for (vertex_id_t e = 0; e < nedges; ++e) {
       for (size_t j = v1[e]; j < v1[e + 1]; ++j) {
         A.push_back(e + nnodes, e1[j]);
       }
     }
   } else {
-    // shift hypernode id
+    // shift hypernode id by nedges
     for (vertex_id_t e = 0; e < nedges; ++e) {
       for (size_t j = v1[e]; j < v1[e + 1]; ++j) {
         A.push_back(e, e1[j] + nedges);
@@ -450,7 +450,8 @@ nw::graph::edge_list<sym, Attributes...> read_adjacency_adjoin(const std::string
   file >> nreal_edges;
   file >> m1;
 
-  nw::graph::edge_list<sym, Attributes...> A(nreal_edges);
+  //set an empty edge list, because the max of column 0 and column 1 are unknown
+  nw::graph::edge_list<sym, Attributes...> A(0);
   A.reserve(m1);
   A.set_origin(filename);
   adjacency_fill_adjoin(file, A, nreal_nodes, m0, nreal_edges, m1);
