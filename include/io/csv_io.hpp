@@ -22,7 +22,8 @@ namespace hypergraph {
 /*
 * Read the csv file row by row, split the numbers by comma and insert to edge list
 **/
-void csv_fill(std::istream& inputStream, nw::graph::edge_list<directed>& A) {
+template <class EdgeList>
+void csv_fill(std::istream& inputStream, EdgeList& A) {
   std::string line, word, temp;
   vertex_id_t e = 0;
   while (std::getline(inputStream, line)) {
@@ -52,6 +53,22 @@ void csv_fill(std::istream& inputStream, nw::graph::edge_list<directed>& A) {
     ++e;
   }
   A.close_for_push_back();
+}
+
+template <class EdgeList>
+void populate_adjoin_edge_list(EdgeList& A, EdgeList& B,
+                               const size_t nedges, const size_t nnodes) {
+  B.open_for_push_back();
+  if (nedges > nnodes) {
+    for (auto&& [d0, d1] : A) {
+      B.push_back(d0, d1 + nedges);
+    }
+  } else {
+    for (auto&& [d0, d1] : A) {
+      B.push_back(d0 + nnodes, d1);
+    }
+  }
+  B.close_for_push_back();
 }
 
 /*
@@ -95,8 +112,9 @@ auto read_csv_adjoin(const std::string& filename, size_t& numRealEdges, size_t& 
     numRealEdges = A.max()[0];
     numRealNodes = A.max()[1];
     nw::graph::edge_list<sym, Attributes...> B(numRealEdges + numRealNodes);
-    populate_adjoin_edge_list(A, B);
-    return A;
+    B.reserve(A.size());
+    populate_adjoin_edge_list(A, B, numRealEdges, numRealNodes);
+    return B;
 }
 
 }//namespace hypergraph

@@ -124,6 +124,29 @@ nw::graph::edge_list<Directedness, Attributes...> load_graph(std::string file) {
     return read_csv<Directedness, Attributes...>(file);
   }
 }
+
+template <directedness Directedness, class... Attributes>
+nw::graph::edge_list<Directedness, Attributes...> load_adjoin_graph(std::string file, size_t& numRealEdges, size_t& numRealNodes) {
+  std::ifstream in(file);
+  std::string type;
+  in >> type;
+
+  if (type == "%%MatrixMarket") {
+    std::cout << "Reading matrix market input " << file << " (slow)" << std::endl;
+    nw::util::life_timer _("read mm");
+    return read_mm_adjoin<Directedness, Attributes...>(file, numRealEdges, numRealNodes);
+  }
+  else if (type == AdjHypergraphHeader.c_str() || type == WghAdjHypergraphHeader.c_str()) {
+    //std::cout << "Reading adjacency input " << file << " (slow)" << std::endl;
+    return nw::graph::edge_list<Directedness, Attributes...>(0);
+  }
+  else {
+    std::cout << "Reading CSV input " << file << " (slow)" << std::endl;
+    nw::util::life_timer _("read csv");
+    return read_csv_adjoin<Directedness, Attributes...>(file, numRealEdges, numRealNodes);
+  }
+}
+
 template<class... Attributes>
 std::tuple<nw::graph::adjacency<0, Attributes...>, nw::graph::adjacency<1, Attributes...>> 
 load_adjacency(std::string file) {
@@ -213,8 +236,7 @@ auto graph_reader_relabel(std::string file, int idx, std::string direction) {
 template<directedness edge_directedness = directed, typename... Attributes>
 auto graph_reader_adjoin_and_relabel(std::string file, const int idx, std::string direction, 
 size_t& nrealedges, size_t& nrealnodes) {
-  auto aos_a =
-      read_mm_adjoin<edge_directedness, Attributes...>(file, nrealedges, nrealnodes);
+  auto aos_a = load_adjoin_graph<edge_directedness, Attributes...>(file, nrealedges, nrealnodes);
   std::vector<vertex_id_t> iperm, perm;
   if (0 == aos_a.size()) {
     //we get adjoin graph and its transpose
@@ -281,8 +303,7 @@ size_t& nrealedges, size_t& nrealnodes) {
 template <directedness edge_directedness = directed, typename... Attributes>
 auto graph_reader_adjoin(std::string file, size_t& nrealedges,
                          size_t& nrealnodes) {
-  auto aos_a = read_mm_adjoin<edge_directedness, Attributes...>(
-      file, nrealedges, nrealnodes);
+  auto aos_a = load_adjoin_graph<edge_directedness, Attributes...>(file, nrealedges, nrealnodes);
   if (0 == aos_a.size()) {
     //after adjoin, we have adjoin graph and its transpose
     auto&& [g, g_t] =
