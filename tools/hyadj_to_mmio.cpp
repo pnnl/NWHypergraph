@@ -13,6 +13,10 @@
 #include <edge_list.hpp>
 #include "common.hpp"
 
+/*
+* The file format is at
+* https://github.com/jshun/ligra/tree/ligra-h#input-format-for-ligra-h-applications
+**/
 
 static constexpr const char USAGE[] =
     R"(adj2mm.exe: convert hypergraph biadjacency file to matrix market file driver.
@@ -42,13 +46,12 @@ int main(int argc, char* argv[]) {
   std::string output_file = args["-o"].asString();
   bool transpose = args["--transpose"].asBool();
 
-  nw::graph::edge_list<directed> aos_a = read_adjacency<directed>(input_file);
-  //auto&& [hyperedges, hypernodes] = load_adjacency<>(input_file);
+  auto&& [hyperedges, hypernodes] = load_adjacency<>(input_file);
 
   if (!transpose)
-    write_mm<0>(output_file, aos_a);
+    write_mm<0>(output_file, hyperedges);
   else
-    write_mm<1>(output_file, aos_a);
+    write_mm<0>(output_file, hypernodes);
 
   return 0;
 }
