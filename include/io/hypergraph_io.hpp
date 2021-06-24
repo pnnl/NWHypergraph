@@ -21,6 +21,9 @@ namespace hypergraph {
 
 std::string AdjHypergraphHeader = "AdjacencyHypergraph";
 std::string WghAdjHypergraphHeader = "WeightedAdjacencyHypergraph";
+/* The detail of the file format is at
+* https://github.com/jshun/ligra/tree/ligra-h#input-format-for-ligra-h-applications
+*/
 
 /* 
 * fill biadjacency.
@@ -111,8 +114,9 @@ const size_t n0, const size_t m0, const size_t n1, const size_t m1) {
   v0[N] = M;
   v1[N] = M;
   //create use move constructor
-  return std::tuple(adjacency<0>(std::move(v0), std::move(e0)),
-  adjacency<1>(std::move(v1), std::move(e1)));
+  // adjacency<0> is hyperedges, adjacency<1> is hypernodes
+  return std::tuple(adjacency<0>(std::move(v1), std::move(e1)),
+  adjacency<1>(std::move(v0), std::move(e0)));
 }
 /*
 * combine biadjacency into adjacency. Return g and its transpose
@@ -162,8 +166,9 @@ const size_t n0, const size_t m0, const size_t n1, const size_t m1) {
   v0[N] = M;
   v1[N] = M;
   //create use move constructor
-  return std::tuple(adjacency<0>(std::move(v0), std::move(e0)),
-  adjacency<1>(std::move(v1), std::move(e1)));
+  // adjacency<0> is hyperedges, adjacency<1> is hypernodes
+  return std::tuple(adjacency<0>(std::move(v1), std::move(e1)),
+  adjacency<1>(std::move(v0), std::move(e0)));
 }
 
 /*
@@ -246,6 +251,56 @@ const size_t n0, const size_t m0, const size_t n1, const size_t m1) {
 */
 template<class Edgelist>
 void adjacency_fill(std::istream& inputStream, Edgelist& A,
+const size_t nnodes, const size_t m0, const size_t nedges, const size_t m1, bool file_symmetry) {
+  A.open_for_push_back();
+  vertex_id_t tmp;
+  //skip the node-edge adjacency
+  std::vector<vertex_id_t> v0(nnodes + 1);
+  for (size_t i = 0; i < nnodes; ++i) {
+    inputStream >> tmp;
+    v0[i] = tmp;
+  }
+  std::vector<vertex_id_t> e0(m0);
+  for (size_t i = 0; i < m0; ++i) {
+    inputStream >> tmp;
+    e0[i] = tmp;
+  }
+  v0[nnodes] = m0;
+  if (false == file_symmetry) {
+    //if the hypergraph is not symmetric
+    //then we need to append the hypernode-hyperedge pair into the edge list as well
+    for (vertex_id_t v = 0; v < nnodes; ++v) {
+      for (size_t j = v0[v]; j < v0[v + 1]; ++j) {
+        A.push_back(e0[j], v);
+      }
+    }
+  }
+  //populate the edge-node adjacency
+  std::vector<vertex_id_t> v1(nedges + 1);
+  for (size_t i = 0; i < nedges; ++i) {
+    inputStream >> tmp;
+    v1[i] = tmp;
+  }
+  std::vector<vertex_id_t> e1(m1);
+  for (size_t i = 0; i < m1; ++i) {
+    inputStream >> tmp;
+    e1[i] = tmp;
+  }
+  v1[nedges] = m1;
+  for (vertex_id_t e = 0; e < nedges; ++e) {
+    for (size_t j = v1[e]; j < v1[e + 1]; ++j) {
+      A.push_back(e, e1[j]);
+    }
+  }
+  A.close_for_push_back();
+}
+/* 
+* Fill edgelist.
+* Convention is that column 0 stores hyperedges,
+* column 1 stores hypernodes.
+*/
+template<class Edgelist>
+void adjacency_fill(std::istream& inputStream, Edgelist& A,
 const size_t nnodes, const size_t m0, const size_t nedges, const size_t m1) {
   A.open_for_push_back();
   vertex_id_t tmp;
@@ -263,15 +318,11 @@ const size_t nnodes, const size_t m0, const size_t nedges, const size_t m1) {
     inputStream >> tmp;
     v1[i] = tmp;
   }
-  std::vector<vertex_id_t> e1(m1);
-  for (size_t i = 0; i < m1; ++i) {
-    inputStream >> tmp;
-    e1[i] = tmp;
-  }
   v1[nedges] = m1;
   for (vertex_id_t e = 0; e < nedges; ++e) {
     for (size_t j = v1[e]; j < v1[e + 1]; ++j) {
-      A.push_back(e, e1[j]);
+      inputStream >> tmp;
+      A.push_back(e, tmp);
     }
   }
   A.close_for_push_back();
@@ -411,7 +462,6 @@ nw::graph::edge_list<sym, Attributes...> read_adjacency(const std::string& filen
     std::cerr << "Unsupported adjacency format" << std::endl;
     throw;
   }
-
   size_t nnodes, m0, nedges, m1;
   file >> nnodes;
   file >> m0;
@@ -443,19 +493,22 @@ nw::graph::edge_list<sym, Attributes...> read_adjacency_adjoin(const std::string
     std::cerr << "Unsupported adjacency format" << std::endl;
     throw;
   }
-
+  bool file_symmetry = false;
   size_t m0, m1;
   file >> nreal_nodes;
   file >> m0;
   file >> nreal_edges;
   file >> m1;
 
+  //if the nonzeros of edges and nodes are the same
+  //then the graph is symmetric
+  if (m0 == m1)
+    file_symmetry =  true;
+  
   auto&& [v0, e0] = adjacency_fill_adjoin(file, nreal_nodes, m0, nreal_edges, m1);
   //set an empty edge list, because the max of column 0 and column 1 are unknown
   nw::graph::edge_list<sym, Attributes...> A(nreal_nodes + nreal_edges);
-  A.reserve(m1);
-  A.set_origin(filename);
-  A.open_for_push_back();
+
   vertex_id_t start, end;
   if (nreal_edges > nreal_nodes) {
     start = 0;
@@ -465,12 +518,29 @@ nw::graph::edge_list<sym, Attributes...> read_adjacency_adjoin(const std::string
     start = nreal_nodes;
     end = nreal_edges + nreal_nodes;
   }
-  for (vertex_id_t i = start; i < end; ++i) {
-    for (size_t j = v0[i]; j < v0[i + 1]; ++j) {
-      A.push_back(i, e0[j]);
+
+  if (file_symmetry) {
+    //a symmetric graph only needs half of the node-edge pairs
+    A.reserve(m1);
+    A.open_for_push_back();
+    for (vertex_id_t i = start; i < end; ++i) {
+      for (size_t j = v0[i]; j < v0[i + 1]; ++j) {
+        A.push_back(i, e0[j]);
+      }
     }
+    A.close_for_push_back();
   }
-  A.close_for_push_back();
+  else {
+    A.reserve(m0 + m1);
+    A.open_for_push_back();
+    for (vertex_id_t i = 0, e = nreal_edges + nreal_nodes; i < e; ++i) {
+      for (size_t j = v0[i]; j < v0[i + 1]; ++j) {
+        A.push_back(i, e0[j]);
+      }
+    }
+    A.close_for_push_back();
+  }
+  A.set_origin(filename);
   //adjacency_fill_adjoin(file, A, nreal_nodes, m0, nreal_edges, m1);
 
   return A;
