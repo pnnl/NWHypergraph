@@ -493,18 +493,13 @@ nw::graph::edge_list<sym, Attributes...> read_adjacency_adjoin(const std::string
     std::cerr << "Unsupported adjacency format" << std::endl;
     throw;
   }
-  bool file_symmetry = false;
+
   size_t m0, m1;
   file >> nreal_nodes;
   file >> m0;
   file >> nreal_edges;
   file >> m1;
 
-  //if the nonzeros of edges and nodes are the same
-  //then the graph is symmetric
-  if (m0 == m1)
-    file_symmetry =  true;
-  
   auto&& [v0, e0] = adjacency_fill_adjoin(file, nreal_nodes, m0, nreal_edges, m1);
   //set an empty edge list, because the max of column 0 and column 1 are unknown
   nw::graph::edge_list<sym, Attributes...> A(nreal_nodes + nreal_edges);
@@ -519,27 +514,15 @@ nw::graph::edge_list<sym, Attributes...> read_adjacency_adjoin(const std::string
     end = nreal_edges + nreal_nodes;
   }
 
-  if (file_symmetry) {
-    //a symmetric graph only needs half of the node-edge pairs
-    A.reserve(m1);
-    A.open_for_push_back();
-    for (vertex_id_t i = start; i < end; ++i) {
-      for (size_t j = v0[i]; j < v0[i + 1]; ++j) {
-        A.push_back(i, e0[j]);
-      }
+  A.reserve(m1);
+  A.open_for_push_back();
+  for (vertex_id_t i = start; i < end; ++i) {
+    for (size_t j = v0[i]; j < v0[i + 1]; ++j) {
+      A.push_back(i, e0[j]);
     }
-    A.close_for_push_back();
   }
-  else {
-    A.reserve(m0 + m1);
-    A.open_for_push_back();
-    for (vertex_id_t i = 0, e = nreal_edges + nreal_nodes; i < e; ++i) {
-      for (size_t j = v0[i]; j < v0[i + 1]; ++j) {
-        A.push_back(i, e0[j]);
-      }
-    }
-    A.close_for_push_back();
-  }
+  A.close_for_push_back();
+
   A.set_origin(filename);
   //adjacency_fill_adjoin(file, A, nreal_nodes, m0, nreal_edges, m1);
 
