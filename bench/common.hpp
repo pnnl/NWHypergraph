@@ -120,7 +120,7 @@ nw::graph::edge_list<Directedness, Attributes...> load_graph(std::string file) {
   else if (type == AdjHypergraphHeader.c_str() || type == WghAdjHypergraphHeader.c_str()) {
     std::cout << "Reading adjacency input " << file << " (slow)" << std::endl;
     nw::util::life_timer _("read adjacency");
-    return read_adjacency<undirected, Attributes...>(file);
+    return read_adjacency<Directedness, Attributes...>(file);
   }
   else {
     std::cout << "Reading CSV input " << file << " (slow)" << std::endl;
@@ -148,7 +148,7 @@ nw::graph::edge_list<Directedness, Attributes...> load_adjoin_graph(std::string 
     std::cout << "Reading adjacency input " << file << " (slow)" << std::endl;
     nw::util::life_timer _("read adjacency adjoin");
     //force the edge list to be undirected
-    return read_adjacency_adjoin<undirected, Attributes...>(file, numRealEdges, numRealNodes);
+    return read_adjacency_adjoin<Directedness, Attributes...>(file, numRealEdges, numRealNodes);
   }
   else {
     std::cout << "Reading CSV input " << file << " (slow)" << std::endl;

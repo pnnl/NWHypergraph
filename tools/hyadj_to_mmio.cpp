@@ -46,12 +46,13 @@ int main(int argc, char* argv[]) {
   std::string output_file = args["-o"].asString();
   bool transpose = args["--transpose"].asBool();
 
-  auto&& [hyperedges, hypernodes] = load_adjacency<>(input_file);
+  nw::graph::edge_list<directed> aos_a = read_adjacency<directed>(input_file);
+  //auto&& [hyperedges, hypernodes] = load_adjacency<>(input_file);
 
   if (!transpose)
-    write_mm<0>(output_file, hyperedges);
+    write_mm<0>(output_file, aos_a, "general");
   else
-    write_mm<0>(output_file, hypernodes);
+    write_mm<1>(output_file, aos_a, "general");
 
   return 0;
 }
