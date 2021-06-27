@@ -120,7 +120,7 @@ nw::graph::edge_list<Directedness, Attributes...> load_graph(std::string file) {
   else if (type == AdjHypergraphHeader.c_str() || type == WghAdjHypergraphHeader.c_str()) {
     std::cout << "Reading adjacency input " << file << " (slow)" << std::endl;
     nw::util::life_timer _("read adjacency");
-    return read_adjacency<Directedness, Attributes...>(file);
+    return read_adjacency<undirected, Attributes...>(file);
   }
   else {
     std::cout << "Reading CSV input " << file << " (slow)" << std::endl;
@@ -133,7 +133,7 @@ nw::graph::edge_list<Directedness, Attributes...> load_graph(std::string file) {
  * This loader loads matrix market, adjacency graph/hypergraph or csv format into adjoin 
  * graph (in the format of edge list).
  **/
-template <directedness Directedness, class... Attributes>
+template <directedness Directedness = undirected, class... Attributes>
 nw::graph::edge_list<Directedness, Attributes...> load_adjoin_graph(std::string file, size_t& numRealEdges, size_t& numRealNodes) {
   std::ifstream in(file);
   std::string type;
@@ -147,7 +147,8 @@ nw::graph::edge_list<Directedness, Attributes...> load_adjoin_graph(std::string 
   else if (type == AdjHypergraphHeader.c_str() || type == WghAdjHypergraphHeader.c_str()) {
     std::cout << "Reading adjacency input " << file << " (slow)" << std::endl;
     nw::util::life_timer _("read adjacency adjoin");
-    return read_adjacency_adjoin<Directedness, Attributes...>(file, numRealEdges, numRealNodes);
+    //force the edge list to be undirected
+    return read_adjacency_adjoin<undirected, Attributes...>(file, numRealEdges, numRealNodes);
   }
   else {
     std::cout << "Reading CSV input " << file << " (slow)" << std::endl;
@@ -283,7 +284,7 @@ auto graph_reader(std::string file, int idx, std::string direction, bool adjoin,
 size_t& nrealedges, size_t& nrealnodes) {
   if (adjoin) {
     //adjoin hypergraph will be forced to be symmetric (undirected)
-    return graph_reader_adjoin_and_relabel<undirected, Attributes...>(file, idx, direction, 
+    return graph_reader_adjoin_and_relabel<edge_directedness, Attributes...>(file, idx, direction, 
       nrealedges, nrealnodes);
   }
   else {
