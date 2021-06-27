@@ -266,12 +266,13 @@ const size_t nnodes, const size_t m0, const size_t nedges, const size_t m1) {
     e0[i] = tmp;
   }
   v0[nnodes] = m0;
+  /*
   for (vertex_id_t v = 0; v < nnodes; ++v) {
     for (size_t j = v0[v]; j < v0[v + 1]; ++j) {
       A.push_back(e0[j], v);
     }
   }
-
+*/
   //populate the edge-node adjacency
   std::vector<vertex_id_t> v1(nedges + 1);
   for (size_t i = 0; i < nedges; ++i) {
@@ -347,6 +348,7 @@ const size_t nnodes, const size_t m0, const size_t nedges, const size_t m1) {
     e0[i] = tmp;
   }
   v0[nnodes] = m0;
+  /*
   if (nnodes >= nedges) {
     for (vertex_id_t v = 0; v < nnodes; ++v) {
       for (size_t j = v0[v]; j < v0[v + 1]; ++j) {
@@ -360,7 +362,7 @@ const size_t nnodes, const size_t m0, const size_t nedges, const size_t m1) {
       }
     }
   }
-
+*/
   //populate the edge-node adjacency
   std::vector<vertex_id_t> v1(nedges + 1);
   for (size_t i = 0; i < nedges; ++i) {
@@ -483,8 +485,8 @@ nw::graph::edge_list<sym, Attributes...> read_adjacency(const std::string& filen
   file >> nedges;
   file >> m1;
 
-  nw::graph::edge_list<sym, Attributes...> A(nnodes + nedges);
-  A.reserve(m0 + m1);
+  nw::graph::edge_list<sym, Attributes...> A(nedges);
+  A.reserve(m1);
   A.set_origin(filename);
   adjacency_fill(file, A, nnodes, m0, nedges, m1);
 
@@ -515,8 +517,8 @@ nw::graph::edge_list<sym, Attributes...> read_adjacency_adjoin(const std::string
   file >> nreal_edges;
   file >> m1;
 
-  nw::graph::edge_list<sym, Attributes...> A(nreal_nodes + nreal_edges);
-  A.reserve(m0 + m1);
+  nw::graph::edge_list<sym, Attributes...> A(nreal_edges);
+  A.reserve(m1);
   A.open_for_push_back();
   adjacency_fill_adjoin(file, A, nreal_nodes, m0, nreal_edges, m1);
   A.close_for_push_back();
