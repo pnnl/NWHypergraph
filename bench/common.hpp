@@ -118,7 +118,7 @@ nw::graph::edge_list<Directedness, Attributes...> load_graph(std::string file) {
     return nw::graph::read_mm<Directedness, Attributes...>(file);
   }
   else if (type == AdjHypergraphHeader.c_str() || type == WghAdjHypergraphHeader.c_str()) {
-    return nw::graph::edge_list<Directedness, Attributes...>();
+    return nw::graph::edge_list<Directedness, Attributes...>(0);
     /*
     std::cout << "Reading adjacency input " << file << " (slow)" << std::endl;
     nw::util::life_timer _("read adjacency");
@@ -148,7 +148,7 @@ nw::graph::edge_list<Directedness, Attributes...> load_adjoin_graph(std::string 
     return read_mm_adjoin<Directedness, Attributes...>(file, numRealEdges, numRealNodes);
   }
   else if (type == AdjHypergraphHeader.c_str() || type == WghAdjHypergraphHeader.c_str()) {
-    return nw::graph::edge_list<Directedness, Attributes...>();
+    return nw::graph::edge_list<Directedness, Attributes...>(0);
     /*
     std::cout << "Reading adjacency input " << file << " (slow)" << std::endl;
     nw::util::life_timer _("read adjacency adjoin");
