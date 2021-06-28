@@ -214,6 +214,7 @@ auto graph_reader(std::string file) {
 template<directedness edge_directedness = directed, typename... Attributes>
 auto graph_reader_relabel(std::string file, int idx, std::string direction) {
   auto aos_a = load_graph<edge_directedness, Attributes...>(file);
+  std::vector<vertex_id_t> iperm;
   if (0 == aos_a.size()) {
     auto&& [hyperedges, hypernodes] = load_adjacency<Attributes...>(file);
     // Run relabeling. This operates directly on the incoming edglist.
@@ -224,8 +225,10 @@ auto graph_reader_relabel(std::string file, int idx, std::string direction) {
               << " num_hypernodes = " << hypernodes.size() << std::endl;
       return std::tuple(hyperedges, hypernodes, iperm);
     }
+    std::cout << "num_hyperedges = " << hyperedges.size()
+              << " num_hypernodes = " << hypernodes.size() << std::endl;
+    return std::tuple(hyperedges, hypernodes, iperm); 
   }
-  std::vector<vertex_id_t> iperm;
   // Run relabeling. This operates directly on the incoming edglist.
   if (-1 != idx) {
     std::cout << "relabeling edge_list by degree..." << std::endl;
