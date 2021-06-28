@@ -118,9 +118,12 @@ nw::graph::edge_list<Directedness, Attributes...> load_graph(std::string file) {
     return nw::graph::read_mm<Directedness, Attributes...>(file);
   }
   else if (type == AdjHypergraphHeader.c_str() || type == WghAdjHypergraphHeader.c_str()) {
+    return nw::graph::edge_list<Directedness, Attributes...>();
+    /*
     std::cout << "Reading adjacency input " << file << " (slow)" << std::endl;
     nw::util::life_timer _("read adjacency");
     return read_adjacency<Directedness, Attributes...>(file);
+    */
   }
   else {
     std::cout << "Reading CSV input " << file << " (slow)" << std::endl;
@@ -145,10 +148,12 @@ nw::graph::edge_list<Directedness, Attributes...> load_adjoin_graph(std::string 
     return read_mm_adjoin<Directedness, Attributes...>(file, numRealEdges, numRealNodes);
   }
   else if (type == AdjHypergraphHeader.c_str() || type == WghAdjHypergraphHeader.c_str()) {
+    return nw::graph::edge_list<Directedness, Attributes...>();
+    /*
     std::cout << "Reading adjacency input " << file << " (slow)" << std::endl;
     nw::util::life_timer _("read adjacency adjoin");
-    //force the edge list to be undirected
     return read_adjacency_adjoin<Directedness, Attributes...>(file, numRealEdges, numRealNodes);
+    */
   }
   else {
     std::cout << "Reading CSV input " << file << " (slow)" << std::endl;
@@ -163,6 +168,7 @@ nw::graph::edge_list<Directedness, Attributes...> load_adjoin_graph(std::string 
 template<class... Attributes>
 std::tuple<nw::graph::adjacency<0, Attributes...>, nw::graph::adjacency<1, Attributes...>> 
 load_adjacency(std::string file) {
+  nw::util::life_timer _("read adjacency");
   std::ifstream in(file);
   std::string type;
   in >> type;
@@ -202,6 +208,17 @@ auto graph_reader(std::string file) {
 template<directedness edge_directedness = directed, typename... Attributes>
 auto graph_reader_relabel(std::string file, int idx, std::string direction) {
   auto aos_a = load_graph<edge_directedness, Attributes...>(file);
+  if (0 == aos_a.size()) {
+    auto&& [hyperedges, hypernodes] = load_adjacency<Attributes...>(file);
+    // Run relabeling. This operates directly on the incoming edglist.
+    if (-1 != idx) {
+      auto&& iperm = nw::hypergraph::relabel_by_degree(
+          hyperedges, hypernodes, idx, direction);
+        std::cout << "num_hyperedges = " << hyperedges.size()
+              << " num_hypernodes = " << hypernodes.size() << std::endl;
+      return std::tuple(hyperedges, hypernodes, iperm);
+    }
+  }
   std::vector<vertex_id_t> iperm;
   // Run relabeling. This operates directly on the incoming edglist.
   if (-1 != idx) {
@@ -222,7 +239,8 @@ auto graph_reader_relabel(std::string file, int idx, std::string direction) {
 }
 
 /*
- * This graph reader loads the graph into adjoin graph (edge list) then convert to bi-adjacency.
+ * This graph reader can read either mtx or hygra (adjacency) file 
+ * in adjoin fashion.
  * Adjoin will increment the ids of the smaller set of the hyperedges or hypernodes,
  * such that the ids of both are now contiguous.
  * And it also can relabel the ids of either hyperedges or hypernodes by degree
@@ -234,30 +252,60 @@ size_t& nrealedges, size_t& nrealnodes) {
   auto aos_a = load_adjoin_graph<edge_directedness, Attributes...>(
       file, nrealedges, nrealnodes);
   std::vector<vertex_id_t> iperm, perm;
-  // Run relabeling. This operates directly on the incoming edglist.
-  if (-1 != idx) {
-    // since the adjoin graph is symmetric, when we need to relabel it
-    // we need to operate on both column 0 and column 1
-    std::cout << "relabeling edge_list by degree..." << std::endl;
-    nw::util::ms_timer t("relabel_by_degree");
-    if (1 == idx) {
-      perm = aos_a.template perm_by_degree<1>(direction);
-      iperm = aos_a.relabel(perm);
-    } else {
-      perm = aos_a.template perm_by_degree<0>(direction);
-      iperm = aos_a.relabel(perm);
-    }
-    t.stop();
-    std::cout << t << std::endl;
-  }
+  if (0 == aos_a.size()) {
+    //we get adjoin graph and its transpose
+    auto&& [g, gt] = read_and_adjoin_adj_hypergraph_pair(file, nrealedges, nrealnodes);
+    if (-1 != idx) {
+      // Run relabeling. This operates directly on adjoin graph and its transpose.
+      // Note that g and gt are symmetric,
+      // therefore the permutation of g is also the permuation of its transpose
+      nw::util::ms_timer t("relabel_by_degree");
+      auto&& iperm =
+            g.permute_by_degree(direction, std::execution::par_unseq);
+      g.relabel_to_be_indexed(iperm, std::execution::par_unseq);
+      auto&& iperm_t =
+            gt.permute_by_degree(direction, std::execution::par_unseq);
+      gt.relabel_to_be_indexed(iperm_t, std::execution::par_unseq);
+      t.stop();
+      std::cout << t << std::endl;
 
-  nw::graph::adjacency<0, Attributes...> g(aos_a);
-  nw::graph::adjacency<1, Attributes...> g_t(aos_a);
-  std::cout << "num_realedges = " << nrealedges
-            << " num_realnodes = " << nrealnodes << std::endl;  
-  std::cout << "num_hyperedges = " << g.size()
-            << " num_hypernodes = " << g_t.size() << std::endl;
-  return std::tuple(g, g_t, iperm);
+      std::cout << "num_realedges = " << nrealedges
+                << " num_realnodes = " << nrealnodes << std::endl;
+      if (0 == idx)
+        return std::tuple(g, gt, iperm);
+      else 
+        return std::tuple(g, gt, iperm_t);
+    }
+
+    std::cout << "num_realedges = " << nrealedges
+            << " num_realnodes = " << nrealnodes << std::endl; 
+    return std::tuple(g, gt, iperm);
+  }
+  else {
+    // Run relabeling. This operates directly on the incoming edglist.
+    if (-1 != idx) {
+      //since the adjoin graph is symmetric, when we need to relabel it
+      //we need to operate on both column 0 and column 1
+      std::cout << "relabeling edge_list by degree..." << std::endl;
+      nw::util::ms_timer t("relabel_by_degree");
+      if (1 == idx) {
+        perm = aos_a.template perm_by_degree<1>(direction);
+        iperm = aos_a.relabel(perm);
+      }
+      else {
+        perm = aos_a.template perm_by_degree<0>(direction);
+        iperm = aos_a.relabel(perm);
+      }
+      t.stop();
+      std::cout << t << std::endl;
+    }
+
+    nw::graph::adjacency<0, Attributes...> g(aos_a);
+    nw::graph::adjacency<1, Attributes...> g_t(aos_a);
+    std::cout << "num_realedges = " << nrealedges
+            << " num_realnodes = " << nrealnodes << std::endl;    
+    return std::tuple(g, g_t, iperm);
+  }
 }
 
 /*
@@ -270,6 +318,16 @@ auto graph_reader_adjoin(std::string file, size_t& nrealedges,
                          size_t& nrealnodes) {
   auto aos_a = load_adjoin_graph<edge_directedness, Attributes...>(
       file, nrealedges, nrealnodes);
+    if (0 == aos_a.size()) {
+    //after adjoin, we have adjoin graph and its transpose
+    auto&& [g, g_t] =
+        read_and_adjoin_adj_hypergraph_pair(file, nrealedges, nrealnodes);
+    std::cout << "num_realedges = " << nrealedges
+            << " num_realnodes = " << nrealnodes << std::endl;
+      std::cout << "num_hyperedges = " << g.size()
+            << " num_hypernodes = " << g_t.size() << std::endl;
+    return std::tuple(g, g_t, std::vector<vertex_id_t>());
+  }
   nw::graph::adjacency<0, Attributes...> g(aos_a);
   nw::graph::adjacency<1, Attributes...> g_t(aos_a);
   std::cout << "num_realedges = " << nrealedges
@@ -283,7 +341,6 @@ template<directedness edge_directedness = directed, typename... Attributes>
 auto graph_reader(std::string file, int idx, std::string direction, bool adjoin, 
 size_t& nrealedges, size_t& nrealnodes) {
   if (adjoin) {
-    //adjoin hypergraph will be forced to be symmetric (undirected)
     return graph_reader_adjoin_and_relabel<edge_directedness, Attributes...>(file, idx, direction, 
       nrealedges, nrealnodes);
   }
