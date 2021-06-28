@@ -192,6 +192,12 @@ load_adjacency(std::string file) {
 template<directedness edge_directedness = directed, typename... Attributes>
 auto graph_reader(std::string file) {
   auto aos_a = load_graph<edge_directedness, Attributes...>(file);
+  if (0 == aos_a.size()) {
+    auto&&[hyperedges, hypernodes] = load_adjacency<Attributes...>(file);
+    std::cout << "num_hyperedges = " << hyperedges.size()
+              << " num_hypernodes = " << hypernodes.size() << std::endl;
+    return std::tuple(hyperedges, hypernodes, std::vector<vertex_id_t>());
+  }
   nw::graph::adjacency<0, Attributes...> hyperedges(aos_a);
   nw::graph::adjacency<1, Attributes...> hypernodes(aos_a);
 
@@ -318,7 +324,7 @@ auto graph_reader_adjoin(std::string file, size_t& nrealedges,
                          size_t& nrealnodes) {
   auto aos_a = load_adjoin_graph<edge_directedness, Attributes...>(
       file, nrealedges, nrealnodes);
-    if (0 == aos_a.size()) {
+  if (0 == aos_a.size()) {
     //after adjoin, we have adjoin graph and its transpose
     auto&& [g, g_t] =
         read_and_adjoin_adj_hypergraph_pair(file, nrealedges, nrealnodes);
@@ -341,11 +347,17 @@ template<directedness edge_directedness = directed, typename... Attributes>
 auto graph_reader(std::string file, int idx, std::string direction, bool adjoin, 
 size_t& nrealedges, size_t& nrealnodes) {
   if (adjoin) {
-    return graph_reader_adjoin_and_relabel<edge_directedness, Attributes...>(file, idx, direction, 
+    if (-1 != idx)
+      return graph_reader_adjoin_and_relabel<undirected, Attributes...>(file, idx, direction, 
       nrealedges, nrealnodes);
+    else
+      return graph_reader_adjoin<undirected, Attributes...>(file, nrealedges, nrealnodes);
   }
   else {
-    return graph_reader_relabel<edge_directedness, Attributes...>(file, idx, direction);
+    if (-1 != idx)
+      return graph_reader_relabel<edge_directedness, Attributes...>(file, idx, direction);
+    else
+      return graph_reader<edge_directedness, Attributes...>(file);
   }
 }
 
