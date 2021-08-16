@@ -35,19 +35,15 @@ static constexpr const char USAGE[] =
     R"(imdb.exe: imdb benchmark driver.
   Usage:
       imdb.exe (-h | --help)
-      imdb.exe [--title FILE] [--name FILE] [--principal FILE] [--version ID...] [--loader-version ID] [-B NUM] [-s NUM] [--relabel NUM] [--direction DIR] [-dvV] [--log FILE] [--log-header] [THREADS]...
+      imdb.exe [--title FILE] [--name FILE] [--principal FILE] [-B NUM] [-s NUM] [-dvV] [--log FILE] [--log-header] [THREADS]...
 
   Options:
       -h, --help            show this screen
-      --version ID          algorithm version to run [default: 0]
-      --loader-version ID   soverlap computation loader kernal version [default: 4]
       --title FILE          movie title file path
       --name FILE           actor name file path
       --principal FILE      movie to actor file path
       -B NUM                number of bins [default: 32]
       -s NUM                s value of soverlap [default: 1]
-      --relabel NUM         relabel the hypergraph - 0(hyperedge)/1(hypernode) [default: -1]
-      --direction DIR       hypergraph relabeling direction - ascending/descending [default: ascending]
       --log FILE            log times to a file
       --log-header          add a header to the log file
       -d, --debug           run in debug mode
@@ -61,11 +57,7 @@ int main(int argc, char* argv[]) {
   bool verbose = args["--verbose"].asBool();
   bool debug   = args["--debug"].asBool();
   long num_bins= args["-B"].asLong();
-  long loader_version = args["--loader-version"].asLong();
-  long idx = args["--relabel"].asLong();
-  std::string direction = args["--direction"].asString();
 
-  std::vector ids     = parse_ids(args["--version"].asStringList());
   std::vector threads = parse_n_threads(args["THREADS"].asStringList());
   auto _ = set_n_threads(threads[0]);
   index_t s_value= args["-s"].asLong();
