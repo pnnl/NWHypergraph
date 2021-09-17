@@ -13,10 +13,11 @@
 # cmake --trace
 # cmake .. -DCMAKE_CXX_COMPILER=icpx
 # cmake .. -DCMAKE_BUILD_TYPE=Release (or Debug)
+# cmake .. -DNW_HYPERGRAPH_BUILD_TEST=ON (or OFF)
 # cmake .. -DNW_HYPERGRAPH_BUILD_BENCH=ON (or OFF)
-# cmake .. -NW_HYPERGRAPH_BUILD_PYBIND=OFF (or ON)
-# cmake .. -NW_HYPERGRAPH_USE_TBBMALLOC=ON (or OFF)
-# cmake .. -NW_HYPERGRAPH_BUILD_TOOLS=OFF (or ON)
+# cmake .. -DNW_HYPERGRAPH_BUILD_PYBIND=OFF (or ON)
+# cmake .. -DNW_HYPERGRAPH_USE_TBBMALLOC=ON (or OFF)
+# cmake .. -DNW_HYPERGRAPH_BUILD_TOOLS=OFF (or ON)
 #
 ##########################################################################
 cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
@@ -71,6 +72,7 @@ if (NW_HYPERGRAPH_SANITIZE)
 endif (NW_HYPERGRAPH_SANITIZE)
 
 option(NW_HYPERGRAPH_EXECUTION_POLICY "with(out) C++ parallel execution policy" ON)
+option(NW_HYPERGRAPH_BUILD_TEST "Determines whether to build tests." ON)
 option(NW_HYPERGRAPH_BUILD_BENCH "Determines whether to build performance benchmarks." ON)
 option(NW_HYPERGRAPH_BUILD_PYBIND "Determines whether to build python binding modules." OFF)
 option(NW_HYPERGRAPH_USE_TBBMALLOC "Link to tbbmalloc" OFF)
@@ -98,4 +100,9 @@ if (NW_HYPERGRAPH_BUILD_TOOLS)
   include(Date)
   include(Docopt)
   include(RangeV3)
+endif()
+
+if (NW_HYPERGRAPH_BUILD_TEST)
+  include(CTest)
+  add_subdirectory(test)
 endif()
