@@ -26,7 +26,7 @@ target_sources(NW_HYPERGRAPH
   containers/nwhypergraph.hpp
   containers/slinegraph.hpp
   io/hypergraph_io.hpp
-  io/mmio.hpp
+  io/mmio_hy.hpp
   io/csv_io.hpp
   util/slinegraph_helper.hpp
   s_overlap.hpp
@@ -40,6 +40,7 @@ target_sources(NW_HYPERGRAPH
   algorithms/slinegraph_efficient.hpp
   algorithms/slinegraph_map.hpp
   algorithms/slinegraph_adjoin.hpp
+  algorithms/slinegraph_kij.hpp
   )
 
 target_include_directories(NW_HYPERGRAPH INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})

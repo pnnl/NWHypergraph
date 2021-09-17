@@ -1,8 +1,8 @@
 #pragma once
 
-#include <edge_list.hpp>
-#include <edge_range.hpp>
-#include <mmio.hpp>
+#include <containers/edge_list.hpp>
+#include <adaptors/edge_range.hpp>
+#include <io/mmio.hpp>
 #include <util/timer.hpp>
 #include <util/traits.hpp>
 
@@ -18,7 +18,7 @@
 #include <bitset>
 
 #include "io/hypergraph_io.hpp"
-#include "io/mmio.hpp"
+#include "io/mmio_hy.hpp"
 #include "io/csv_io.hpp"
 #include "containers/compressed_hy.hpp"
 #include "containers/edge_list_hy.hpp"

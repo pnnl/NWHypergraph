@@ -15,11 +15,10 @@
 #include "s_overlap.hpp"
 #include "algorithms/hyper_breadth_first_search.hpp"
 #include "algorithms/s_breadth_first_search.hpp"
-#include <edge_list.hpp>
+#include <containers/edge_list.hpp>
 #include <util/AtomicBitVector.hpp>
 #include <util/intersection_size.hpp>
 #include <docopt.h>
-#include <tbb/iterators.h>
 #include <execution>
 
 

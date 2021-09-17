@@ -10,7 +10,7 @@
 
 #pragma once
 #include <util/timer.hpp>
-#include <mmio.hpp>
+#include <io/mmio.hpp>
 
 template<class EdgeList>
 void mm_fill_adjoin(std::istream& inputStream, 

@@ -9,7 +9,7 @@
 //
 
 #pragma once
-#include <edge_list.hpp>
+#include <containers/edge_list.hpp>
 #include <util/timer.hpp>
 namespace nw {
 namespace hypergraph {

@@ -9,7 +9,7 @@
 //
 
 #include <docopt.h>
-#include <edge_list.hpp>
+#include <containers/edge_list.hpp>
 #include "Log.hpp"
 #include "common.hpp"
 #include "containers/edge_list_hy.hpp"

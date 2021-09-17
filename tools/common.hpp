@@ -1,8 +1,8 @@
 #pragma once
 
-#include <edge_list.hpp>
-#include <edge_range.hpp>
-#include <mmio.hpp>
+#include <containers/edge_list.hpp>
+#include <adaptors/edge_range.hpp>
+#include <io/mmio.hpp>
 #include <util/timer.hpp>
 #include <util/traits.hpp>
 

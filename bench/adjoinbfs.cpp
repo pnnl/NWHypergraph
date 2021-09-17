@@ -9,9 +9,9 @@
 //
 
 #include "Log.hpp"
-#include "io/mmio.hpp"
 #include "common.hpp"
-#include <edge_list.hpp>
+#include <containers/edge_list.hpp>
+#include <adaptors/vertex_range.hpp>
 #include <algorithms/bfs.hpp>
 #include <util/AtomicBitVector.hpp>
 #include <docopt.h>
@@ -328,13 +328,13 @@ int main(int argc, char* argv[]) {
                 auto&& [N, E] = nw::hypergraph::relabel_x_parallel<ExecutionPolicy, BFSV11, vertex_id_t>(std::execution::par_unseq, num_realedges, num_realnodes, v11, g, g_t, source, num_bins, alpha, beta);
                 if (num_realnodes < num_realedges) {
                   //for all the parent of hyperN, substract the offset
-                  std::for_each(std::execution::par_unseq, tbb::counting_iterator(0ul), tbb::counting_iterator(N.size()), [&](auto i) {
+                  std::for_each(std::execution::par_unseq, nw::graph::counting_iterator(0ul), nw::graph::counting_iterator(N.size()), [&](auto i) {
                     N[i] -= num_realedges;
                   }); 
                 }
                 else {
                   //for all the parent of hyperE, substract the offset
-                   std::for_each(std::execution::par_unseq, tbb::counting_iterator(0ul), tbb::counting_iterator(E.size()), [&](auto i) {
+                   std::for_each(std::execution::par_unseq, nw::graph::counting_iterator(0ul), nw::graph::counting_iterator(E.size()), [&](auto i) {
                     E[i] -= num_realnodes;
                   }); 
                 }
@@ -347,13 +347,13 @@ int main(int argc, char* argv[]) {
                   auto&& [N, E] = splitLabeling<ExecutionPolicy, vertex_id_t>(std::execution::par_unseq, labeling, num_realedges, num_realnodes);
                   if (num_realnodes < num_realedges) {
                   //for all the parent of hyperN, substract the offset
-                  std::for_each(std::execution::par_unseq, tbb::counting_iterator(0ul), tbb::counting_iterator(N.size()), [&](auto i) {
+                  std::for_each(std::execution::par_unseq, nw::graph::counting_iterator(0ul), nw::graph::counting_iterator(N.size()), [&](auto i) {
                     N[i] -= num_realedges;
                   }); 
                 }
                 else {
                   //for all the parent of hyperE, substract the offset
-                   std::for_each(std::execution::par_unseq, tbb::counting_iterator(0ul), tbb::counting_iterator(E.size()), [&](auto i) {
+                   std::for_each(std::execution::par_unseq, nw::graph::counting_iterator(0ul), nw::graph::counting_iterator(E.size()), [&](auto i) {
                     E[i] -= num_realnodes;
                   }); 
                 }
@@ -367,13 +367,13 @@ int main(int argc, char* argv[]) {
                 auto&& [N, E] = nw::hypergraph::relabel_x_parallel<ExecutionPolicy, TOPDOWN, vertex_id_t>(std::execution::par_unseq, num_realedges, num_realnodes, td, std::move(g), source);
                 if (num_realnodes < num_realedges) {
                   //for all the parent of hyperN, substract the offset
-                  std::for_each(std::execution::par_unseq, tbb::counting_iterator(0ul), tbb::counting_iterator(N.size()), [&](auto i) {
+                  std::for_each(std::execution::par_unseq, nw::graph::counting_iterator(0ul), nw::graph::counting_iterator(N.size()), [&](auto i) {
                     N[i] -= num_realedges;
                   }); 
                 }
                 else {
                   //for all the parent of hyperE, substract the offset
-                   std::for_each(std::execution::par_unseq, tbb::counting_iterator(0ul), tbb::counting_iterator(E.size()), [&](auto i) {
+                   std::for_each(std::execution::par_unseq, nw::graph::counting_iterator(0ul), nw::graph::counting_iterator(E.size()), [&](auto i) {
                     E[i] -= num_realnodes;
                   }); 
                 }
@@ -386,13 +386,13 @@ int main(int argc, char* argv[]) {
                   auto&& [N, E] = splitLabeling<ExecutionPolicy, vertex_id_t>(std::execution::par_unseq, labeling, num_realedges, num_realnodes);
                   if (num_realnodes < num_realedges) {
                   //for all the parent of hyperN, substract the offset
-                  std::for_each(std::execution::par_unseq, tbb::counting_iterator(0ul), tbb::counting_iterator(N.size()), [&](auto i) {
+                  std::for_each(std::execution::par_unseq, nw::graph::counting_iterator(0ul), nw::graph::counting_iterator(N.size()), [&](auto i) {
                     N[i] -= num_realedges;
                   }); 
                 }
                 else {
                   //for all the parent of hyperE, substract the offset
-                   std::for_each(std::execution::par_unseq, tbb::counting_iterator(0ul), tbb::counting_iterator(E.size()), [&](auto i) {
+                   std::for_each(std::execution::par_unseq, nw::graph::counting_iterator(0ul), nw::graph::counting_iterator(E.size()), [&](auto i) {
                     E[i] -= num_realnodes;
                   }); 
                 }

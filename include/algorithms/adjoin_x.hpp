@@ -13,6 +13,7 @@
 #include <util/timer.hpp>
 #include <tuple>
 #include <vector>
+#include <adaptors/vertex_range.hpp>
 
 namespace nw {
 namespace hypergraph {
@@ -47,21 +48,21 @@ std::tuple<std::vector<T>, std::vector<T>> splitLabeling(ExecutionPolicy& ep, st
   if (num_realnodes < num_realedges) {
     nw::util::life_timer _("unrelabeling");
     //E.assign(labeling.begin(), labeling.begin() + num_realedges);
-    std::for_each(ep, tbb::counting_iterator(0ul), tbb::counting_iterator(num_realedges), [&](auto i) {
+    std::for_each(ep, nw::graph::counting_iterator(0ul), nw::graph::counting_iterator(num_realedges), [&](auto i) {
       E[i] = labeling[i];
     });
     //N.assign(labeling.begin() + num_realedges, labeling.end());
-    std::for_each(ep, tbb::counting_iterator(0ul), tbb::counting_iterator(num_realnodes), [&](auto i) {
+    std::for_each(ep, nw::graph::counting_iterator(0ul), nw::graph::counting_iterator(num_realnodes), [&](auto i) {
       N[i] = labeling[i + num_realedges];
     }); 
   }
   else {
     nw::util::life_timer _("unrelabeling");
-    std::for_each(ep, tbb::counting_iterator(0ul), tbb::counting_iterator(num_realnodes), [&](auto i) {
+    std::for_each(ep, nw::graph::counting_iterator(0ul), nw::graph::counting_iterator(num_realnodes), [&](auto i) {
       N[i] = labeling[i];
     }); 
     //E.assign(labeling.begin() + num_realnodes, labeling.end());
-    std::for_each(ep, tbb::counting_iterator(0ul), tbb::counting_iterator(num_realedges), [&](auto i) {
+    std::for_each(ep, nw::graph::counting_iterator(0ul), nw::graph::counting_iterator(num_realedges), [&](auto i) {
       E[i] = labeling[i + num_realnodes];
     });
   }

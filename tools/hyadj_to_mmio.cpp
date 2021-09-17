@@ -10,7 +10,7 @@
 
 #include "io/hypergraph_io.hpp"
 #include <docopt.h>
-#include <edge_list.hpp>
+#include <containers/edge_list.hpp>
 #include "common.hpp"
 
 /*

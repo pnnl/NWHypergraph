@@ -12,8 +12,8 @@
 #include <iostream>
 #include <fstream>
 
-#include <edge_list.hpp>
-#include <compressed.hpp>
+#include <containers/edge_list.hpp>
+#include <containers/compressed.hpp>
 using namespace nw::graph;
 
 namespace nw {

@@ -13,6 +13,7 @@
 #include <unordered_map>
 
 #include <util/types.hpp>
+#include <adaptors/vertex_range.hpp>
 
 using namespace nw::graph;
 namespace nw {
@@ -28,7 +29,7 @@ auto create_edgelist_without_squeeze(std::vector<std::vector<std::tuple<vertex_i
     //result.open_for_push_back();
     //do this in serial
     int num_bins = two_graphs.size();
-    std::for_each(tbb::counting_iterator<int>(0), tbb::counting_iterator<int>(num_bins), [&](auto i) {
+    std::for_each(nw::graph::counting_iterator<int>(0), nw::graph::counting_iterator<int>(num_bins), [&](auto i) {
       std::for_each(two_graphs[i].begin(), two_graphs[i].end(), [&](auto &&e) {
         result.push_back(e);
       });
@@ -50,7 +51,7 @@ auto create_edgelist_with_squeeze(std::vector<std::vector<std::tuple<vertex_id_t
     vertex_id_t index = 0;
     std::unordered_map<vertex_id_t, vertex_id_t> relabel_map;
     int num_bins = two_graphs.size();
-    std::for_each(tbb::counting_iterator<int>(0), tbb::counting_iterator<int>(num_bins), [&](auto i) {
+    std::for_each(nw::graph::counting_iterator<int>(0), nw::graph::counting_iterator<int>(num_bins), [&](auto i) {
       std::for_each(two_graphs[i].begin(), two_graphs[i].end(), [&](auto &&elt) {
         std::apply([&](vertex_id_t x, vertex_id_t y, T... w) {
           if (relabel_map.end() == relabel_map.find(x)) {
@@ -86,7 +87,7 @@ std::unordered_map<vertex_id_t, vertex_id_t>& relabel_map) {
     //do this in serial
     vertex_id_t index = 0;
     int num_bins = two_graphs.size();
-    std::for_each(tbb::counting_iterator<int>(0), tbb::counting_iterator<int>(num_bins), [&](auto i) {
+    std::for_each(nw::graph::counting_iterator<int>(0), nw::graph::counting_iterator<int>(num_bins), [&](auto i) {
       std::for_each(two_graphs[i].begin(), two_graphs[i].end(), [&](auto &&elt) {
         std::apply([&](vertex_id_t x, vertex_id_t y, T... w) {
           if (relabel_map.end() == relabel_map.find(x)) {

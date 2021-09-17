@@ -15,7 +15,7 @@
 #include <vector>
 #include <tuple>
 #include <map>
-#include <edge_list.hpp>
+#include <containers/edge_list.hpp>
 #include <util/intersection_size.hpp>
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>

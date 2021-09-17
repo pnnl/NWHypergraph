@@ -26,7 +26,7 @@ auto to_two_graph_naive_parallel(ExecutionPolicy&& ep, HyperEdge& e_nbs, HyperNo
   {
   nw::util::life_timer _(__func__);
   tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M), [&](tbb::blocked_range<vertex_id_t>& r) {
-    int worker_index = tbb::task_arena::current_thread_index();
+    int worker_index = tbb::this_task_arena::current_thread_index();
     for (auto i = r.begin(), e = r.end(); i != e; ++i) {
       for (size_t j = i + 1; j < M; ++j) {
         if (nw::graph::intersection_size(e_nbs[i], e_nbs[j]) >= s) {
@@ -51,7 +51,7 @@ auto to_two_graph_naive_parallel_with_counter(ExecutionPolicy&& ep, HyperEdge& e
   {
   nw::util::life_timer _(__func__);
   tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M), [&](tbb::blocked_range<vertex_id_t>& r) {
-    int worker_index = tbb::task_arena::current_thread_index();
+    int worker_index = tbb::this_task_arena::current_thread_index();
     for (auto i = r.begin(), e = r.end(); i != e; ++i) {
       for (size_t j = i + 1; j < M; ++j) {
         ++num_visits[worker_index];

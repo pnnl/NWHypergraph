@@ -13,6 +13,8 @@
 #include <util/timer.hpp>
 #include <util/AtomicBitVector.hpp>
 #include <util/atomic.hpp>
+#include <adaptors/vertex_range.hpp>
+
 namespace nw {
 namespace hypergraph {
 
@@ -153,7 +155,7 @@ auto hyperBFS_topdown_parallel_v0(ExecutionPolicy&& ep, const vertex_id_t source
   std::vector<vertex_id_t> frontier[num_bins];
   auto traverse = [&](auto& g, auto& cur, auto& bitmap, auto& parents) {
     tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0ul, cur.size()), [&](tbb::blocked_range<vertex_id_t>& r) {
-      int worker_index = tbb::task_arena::current_thread_index();
+      int worker_index = tbb::this_task_arena::current_thread_index();
       for (auto i = r.begin(), e = r.end(); i < e; ++i) {
         vertex_id_t x = cur[i];
         //all neighbors of hyperedges are hypernode, vice versa
@@ -180,7 +182,7 @@ auto hyperBFS_topdown_parallel_v0(ExecutionPolicy&& ep, const vertex_id_t source
     }
     //resize next frontier
     next.resize(size); 
-    std::for_each(ep, tbb::counting_iterator(0), tbb::counting_iterator(num_bins), [&](auto i) {
+    std::for_each(ep, nw::graph::counting_iterator(0), nw::graph::counting_iterator(num_bins), [&](auto i) {
       //copy each thread-local frontier to next frontier based on their size offset
       auto begin = std::next(next.begin(), size_array[i]);
       std::copy(ep, frontier[i].begin(), frontier[i].end(), begin);
@@ -258,7 +260,7 @@ auto hyperBFS_bottomup_parallel_v0(ExecutionPolicy&& ep, const vertex_id_t sourc
   parentE[source_hyperedge] = source_hyperedge; //parent of root is itself
 
   tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0ul, num_hyperedges), [&](tbb::blocked_range<vertex_id_t>& r) {
-    int worker_index = tbb::task_arena::current_thread_index();
+    int worker_index = tbb::this_task_arena::current_thread_index();
     for (vertex_id_t hyperE = r.begin(), e = r.end(); hyperE < e; ++hyperE) {
       if (std::numeric_limits<vertex_id_t>::max() == parentE[hyperE]) {
       //all neighbors of hyperedges are hypernode
@@ -271,7 +273,7 @@ auto hyperBFS_bottomup_parallel_v0(ExecutionPolicy&& ep, const vertex_id_t sourc
     }
   }, tbb::auto_partitioner());
   tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0ul, num_hypernodes), [&](tbb::blocked_range<vertex_id_t>& r) {
-    int worker_index = tbb::task_arena::current_thread_index();
+    int worker_index = tbb::this_task_arena::current_thread_index();
     for (vertex_id_t hyperN = r.begin(), e = r.end(); hyperN < e; ++hyperN) {
     if (std::numeric_limits<vertex_id_t>::max() == parentN[hyperN]) {
     //all neighbors of hypernodes are hyperedges
@@ -296,7 +298,7 @@ nw::graph::AtomicBitVector<>& front, nw::graph::AtomicBitVector<>& next) {
   size_t awake_count = 0;
   next.clear();
     //or use a parallel for loop
-  std::for_each(tbb::counting_iterator<vertex_id_t>(0), tbb::counting_iterator<vertex_id_t>(num), [&](auto u) {
+  std::for_each(nw::graph::counting_iterator<vertex_id_t>(0), nw::graph::counting_iterator<vertex_id_t>(num), [&](auto u) {
     if (std::numeric_limits<vertex_id_t>::max() == parent[u]) {
       std::for_each(g.begin()[u].begin(), g.begin()[u].end(), [&](auto&& x) {
         auto v = std::get<0>(x);
@@ -356,7 +358,7 @@ template<typename Graph>
 std::vector<vertex_id_t> init_parent(Graph& g) {
   auto num = g.max() + 1;
   std::vector<vertex_id_t> parent(num);
-  std::for_each(tbb::counting_iterator<vertex_id_t>(0), tbb::counting_iterator<vertex_id_t>(num), [&](auto u) {
+  std::for_each(nw::graph::counting_iterator<vertex_id_t>(0), nw::graph::counting_iterator<vertex_id_t>(num), [&](auto u) {
     parent[u] = 0 != g[u].size() ? -g[u].size() : -1;
   });
   return parent;

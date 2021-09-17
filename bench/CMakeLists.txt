@@ -53,7 +53,8 @@ add_library(bench INTERFACE)
 target_sources(bench INTERFACE
   common.hpp
   Log.hpp
-  config.h)
+  #config.h
+  )
 target_include_directories(bench INTERFACE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 
 target_link_libraries(bench INTERFACE NW_HYPERGRAPH docopt date::date std::filesystem)
@@ -62,6 +63,9 @@ target_link_libraries(bench INTERFACE NW_HYPERGRAPH docopt date::date std::files
 # -----------------------------------------------------------------------------
 # NW_HYPERGRAPH drivers
 # -----------------------------------------------------------------------------
+#set policy to suppress warnings
+cmake_policy(SET CMP0115 NEW)
+
 add_executable(hybfs.exe hyperbfs.cpp)
 target_link_libraries(hybfs.exe bench)
 

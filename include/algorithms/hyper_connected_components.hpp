@@ -13,6 +13,8 @@
 #include <util/AtomicBitVector.hpp>
 #include <util/atomic.hpp>
 #include <tbb/concurrent_vector.h>
+#include <adaptors/vertex_range.hpp>
+
 namespace nw {
 namespace hypergraph {
 
@@ -304,7 +306,7 @@ auto lpCC_parallelv2(ExecutionPolicy&& ep, GraphN& hypernodes, GraphE& hyperedge
   std::vector<vertex_id_t> frontier[num_bins];
   auto propagate = [&](auto& g, auto& cur, auto& bitmap, auto& curlabels, auto& nextlabels) {
     tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0ul, cur.size()), [&](tbb::blocked_range<vertex_id_t>& r) {
-      int worker_index = tbb::task_arena::current_thread_index();
+      int worker_index = tbb::this_task_arena::current_thread_index();
       for (auto i = r.begin(), e = r.end(); i < e; ++i) {
         vertex_id_t x = cur[i];
         vertex_id_t labelx = curlabels[x];
@@ -333,7 +335,7 @@ auto lpCC_parallelv2(ExecutionPolicy&& ep, GraphN& hypernodes, GraphE& hyperedge
     }
     //resize next frontier
     next.resize(size); 
-    std::for_each(ep, tbb::counting_iterator(0), tbb::counting_iterator(num_bins), [&](auto i) {
+    std::for_each(ep, nw::graph::counting_iterator(0), nw::graph::counting_iterator(num_bins), [&](auto i) {
       //copy each thread-local frontier to next frontier based on their size offset
       auto begin = std::next(next.begin(), size_array[i]);
       std::copy(ep, frontier[i].begin(), frontier[i].end(), begin);

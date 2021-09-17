@@ -10,12 +10,12 @@
 
 #include <execution>
 #include <unordered_set>
-#include <edge_list.hpp>
+#include <containers/edge_list.hpp>
 #include <algorithms/connected_components.hpp>
 #include <docopt.h>
 #include "Log.hpp"
 #include "common.hpp"
-#include "io/mmio.hpp"
+#include "io/mmio_hy.hpp"
 #include "algorithms/adjoin_x.hpp"
 
 

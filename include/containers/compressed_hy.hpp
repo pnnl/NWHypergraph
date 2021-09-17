@@ -9,7 +9,7 @@
 //
 
 #pragma once
-#include <compressed.hpp>
+#include <containers/compressed.hpp>
 #include <util/timer.hpp>
 namespace nw {
 namespace hypergraph {

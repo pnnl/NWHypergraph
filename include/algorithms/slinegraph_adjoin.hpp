@@ -8,10 +8,12 @@
 // Author: Xu Tony Liu
 //
 #pragma once
-#include <cyclic_range_adapter.hpp>
+#include <adaptors/cyclic_neighbor_range.hpp>
+#include <adaptors/cyclic_range_adapter.hpp>
+#include <adaptors/vertex_range.hpp>
 
 #include "util/slinegraph_helper.hpp"
-#include <tbb/task_arena.h> //for tbb::task_arena::current_thread_index()
+#include <tbb/task_arena.h> //for tbb::this_task_arena::current_thread_index()
 #include <unordered_set>
 #include <set>
 #include <unordered_map>
@@ -37,7 +39,7 @@ auto to_two_graph_map_frontier_blocked(ExecutionPolicy&& ep, Hypergraph& h,
     tbb::parallel_for(
         tbb::blocked_range<size_t>(0ul, frontier.size()),
         [&](const tbb::blocked_range<size_t>& r) {
-          int worker_index = tbb::task_arena::current_thread_index();
+          int worker_index = tbb::this_task_arena::current_thread_index();
           for (size_t i = r.begin(), e = r.end(); i != e; ++i) {
             auto hyperE = frontier[i];
             if (degrees[hyperE] < s) continue;
@@ -63,7 +65,7 @@ auto to_two_graph_map_frontier_blocked(ExecutionPolicy&& ep, Hypergraph& h,
       tbb::parallel_for(
           tbb::blocked_range<size_t>(0ul, frontier.size()),
           [&](const tbb::blocked_range<size_t>& r) {
-            int worker_index = tbb::task_arena::current_thread_index();
+            int worker_index = tbb::this_task_arena::current_thread_index();
             for (size_t i = r.begin(), e = r.end(); i != e; ++i) {
               auto hyperE = frontier[i];
               std::set<size_t> overlaps;
@@ -84,8 +86,8 @@ auto to_two_graph_map_frontier_blocked(ExecutionPolicy&& ep, Hypergraph& h,
     nw::graph::edge_list<edge_directedness> result(0);
     result.open_for_push_back();
     // do this in serial
-    std::for_each(tbb::counting_iterator<int>(0),
-                  tbb::counting_iterator<int>(num_bins), [&](auto i) {
+    std::for_each(nw::graph::counting_iterator<int>(0),
+                  nw::graph::counting_iterator<int>(num_bins), [&](auto i) {
                     std::for_each(two_graphs[i].begin(), two_graphs[i].end(),
                                   [&](auto&& e) { result.push_back(e); });
                   });
@@ -112,10 +114,9 @@ auto to_two_graph_map_frontier_cyclic(ExecutionPolicy&& ep, Hypergraph& h,
     tbb::parallel_for(
         nw::graph::cyclic(frontier, num_bins),
         [&](auto& i) {
-          int worker_index = tbb::task_arena::current_thread_index();
-          for (auto&& j = i.begin(), e = i.end(); j != e; ++j) {
-            auto&& [tmp, w] = *j;
-            auto hyperE = frontier[tmp];
+          int worker_index = tbb::this_task_arena::current_thread_index();
+          for (auto&& j = i.begin(); j != i.end(); ++j) {
+            auto hyperE = frontier[*j];
             if (degrees[hyperE] < s) continue;
             std::map<size_t, size_t> K;
             for (auto&& [hyperN] : h[hyperE]) {
@@ -140,10 +141,9 @@ auto to_two_graph_map_frontier_cyclic(ExecutionPolicy&& ep, Hypergraph& h,
       tbb::parallel_for(
           nw::graph::cyclic(frontier, num_bins),
           [&](auto& i) {
-            int worker_index = tbb::task_arena::current_thread_index();
+            int worker_index = tbb::this_task_arena::current_thread_index();
             for (auto&& j = i.begin(); j != i.end(); ++j) {
-              auto&& [tmp, w] = *j;
-              auto hyperE = frontier[tmp];
+              auto hyperE = frontier[*j];
               std::set<size_t> overlaps;
               /*
               std::vector<size_t> overlaps(N, 0);
@@ -181,8 +181,8 @@ auto to_two_graph_map_frontier_cyclic(ExecutionPolicy&& ep, Hypergraph& h,
     nw::graph::edge_list<edge_directedness> result(0);
     result.open_for_push_back();
     // do this in serial
-    std::for_each(tbb::counting_iterator<int>(0),
-                  tbb::counting_iterator<int>(num_bins), [&](auto i) {
+    std::for_each(nw::graph::counting_iterator<int>(0),
+                  nw::graph::counting_iterator<int>(num_bins), [&](auto i) {
                     std::for_each(two_graphs[i].begin(), two_graphs[i].end(),
                                   [&](auto&& e) { result.push_back(e); });
                   });
@@ -211,7 +211,7 @@ auto to_two_graph_efficient_frontier_blocked(ExecutionPolicy&& ep, Hypergraph& h
         tbb::parallel_for(
             tbb::blocked_range<size_t>(0ul, M),
             [&](const tbb::blocked_range<size_t>& r) {
-              int worker_index = tbb::task_arena::current_thread_index();
+              int worker_index = tbb::this_task_arena::current_thread_index();
               std::vector<bool> visitedE(h.size(), false);
               for (size_t i = r.begin(), e = r.end(); i != e; ++i) {
                 auto hyperE = frontier[i];
@@ -237,7 +237,7 @@ auto to_two_graph_efficient_frontier_blocked(ExecutionPolicy&& ep, Hypergraph& h
     nw::graph::edge_list<edge_directedness> result(0);
     result.open_for_push_back();
     //do this in serial
-    std::for_each(tbb::counting_iterator<int>(0), tbb::counting_iterator<int>(num_bins), [&](auto i) {
+    std::for_each(nw::graph::counting_iterator<int>(0), nw::graph::counting_iterator<int>(num_bins), [&](auto i) {
       std::for_each(two_graphs[i].begin(), two_graphs[i].end(), [&](auto&& e){
         result.push_back(e);
       });
@@ -253,7 +253,7 @@ auto to_two_graph_efficient_frontier_blocked(ExecutionPolicy&& ep, Hypergraph& h
       tbb::parallel_for(
           tbb::blocked_range<size_t>(0ul, M),
           [&](const tbb::blocked_range<size_t>& r) {
-            int worker_index = tbb::task_arena::current_thread_index();
+            int worker_index = tbb::this_task_arena::current_thread_index();
             std::vector<bool> visitedE(h.size(), false);
             for (size_t i = r.begin(), e = r.end(); i != e; ++i) {
               auto hyperE = frontier[i];
@@ -312,11 +312,10 @@ auto to_two_graph_efficient_frontier_cyclic(ExecutionPolicy&& ep, Hypergraph& h,
       tbb::parallel_for(
           nw::graph::cyclic(frontier, num_bins),
           [&](auto& i) {
-            int worker_index = tbb::task_arena::current_thread_index();
+            int worker_index = tbb::this_task_arena::current_thread_index();
             std::vector<bool> visitedE(h.size(), false);
             for (auto&& j = i.begin(); j != i.end(); ++j) {
-              auto&& [tmp, w] = *j;
-              auto hyperE = frontier[tmp];
+              auto hyperE = frontier[*j];
               std::fill(visitedE.begin(), visitedE.end(), false);
               // all neighbors of hyperedges are hypernode
               for (auto&& [hyperN] : h[hyperE]) {
@@ -339,7 +338,7 @@ auto to_two_graph_efficient_frontier_cyclic(ExecutionPolicy&& ep, Hypergraph& h,
     nw::graph::edge_list<edge_directedness> result(0);
     result.open_for_push_back();
     //do this in serial
-    std::for_each(tbb::counting_iterator<int>(0), tbb::counting_iterator<int>(num_bins), [&](auto i) {
+    std::for_each(nw::graph::counting_iterator<int>(0), nw::graph::counting_iterator<int>(num_bins), [&](auto i) {
       std::for_each(two_graphs[i].begin(), two_graphs[i].end(), [&](auto&& e){
         result.push_back(e);
       });
@@ -356,11 +355,10 @@ auto to_two_graph_efficient_frontier_cyclic(ExecutionPolicy&& ep, Hypergraph& h,
       tbb::parallel_for(
           nw::graph::cyclic(frontier, num_bins),
           [&](auto& i) {
-            int worker_index = tbb::task_arena::current_thread_index();
+            int worker_index = tbb::this_task_arena::current_thread_index();
             std::vector<bool> visitedE(h.size(), false);
             for (auto&& j = i.begin(); j != i.end(); ++j) {
-              auto&& [tmp, w] = *j;
-              auto hyperE = frontier[tmp];
+              auto hyperE = frontier[*j];
               if (degrees[hyperE] < s) continue;
               std::fill(visitedE.begin(), visitedE.end(), false);
               // all neighbors of hyperedges are hypernode
@@ -413,7 +411,7 @@ auto to_two_graph_hashmap_frontier_blocked(ExecutionPolicy&& ep, Hypergraph& h,
     tbb::parallel_for(
         tbb::blocked_range(0ul, frontier.size()),
         [&](auto& i) {
-          int worker_index = tbb::task_arena::current_thread_index();
+          int worker_index = tbb::this_task_arena::current_thread_index();
           for (auto j = i.begin(); j != i.end(); ++j) {
             auto hyperE = frontier[j];
             if (degrees[hyperE] < s) continue;
@@ -440,7 +438,7 @@ auto to_two_graph_hashmap_frontier_blocked(ExecutionPolicy&& ep, Hypergraph& h,
       tbb::parallel_for(
           tbb::blocked_range(0ul, frontier.size()),
           [&](auto& i) {
-            int worker_index = tbb::task_arena::current_thread_index();
+            int worker_index = tbb::this_task_arena::current_thread_index();
             for (auto j = i.begin(); j != i.end(); ++j) {
               auto hyperE = frontier[j];
               std::unordered_set<size_t> overlaps;
@@ -461,8 +459,8 @@ auto to_two_graph_hashmap_frontier_blocked(ExecutionPolicy&& ep, Hypergraph& h,
     nw::graph::edge_list<edge_directedness> result(0);
     result.open_for_push_back();
     // do this in serial
-    std::for_each(tbb::counting_iterator<int>(0),
-                  tbb::counting_iterator<int>(num_bins), [&](auto i) {
+    std::for_each(nw::graph::counting_iterator<int>(0),
+                  nw::graph::counting_iterator<int>(num_bins), [&](auto i) {
                     std::for_each(two_graphs[i].begin(), two_graphs[i].end(),
                                   [&](auto&& e) { result.push_back(e); });
                   });
@@ -489,10 +487,9 @@ auto to_two_graph_hashmap_frontier_cyclic(ExecutionPolicy&& ep, Hypergraph& h,
     tbb::parallel_for(
         nw::graph::cyclic(frontier, num_bins),
         [&](auto& i) {
-          int worker_index = tbb::task_arena::current_thread_index();
+          int worker_index = tbb::this_task_arena::current_thread_index();
           for (auto&& j = i.begin(); j != i.end(); ++j) {
-            auto&& [tmp, w] = *j;
-            auto hyperE = frontier[tmp];
+              auto hyperE = frontier[*j];
             if (degrees[hyperE] < s) continue;
             std::unordered_map<size_t, size_t> K;
             for (auto&& [hyperN] : h[hyperE]) {
@@ -517,10 +514,9 @@ auto to_two_graph_hashmap_frontier_cyclic(ExecutionPolicy&& ep, Hypergraph& h,
       tbb::parallel_for(
           nw::graph::cyclic(frontier, num_bins),
           [&](auto& i) {
-            int worker_index = tbb::task_arena::current_thread_index();
+            int worker_index = tbb::this_task_arena::current_thread_index();
             for (auto&& j = i.begin(); j != i.end(); ++j) {
-              auto&& [tmp, w] = *j;
-              auto hyperE = frontier[tmp];
+              auto hyperE = frontier[*j];
               std::unordered_set<size_t> overlaps;
               /*
               std::vector<size_t> overlaps(N, 0);
@@ -558,8 +554,8 @@ auto to_two_graph_hashmap_frontier_cyclic(ExecutionPolicy&& ep, Hypergraph& h,
     nw::graph::edge_list<edge_directedness> result(0);
     result.open_for_push_back();
     // do this in serial
-    std::for_each(tbb::counting_iterator<int>(0),
-                  tbb::counting_iterator<int>(num_bins), [&](auto i) {
+    std::for_each(nw::graph::counting_iterator<int>(0),
+                  nw::graph::counting_iterator<int>(num_bins), [&](auto i) {
                     std::for_each(two_graphs[i].begin(), two_graphs[i].end(),
                                   [&](auto&& e) { result.push_back(e); });
                   });
@@ -636,8 +632,8 @@ size_t s = 1, int num_bins = 32) {
       }
       frontier.resize(end - start);
       //std::copy(ep, counting_iterator<vertex_id_t>(start), counting_iterator<vertex_id_t>(end), frontier.begin());
-      std::for_each(ep, tbb::counting_iterator<vertex_id_t>(0ul),
-                    tbb::counting_iterator<vertex_id_t>(end - start),
+      std::for_each(ep, nw::graph::counting_iterator<vertex_id_t>(0ul),
+                    nw::graph::counting_iterator<vertex_id_t>(end - start),
                     [&](auto i) { frontier[i] = iperm[i + start]; });
     }
   }
@@ -699,8 +695,8 @@ size_t s = 1, int num_bins = 32) {
       }
       frontier.resize(end - start);
       //std::copy(ep, counting_iterator<vertex_id_t>(start), counting_iterator<vertex_id_t>(end), frontier.begin());
-      std::for_each(ep, tbb::counting_iterator<vertex_id_t>(0ul),
-                    tbb::counting_iterator<vertex_id_t>(end - start),
+      std::for_each(ep, nw::graph::counting_iterator<vertex_id_t>(0ul),
+                    nw::graph::counting_iterator<vertex_id_t>(end - start),
                     [&](auto i) { frontier[i] = iperm[i + start]; });
     }
   }
@@ -774,8 +770,8 @@ size_t s = 1, int num_bins = 32) {
       }
       frontier.resize(end - start);
       //std::copy(ep, counting_iterator<vertex_id_t>(start), counting_iterator<vertex_id_t>(end), frontier.begin());
-      std::for_each(ep, tbb::counting_iterator<vertex_id_t>(0ul),
-                    tbb::counting_iterator<vertex_id_t>(end - start),
+      std::for_each(ep, nw::graph::counting_iterator<vertex_id_t>(0ul),
+                    nw::graph::counting_iterator<vertex_id_t>(end - start),
                     [&](auto i) { frontier[i] = iperm[i + start]; });
     }
   }
@@ -837,8 +833,8 @@ size_t s = 1, int num_bins = 32) {
       }
       frontier.resize(end - start);
       //std::copy(ep, counting_iterator<vertex_id_t>(start), counting_iterator<vertex_id_t>(end), frontier.begin());
-      std::for_each(ep, tbb::counting_iterator<vertex_id_t>(0ul),
-                    tbb::counting_iterator<vertex_id_t>(end - start),
+      std::for_each(ep, nw::graph::counting_iterator<vertex_id_t>(0ul),
+                    nw::graph::counting_iterator<vertex_id_t>(end - start),
                     [&](auto i) { frontier[i] = iperm[i + start]; });
     }
   }
@@ -908,8 +904,8 @@ size_t s = 1, int num_bins = 32) {
       }
       frontier.resize(end - start);
       //std::copy(ep, counting_iterator<vertex_id_t>(start), counting_iterator<vertex_id_t>(end), frontier.begin());
-      std::for_each(ep, tbb::counting_iterator<vertex_id_t>(0ul),
-                    tbb::counting_iterator<vertex_id_t>(end - start),
+      std::for_each(ep, nw::graph::counting_iterator<vertex_id_t>(0ul),
+                    nw::graph::counting_iterator<vertex_id_t>(end - start),
                     [&](auto i) { frontier[i] = iperm[i + start]; });
     }
   }
@@ -979,8 +975,8 @@ size_t s = 1, int num_bins = 32) {
       }
       frontier.resize(end - start);
       //std::copy(ep, counting_iterator<vertex_id_t>(start), counting_iterator<vertex_id_t>(end), frontier.begin());
-      std::for_each(ep, tbb::counting_iterator<vertex_id_t>(0ul),
-                    tbb::counting_iterator<vertex_id_t>(end - start),
+      std::for_each(ep, nw::graph::counting_iterator<vertex_id_t>(0ul),
+                    nw::graph::counting_iterator<vertex_id_t>(end - start),
                     [&](auto i) { frontier[i] = iperm[i + start]; });
     }
   }

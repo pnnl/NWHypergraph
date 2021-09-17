@@ -9,7 +9,7 @@
 //
 
 #include <docopt.h>
-#include <edge_list.hpp>
+#include <containers/edge_list.hpp>
 #include "Log.hpp"
 #include "common.hpp"
 #include "s_overlap.hpp"
@@ -144,7 +144,7 @@ int main(int argc, char* argv[]) {
   std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_bins);
   if (1 < s_value) {
     tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, H.size()), [&](tbb::blocked_range<vertex_id_t>& r) {
-      int worker_index = tbb::task_arena::current_thread_index();    
+      int worker_index = tbb::this_task_arena::current_thread_index();    
       for (auto hyperE = r.begin(), e = r.end(); hyperE != e; ++hyperE) {
           if (degrees[hyperE] < s_value) continue;
           std::map<size_t, vertex_id_t> K;
