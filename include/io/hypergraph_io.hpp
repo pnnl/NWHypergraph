@@ -71,6 +71,64 @@ auto adj_hypergraph_fill(std::istream& inputStream) {
   return std::tuple(E, N);
 }
 
+/* 
+* Fill weighted biadjacency.
+* Force weights to be vertex_id_t type.
+* return adjacency<0, vertex_id_t> and adjacency<1, vertex_id_t>.
+*/
+auto weighted_adj_hypergraph_fill(std::istream& inputStream) {
+  //100, 972, 100, 972
+  //the number of weights are the same as the number of half edges (offsets)
+  size_t n0, m0, n1, m1;
+  inputStream >> n0;
+  inputStream >> m0;
+  inputStream >> n1;
+  inputStream >> m1;
+
+  vertex_id_t tmp;
+  std::vector<vertex_id_t> v0(n0 + 1);
+  for (size_t i = 0; i < n0; ++i) {
+    inputStream >> tmp;
+    v0[i] = tmp;
+  }
+  std::vector<vertex_id_t> e0(m0);
+  for (size_t i = 0; i < m0; ++i) {
+    inputStream >> tmp;
+    e0[i] = tmp;
+  }
+  v0[n0] = m0;
+  std::vector<vertex_id_t> w0(m0);
+  for (size_t i = 0; i < m0; ++i) {
+    inputStream >> tmp;
+    w0[i] = tmp;
+  }
+
+  std::vector<vertex_id_t> v1(n1 + 1);
+  for (size_t i = 0; i < n1; ++i) {
+    inputStream >> tmp;
+    v1[i] = tmp;
+  }
+  std::vector<vertex_id_t> e1(m1);
+  for (size_t i = 0; i < m1; ++i) {
+    inputStream >> tmp;
+    e1[i] = tmp;
+  }
+  v1[n1] = m1;
+  std::vector<vertex_id_t> w1(m1);
+  for (size_t i = 0; i < m1; ++i) {
+    inputStream >> tmp;
+    w1[i] = tmp;
+  }
+
+  //in adj_hypergraph, <0> is hypernodes, <1> is hyperedges
+  nw::graph::adjacency<1, vertex_id_t> N(n0, m0);
+  N.move(std::move(v0), std::move(e0), std::move(w0));
+  
+  nw::graph::adjacency<0, vertex_id_t> E(n1, m1);
+  E.move(std::move(v1), std::move(e1), std::move(w1));
+  return std::tuple(E, N);
+}
+
 /*
 * combine biadjacency into adjacency. Return g and its transpose
 * Transform a bipartite graph into a general graph
@@ -555,40 +613,20 @@ nw::graph::edge_list<sym, Attributes...> read_adjacency_adjoin(const std::string
 }
 
 template <typename... Attributes>
-auto read_weighted_adj_hypergraph(std::istream& inputStream) {
-  std::string header;
-  inputStream >> header;
-
-  if (WghAdjHypergraphHeader.c_str() != header) {
-    std::cerr << "Unsupported format" << std::endl;
-    throw;
-  }
-  size_t n0, m0, w0, n1, m1, w1;
-  inputStream >> n0;
-  inputStream >> m0;
-  inputStream >> w0;
-  inputStream >> n1;
-  inputStream >> m1;
-  inputStream >> w1;
-  std::cout << n0 << " " << m0 << " " << w0 << std::endl;
-  std::cout << n1 << " " << m1 << " " << w1 << std::endl;
-  // assert(n0 == n1);
-
-  //in adj_hypergraph, <0> is hypernodes, <1> is hyperedges
-  adjacency<0> E(n1, m1);
-  adjacency<1> N(n0, m0);
-  //TODO adj_hypergraph_fill(inputStream, E, N, n0, m0, n1, m1);
-  return std::tuple(E, N);
-}
-
-template <typename... Attributes>
 auto read_weighted_adj_hypergraph(const std::string& filename) {
   std::ifstream file(filename, std::ifstream::in);
   if (!file.is_open()) {
     std::cerr << "Can not open file: " << filename << std::endl;
     throw;
   }
-  return read_weighted_adj_hypergraph<Attributes...>(file);
+  std::string header;
+  file >> header;
+
+  if (WghAdjHypergraphHeader.c_str() != header) {
+    std::cerr << "Unsupported format" << std::endl;
+    throw;
+  }
+  return weighted_adj_hypergraph_fill(file);
 }
 
 auto write_adj_hypergraph(const std::string& filename, adjacency<0>& E, adjacency<1>& N) {

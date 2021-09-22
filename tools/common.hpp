@@ -126,7 +126,18 @@ load_adjacency(std::string file) {
     std::cout << "Reading adjacency hypergraph input " << file << " (slow)" << std::endl;
     return nw::hypergraph::read_adj_hypergraph<Attributes...>(file);
   }
-  else if (type == "WeightedAdjacencyHypergraph") {
+  else {
+    std::cerr << "Did not recognize graph input file " << file << std::endl;;
+    exit(1);
+  }
+}
+template<class... Attributes>
+std::tuple<nw::graph::adjacency<0, Attributes...>, nw::graph::adjacency<1, Attributes...>> 
+load_weighted_adjacency(std::string file) {
+  std::ifstream in(file);
+  std::string type;
+  in >> type;
+  if (type == "WeightedAdjacencyHypergraph") {
     std::cout << "Reading weighted adjacency hypergraph input " << file << " (slow)" << std::endl;
     return nw::hypergraph::read_weighted_adj_hypergraph<Attributes...>(file);
   }

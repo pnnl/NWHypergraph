@@ -176,16 +176,31 @@ load_adjacency(std::string file) {
     std::cout << "Reading adjacency input " << file << " (slow)" << std::endl;
     return nw::hypergraph::read_adj_hypergraph<Attributes...>(file);
   }
-  else if (type == "WeightedAdjacencyHypergraph") {
-    std::cout << "Reading weighted adjacency input " << file << " (slow)" << std::endl;
-    return nw::hypergraph::read_weighted_adj_hypergraph<Attributes...>(file);
-  }
   else {
     std::cerr << "Did not recognize graph input file " << file << std::endl;;
     exit(1);
   }
 }
 
+/*
+ * This loader loads adjacency graph/hypergraph format into bi-adjacency.
+ **/
+template<class... Attributes>
+std::tuple<nw::graph::adjacency<0, vertex_id_t>, nw::graph::adjacency<1, vertex_id_t>> 
+load_weighted_adjacency(std::string file) {
+  nw::util::life_timer _("read adjacency");
+  std::ifstream in(file);
+  std::string type;
+  in >> type;
+  if (type == "WeightedAdjacencyHypergraph") {
+    std::cout << "Reading weighted adjacency input " << file << " (slow)" << std::endl;
+    return nw::hypergraph::read_weighted_adj_hypergraph<vertex_id_t>(file);
+  }
+  else {
+    std::cerr << "Did not recognize graph input file " << file << std::endl;;
+    exit(1);
+  }
+}
 /*
  * This graph reader loads the graph into edge list then convert to bi-adjacency.
  **/
