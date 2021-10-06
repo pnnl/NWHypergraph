@@ -36,7 +36,7 @@ enum soverlap_version {
   HashMap_Cyclic = 14,
   Vector_Blocked = 15,
   Vector_Cyclic = 16,
-  SPGEMM_KIJ = 17,
+  SPGEMM_KIJ = 17, //TODO not ready
   Unknown
 };
 
@@ -64,7 +64,11 @@ std::ostream& operator<<(std::ostream& out, const soverlap_version value){
         INSERT_ELEMENT(HashMap_Frontier_Blocked);      
         INSERT_ELEMENT(HashMap_Frontier_Cyclic);     
         INSERT_ELEMENT(Efficient_Frontier_Blocked);     
-        INSERT_ELEMENT(Efficient_Frontier_Cyclic);   
+        INSERT_ELEMENT(Efficient_Frontier_Cyclic); 
+        INSERT_ELEMENT(HashMap_Blocked);
+        INSERT_ELEMENT(HashMap_Cyclic);  
+        INSERT_ELEMENT(Vector_Blocked);  
+        INSERT_ELEMENT(Vector_Cyclic);  
         INSERT_ELEMENT(Unknown);           
 #undef INSERT_ELEMENT
     }   
