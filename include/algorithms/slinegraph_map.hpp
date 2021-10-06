@@ -23,12 +23,13 @@ namespace hypergraph {
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_map_blocked(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
 std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
-  std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_bins);
+  int num_threads = tbb::info::default_concurrency();
+  std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_threads);
   size_t M = edges.size();
   size_t N = nodes.size();
   if (1 < s) {
     nw::util::life_timer _(__func__);
-    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M), [&](tbb::blocked_range<vertex_id_t>& r) {
+    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M, M / num_bins), [&](tbb::blocked_range<vertex_id_t>& r) {
       int worker_index = tbb::this_task_arena::current_thread_index();    
       for (auto hyperE = r.begin(), e = r.end(); hyperE != e; ++hyperE) {
         if (hyperedgedegrees[hyperE] < s) continue;
@@ -49,7 +50,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
   else {
     {
     nw::util::life_timer _(__func__);
-    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M), [&](tbb::blocked_range<vertex_id_t>& r) {
+    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M, M / num_bins), [&](tbb::blocked_range<vertex_id_t>& r) {
       int worker_index = tbb::this_task_arena::current_thread_index();    
       for (auto hyperE = r.begin(), e = r.end(); hyperE != e; ++hyperE) {
         //std::map<size_t, size_t> K;
@@ -79,7 +80,8 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_map_cyclic(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
 std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
-  std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_bins);
+  int num_threads = tbb::info::default_concurrency();
+  std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_threads);
   size_t M = edges.size();
   size_t N = nodes.size();
   if (1 < s) {
@@ -137,13 +139,14 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_map_blocked_with_counter(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
 std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
-  std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_bins);
+  int num_threads = tbb::info::default_concurrency();  
+  std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_threads);
   size_t M = edges.size();
   size_t N = nodes.size();
-  std::vector<size_t> num_visits(num_bins, 0), num_counts(num_bins, 0), num_edges(num_bins, 0);
+  std::vector<size_t> num_visits(num_threads, 0), num_counts(num_threads, 0), num_edges(num_threads, 0);
   if (1 < s) {
     nw::util::life_timer _(__func__);
-    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M), [&](tbb::blocked_range<vertex_id_t>& r) {
+    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M, M / num_bins), [&](tbb::blocked_range<vertex_id_t>& r) {
       int worker_index = tbb::this_task_arena::current_thread_index();    
       for (auto hyperE = r.begin(), e = r.end(); hyperE != e; ++hyperE) {
         if (hyperedgedegrees[hyperE] < s) continue;
@@ -181,7 +184,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
   }
   else {
     nw::util::life_timer _(__func__);
-    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M), [&](tbb::blocked_range<vertex_id_t>& r) {
+    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M, M / num_bins), [&](tbb::blocked_range<vertex_id_t>& r) {
       int worker_index = tbb::this_task_arena::current_thread_index();    
       for (auto hyperE = r.begin(), e = r.end(); hyperE != e; ++hyperE) {
         std::map<size_t, size_t> K;
@@ -229,8 +232,9 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_map_cyclic_with_counter(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
 std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
-  std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_bins);
-  std::vector<size_t> num_visits(num_bins, 0), num_counts(num_bins, 0), num_edges(num_bins, 0);
+  int num_threads = tbb::info::default_concurrency();  
+  std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_threads);
+  std::vector<size_t> num_visits(num_threads, 0), num_counts(num_threads, 0), num_edges(num_threads, 0);
   size_t M = edges.size();
   size_t N = nodes.size();
   if (1 < s) {
@@ -323,12 +327,13 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_hashmap_blocked(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
 std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
-  std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_bins);
+  int num_threads = tbb::info::default_concurrency();  
+  std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_threads);
   size_t M = edges.size();
   size_t N = nodes.size();
   if (1 < s) {
     nw::util::life_timer _(__func__);
-    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M), [&](tbb::blocked_range<vertex_id_t>& r) {
+    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M, M / num_bins), [&](tbb::blocked_range<vertex_id_t>& r) {
       int worker_index = tbb::this_task_arena::current_thread_index();    
       for (auto hyperE = r.begin(), e = r.end(); hyperE != e; ++hyperE) {
         if (hyperedgedegrees[hyperE] < s) continue;
@@ -349,7 +354,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
   else {
     {
     nw::util::life_timer _(__func__);
-    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M), [&](tbb::blocked_range<vertex_id_t>& r) {
+    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M, M / num_bins), [&](tbb::blocked_range<vertex_id_t>& r) {
       int worker_index = tbb::this_task_arena::current_thread_index();
       std::vector<bool> visitedE(M, false); 
       for (auto hyperE = r.begin(), e = r.end(); hyperE != e; ++hyperE) {
@@ -386,7 +391,8 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_hashmap_cyclic(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
 std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
-  std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_bins);
+  int num_threads = tbb::info::default_concurrency();  
+  std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_threads);
   size_t M = edges.size();
   size_t N = nodes.size();
   if (1 < s) {
@@ -451,13 +457,14 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_hashmap_blocked_with_counter(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
 std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
-  std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_bins);
+  int num_threads = tbb::info::default_concurrency();  
+  std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_threads);
   size_t M = edges.size();
   size_t N = nodes.size();
-  std::vector<size_t> num_visits(num_bins, 0), num_counts(num_bins, 0), num_edges(num_bins, 0);
+  std::vector<size_t> num_visits(num_threads, 0), num_counts(num_threads, 0), num_edges(num_threads, 0);
   if (1 < s) {
     nw::util::life_timer _(__func__);
-    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M), [&](tbb::blocked_range<vertex_id_t>& r) {
+    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M, M / num_bins), [&](tbb::blocked_range<vertex_id_t>& r) {
       int worker_index = tbb::this_task_arena::current_thread_index();    
       for (auto hyperE = r.begin(), e = r.end(); hyperE != e; ++hyperE) {
         if (hyperedgedegrees[hyperE] < s) continue;
@@ -495,7 +502,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
   }
   else {
     nw::util::life_timer _(__func__);
-    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M), [&](tbb::blocked_range<vertex_id_t>& r) {
+    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M, M / num_bins), [&](tbb::blocked_range<vertex_id_t>& r) {
       int worker_index = tbb::this_task_arena::current_thread_index();    
       for (auto hyperE = r.begin(), e = r.end(); hyperE != e; ++hyperE) {
         std::unordered_map<size_t, size_t> K;
@@ -543,8 +550,9 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_hashmap_cyclic_with_counter(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
 std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
-  std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_bins);
-  std::vector<size_t> num_visits(num_bins, 0), num_counts(num_bins, 0), num_edges(num_bins, 0);
+  int num_threads = tbb::info::default_concurrency();  
+  std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_threads);
+  std::vector<size_t> num_visits(num_threads, 0), num_counts(num_threads, 0), num_edges(num_threads, 0);
   size_t M = edges.size();
   size_t N = nodes.size();
   if (1 < s) {
@@ -637,14 +645,17 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_vector_blocked(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
 std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
-  std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_bins);
+  int num_threads = tbb::info::default_concurrency();
+  std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_threads);
   size_t M = edges.size();
   size_t N = nodes.size();
   if (1 < s) {
     nw::util::life_timer _(__func__);
-    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M), [&](tbb::blocked_range<vertex_id_t>& r) {
+    //create a thread-local vector to store the soverlap information
+    std::vector<std::vector<size_t>> soverlap(num_threads, std::vector<size_t>(M, 0));
+    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M, M / num_bins), [&](tbb::blocked_range<vertex_id_t>& r) {
       int worker_index = tbb::this_task_arena::current_thread_index();
-      std::vector<size_t> K(M, 0);
+      auto& K = soverlap[worker_index];
       for (auto hyperE = r.begin(), e = r.end(); hyperE != e; ++hyperE) {
         if (hyperedgedegrees[hyperE] < s) continue;
         //std::fill(K.begin(), K.end(), 0);
@@ -668,9 +679,11 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
   else {
     {
     nw::util::life_timer _(__func__);
-    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M), [&](tbb::blocked_range<vertex_id_t>& r) {
+    //create a thread-local vector to store the soverlap information
+    std::vector<std::vector<bool>> soverlap(num_threads, std::vector<bool>(M, false));
+    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M, M / num_bins), [&](tbb::blocked_range<vertex_id_t>& r) {
       int worker_index = tbb::this_task_arena::current_thread_index();
-      std::vector<bool> visitedE(M, false); 
+      auto& visitedE = soverlap[worker_index];
       for (auto hyperE = r.begin(), e = r.end(); hyperE != e; ++hyperE) {
         std::fill(visitedE.begin(), visitedE.end(), false);
         for (auto &&[hyperN] : edges[hyperE]) {
@@ -705,14 +718,17 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_vector_cyclic(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
 std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
-  std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_bins);
+  int num_threads = tbb::info::default_concurrency();
+  std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_threads);
   size_t M = edges.size();
   size_t N = nodes.size();
   if (1 < s) {
     nw::util::life_timer _(__func__);
+    //create a thread-local vector to store the soverlap information
+    std::vector<std::vector<size_t>> soverlap(num_threads, std::vector<size_t>(M, 0));
     tbb::parallel_for(nw::graph::cyclic_neighbor_range(edges, num_bins), [&](auto& i) {
       int worker_index = tbb::this_task_arena::current_thread_index();   
-      std::vector<size_t> K(M, 0); 
+      auto& K = soverlap[worker_index]; 
       for (auto&& j = i.begin(); j != i.end(); ++j) {
         auto&& [hyperE, hyperE_ngh] = *j;
         if (hyperedgedegrees[hyperE] < s) continue;
@@ -736,9 +752,11 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
   else {
     {
     nw::util::life_timer _(__func__);
+    //create a thread-local vector to store the soverlap information
+    std::vector<std::vector<bool>> soverlap(num_threads, std::vector<bool>(M, false));
     tbb::parallel_for(nw::graph::cyclic_neighbor_range(edges, num_bins), [&](auto& i) {
-      int worker_index = tbb::this_task_arena::current_thread_index();    
-      std::vector<bool> visitedE(M, false); 
+      int worker_index = tbb::this_task_arena::current_thread_index();
+      auto& visitedE = soverlap[worker_index];
       for (auto&& j = i.begin(); j != i.end(); ++j) {
         auto&& [hyperE, hyperE_ngh] = *j;
         std::fill(visitedE.begin(), visitedE.end(), false);
@@ -774,15 +792,18 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_vector_blocked_with_counter(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
 std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
-  std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_bins);
+  int num_threads = tbb::info::default_concurrency();  
+  std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_threads);
   size_t M = edges.size();
   size_t N = nodes.size();
-  std::vector<size_t> num_visits(num_bins, 0), num_counts(num_bins, 0), num_edges(num_bins, 0);
+  std::vector<size_t> num_visits(num_threads, 0), num_counts(num_threads, 0), num_edges(num_threads, 0);
   if (1 < s) {
     nw::util::life_timer _(__func__);
-    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M), [&](tbb::blocked_range<vertex_id_t>& r) {
+    //create a thread-local vector to store the soverlap information
+    std::vector<std::vector<size_t>> soverlap(num_threads, std::vector<size_t>(M, 0));
+    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M, M / num_bins), [&](tbb::blocked_range<vertex_id_t>& r) {
       int worker_index = tbb::this_task_arena::current_thread_index();
-      std::vector<size_t> K(M, 0);    
+      auto& K = soverlap[worker_index];
       for (auto hyperE = r.begin(), e = r.end(); hyperE != e; ++hyperE) {
         if (hyperedgedegrees[hyperE] < s) continue;
         for (auto &&[hyperN] : edges[hyperE]) {
@@ -823,9 +844,11 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
   }
   else {
     nw::util::life_timer _(__func__);
-    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M), [&](tbb::blocked_range<vertex_id_t>& r) {
+    //create a thread-local vector to store the soverlap information
+    std::vector<std::vector<bool>> soverlap(num_threads, std::vector<bool>(M, false));    
+    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M, M / num_bins), [&](tbb::blocked_range<vertex_id_t>& r) {
       int worker_index = tbb::this_task_arena::current_thread_index();    
-      std::vector<bool> K(M, false);
+      auto& K = soverlap[worker_index];
       for (auto hyperE = r.begin(), e = r.end(); hyperE != e; ++hyperE) {
         std::fill(K.begin(), K.end(), false);
         for (auto &&[hyperN] : edges[hyperE]) {
@@ -875,8 +898,9 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_vector_cyclic_with_counter(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
 std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
-  std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_bins);
-  std::vector<size_t> num_visits(num_bins, 0), num_counts(num_bins, 0), num_edges(num_bins, 0);
+  int num_threads = tbb::info::default_concurrency();  
+  std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_threads);
+  std::vector<size_t> num_visits(num_threads, 0), num_counts(num_threads, 0), num_edges(num_threads, 0);
   size_t M = edges.size();
   size_t N = nodes.size();
   if (1 < s) {
@@ -977,12 +1001,13 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_with_map_parallel2d(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
 std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
-  std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_bins);
+  int num_threads = tbb::info::default_concurrency(); 
+  std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_threads);
   size_t M = edges.size();
   size_t N = nodes.size();
   if (1 < s) {
     nw::util::life_timer _(__func__);
-    tbb::parallel_for(tbb::blocked_range2d<vertex_id_t>(0, M / N, num_bins, 0, N, num_bins), [&](tbb::blocked_range2d<vertex_id_t>& r) {
+    tbb::parallel_for(tbb::blocked_range2d<vertex_id_t>(0, M / N, M / num_bins, 0, N, M / num_bins), [&](tbb::blocked_range2d<vertex_id_t>& r) {
       int worker_index = tbb::this_task_arena::current_thread_index();
       for (auto i = r.rows().begin(), ie = r.rows().end(); i != ie; ++i) {
         for (auto hyperE = r.cols().begin(), e = r.cols().end(); hyperE != e; ++hyperE) {
