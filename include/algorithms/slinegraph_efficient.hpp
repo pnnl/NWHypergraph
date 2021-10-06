@@ -121,6 +121,8 @@ void to_two_graph_blocked_range(
           for (auto&& [hyperN] : edges[hyperE]) {
             for (auto&& [anotherhyperE] : nodes[hyperN]) {
               if (hyperE >= anotherhyperE) continue;
+              //if hyperE-anotherhyperE has been inserted, abort
+              //this is to avoid duplicate edges inserted into slinegraph
               if (visitedE[anotherhyperE])
                 continue;
               else
