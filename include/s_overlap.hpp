@@ -34,7 +34,9 @@ enum soverlap_version {
   Efficient_Frontier_Cyclic = 12,
   HashMap_Blocked = 13,
   HashMap_Cyclic = 14,
-  SPGEMM_KIJ = 15,
+  Vector_Blocked = 15,
+  Vector_Cyclic = 16,
+  SPGEMM_KIJ = 17,
   Unknown
 };
 
@@ -289,6 +291,34 @@ auto twograph_reader(int loader_version, bool verbose, std::bitset<8> &features,
     case HashMap_Cyclic: {
       nw::graph::edge_list<undirected> &&linegraph =
           to_two_graph_hashmap_cyclic_portal<undirected>(
+              verbose, std::execution::par_unseq, edges, nodes, edgedegrees, s,
+              num_bins);
+      // where when an empty edge list is passed in, an adjacency still have two
+      // elements
+      if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
+      nw::graph::adjacency<0> s_adj(linegraph);
+      std::cout << "line graph edges = " << linegraph.size()
+                << ", adjacency size = " << s_adj.size()
+                << ", max = " << s_adj.max() << std::endl;
+      return s_adj;
+    }
+    case Vector_Blocked: {
+      nw::graph::edge_list<undirected> &&linegraph =
+          to_two_graph_vector_blocked_portal<undirected>(
+              verbose, std::execution::par_unseq, edges, nodes, edgedegrees, s,
+              num_bins);
+      // where when an empty edge list is passed in, an adjacency still have two
+      // elements
+      if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
+      nw::graph::adjacency<0> s_adj(linegraph);
+      std::cout << "line graph edges = " << linegraph.size()
+                << ", adjacency size = " << s_adj.size()
+                << ", max = " << s_adj.max() << std::endl;
+      return s_adj;
+    }
+    case Vector_Cyclic: {
+      nw::graph::edge_list<undirected> &&linegraph =
+          to_two_graph_vector_cyclic_portal<undirected>(
               verbose, std::execution::par_unseq, edges, nodes, edgedegrees, s,
               num_bins);
       // where when an empty edge list is passed in, an adjacency still have two
