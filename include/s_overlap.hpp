@@ -88,14 +88,15 @@ auto twograph_reader(int loader_version, bool verbose, std::bitset<8> &features,
                      std::vector<nw::graph::index_t> &edgedegrees,
                      std::vector<vertex_id_t>& iperm,
                      size_t nrealedges, size_t nrealnodes, 
-                     size_t s = 1,
+                     size_t s,
+                     int num_threads, 
                      int num_bins = 32) {
   switch (loader_version) {
     case Efficient_Blocked: {
       nw::graph::edge_list<undirected> &&linegraph =
           to_two_graph_efficient_parallel_portal<undirected>(
               verbose, features, std::execution::par_unseq, edges, nodes,
-              edgedegrees, s, num_bins);
+              edgedegrees, s, num_threads, num_bins);
       // where when an empty edge list is passed in, an adjacency still have two
       // elements
       if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
@@ -109,7 +110,7 @@ auto twograph_reader(int loader_version, bool verbose, std::bitset<8> &features,
       nw::graph::edge_list<undirected> &&linegraph =
           to_two_graph_efficient_parallel_cyclic_portal<undirected>(
               verbose, std::execution::par_unseq, edges, nodes, edgedegrees, s,
-              num_bins);
+              num_threads, num_bins);
       // where when an empty edge list is passed in, an adjacency still have two
       // elements
       if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
@@ -122,7 +123,7 @@ auto twograph_reader(int loader_version, bool verbose, std::bitset<8> &features,
     case Naive: {
       nw::graph::edge_list<undirected> &&linegraph =
           to_two_graph_naive_parallel_portal<undirected>(
-              verbose, std::execution::par_unseq, edges, nodes, s, num_bins);
+              verbose, std::execution::par_unseq, edges, nodes, s, num_threads, num_bins);
       // where when an empty edge list is passed in, an adjacency still have two
       // elements
       if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
@@ -136,7 +137,7 @@ auto twograph_reader(int loader_version, bool verbose, std::bitset<8> &features,
       nw::graph::edge_list<undirected> &&linegraph =
           to_two_graph_map_blocked_portal<undirected>(
               verbose, std::execution::par_unseq, edges, nodes, edgedegrees, s,
-              num_bins);
+              num_threads, num_bins);
       // where when an empty edge list is passed in, an adjacency still have two
       // elements
       if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
@@ -150,7 +151,7 @@ auto twograph_reader(int loader_version, bool verbose, std::bitset<8> &features,
       nw::graph::edge_list<undirected> &&linegraph =
           to_two_graph_map_cyclic_portal<undirected>(
               verbose, std::execution::par_unseq, edges, nodes, edgedegrees, s,
-              num_bins);
+              num_threads, num_bins);
       // where when an empty edge list is passed in, an adjacency still have two
       // elements
       if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
@@ -193,7 +194,7 @@ auto twograph_reader(int loader_version, bool verbose, std::bitset<8> &features,
           to_two_graph_map_frontier_blocked_portal<undirected>(
               std::execution::par_unseq, edges, nodes, edgedegrees,
               iperm,
-              nrealedges, nrealnodes, s, num_bins);
+              nrealedges, nrealnodes, s, num_threads, num_bins);
       // where when an empty edge list is passed in, an adjacency still have
       // two elements
       if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
@@ -208,7 +209,7 @@ auto twograph_reader(int loader_version, bool verbose, std::bitset<8> &features,
           to_two_graph_map_frontier_cyclic_portal<undirected>(
               std::execution::par_unseq, edges, nodes, edgedegrees,
               iperm,
-              nrealedges, nrealnodes, s, num_bins);
+              nrealedges, nrealnodes, s, num_threads, num_bins);
       // where when an empty edge list is passed in, an adjacency still have
       // two elements
       if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
@@ -223,7 +224,7 @@ auto twograph_reader(int loader_version, bool verbose, std::bitset<8> &features,
           to_two_graph_hashmap_frontier_blocked_portal<undirected>(
               std::execution::par_unseq, edges, nodes, edgedegrees,
               iperm,
-              nrealedges, nrealnodes, s, num_bins);
+              nrealedges, nrealnodes, s, num_threads, num_bins);
       // where when an empty edge list is passed in, an adjacency still have
       // two elements
       if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
@@ -238,7 +239,7 @@ auto twograph_reader(int loader_version, bool verbose, std::bitset<8> &features,
           to_two_graph_hashmap_frontier_cyclic_portal<undirected>(
               std::execution::par_unseq, edges, nodes, edgedegrees,
               iperm,
-              nrealedges, nrealnodes, s, num_bins);
+              nrealedges, nrealnodes, s, num_threads, num_bins);
       // where when an empty edge list is passed in, an adjacency still have
       // two elements
       if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
@@ -253,7 +254,7 @@ auto twograph_reader(int loader_version, bool verbose, std::bitset<8> &features,
           to_two_graph_efficient_frontier_blocked_portal<undirected>(
               std::execution::par_unseq, edges, nodes, edgedegrees,
               iperm,
-              nrealedges, nrealnodes, s, num_bins);
+              nrealedges, nrealnodes, s, num_threads, num_bins);
       // where when an empty edge list is passed in, an adjacency still have
       // two elements
       if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
@@ -268,7 +269,7 @@ auto twograph_reader(int loader_version, bool verbose, std::bitset<8> &features,
           to_two_graph_efficient_frontier_cyclic_portal<undirected>(
               std::execution::par_unseq, edges, nodes, edgedegrees,
               iperm,
-              nrealedges, nrealnodes, s, num_bins);
+              nrealedges, nrealnodes, s, num_threads, num_bins);
       // where when an empty edge list is passed in, an adjacency still have
       // two elements
       if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
@@ -282,7 +283,7 @@ auto twograph_reader(int loader_version, bool verbose, std::bitset<8> &features,
       nw::graph::edge_list<undirected> &&linegraph =
           to_two_graph_hashmap_blocked_portal<undirected>(
               verbose, std::execution::par_unseq, edges, nodes, edgedegrees, s,
-              num_bins);
+              num_threads, num_bins);
       // where when an empty edge list is passed in, an adjacency still have two
       // elements
       if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
@@ -296,7 +297,7 @@ auto twograph_reader(int loader_version, bool verbose, std::bitset<8> &features,
       nw::graph::edge_list<undirected> &&linegraph =
           to_two_graph_hashmap_cyclic_portal<undirected>(
               verbose, std::execution::par_unseq, edges, nodes, edgedegrees, s,
-              num_bins);
+              num_threads, num_bins);
       // where when an empty edge list is passed in, an adjacency still have two
       // elements
       if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
@@ -310,7 +311,7 @@ auto twograph_reader(int loader_version, bool verbose, std::bitset<8> &features,
       nw::graph::edge_list<undirected> &&linegraph =
           to_two_graph_vector_blocked_portal<undirected>(
               verbose, std::execution::par_unseq, edges, nodes, edgedegrees, s,
-              num_bins);
+              num_threads, num_bins);
       // where when an empty edge list is passed in, an adjacency still have two
       // elements
       if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
@@ -324,7 +325,7 @@ auto twograph_reader(int loader_version, bool verbose, std::bitset<8> &features,
       nw::graph::edge_list<undirected> &&linegraph =
           to_two_graph_vector_cyclic_portal<undirected>(
               verbose, std::execution::par_unseq, edges, nodes, edgedegrees, s,
-              num_bins);
+              num_threads, num_bins);
       // where when an empty edge list is passed in, an adjacency still have two
       // elements
       if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);

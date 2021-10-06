@@ -20,12 +20,13 @@ namespace hypergraph {
 * Parallel naive version, clean version, for perf testing
 */
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
-auto to_two_graph_naive_parallel(ExecutionPolicy&& ep, HyperEdge& e_nbs, HyperNode& n_nbs, size_t s = 1, int num_bins = 32) {
+auto to_two_graph_naive_parallel(ExecutionPolicy&& ep, HyperEdge& e_nbs, HyperNode& n_nbs, 
+size_t s, int num_threads, int num_bins = 32) {
   size_t M = e_nbs.size();
-  std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_bins);
+  std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_threads);
   {
   nw::util::life_timer _(__func__);
-  tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M), [&](tbb::blocked_range<vertex_id_t>& r) {
+  tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M, M / num_bins), [&](tbb::blocked_range<vertex_id_t>& r) {
     int worker_index = tbb::this_task_arena::current_thread_index();
     for (auto i = r.begin(), e = r.end(); i != e; ++i) {
       for (size_t j = i + 1; j < M; ++j) {
@@ -43,14 +44,15 @@ auto to_two_graph_naive_parallel(ExecutionPolicy&& ep, HyperEdge& e_nbs, HyperNo
 * Parallel naive version with statistic counters, for benchmarking
 */
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
-auto to_two_graph_naive_parallel_with_counter(ExecutionPolicy&& ep, HyperEdge& e_nbs, HyperNode& n_nbs, size_t s = 1, int num_bins = 32) {
+auto to_two_graph_naive_parallel_with_counter(ExecutionPolicy&& ep, HyperEdge& e_nbs, HyperNode& n_nbs, 
+size_t s, int num_threads, int num_bins = 32) {
 
   size_t M = e_nbs.size();
-  std::vector<size_t> num_visits(num_bins, 0), num_edges(num_bins, 0);
-  std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_bins);
+  std::vector<size_t> num_visits(num_threads, 0), num_edges(num_threads, 0);
+  std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_threads);
   {
   nw::util::life_timer _(__func__);
-  tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M), [&](tbb::blocked_range<vertex_id_t>& r) {
+  tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M, M / num_bins), [&](tbb::blocked_range<vertex_id_t>& r) {
     int worker_index = tbb::this_task_arena::current_thread_index();
     for (auto i = r.begin(), e = r.end(); i != e; ++i) {
       for (size_t j = i + 1; j < M; ++j) {
@@ -108,11 +110,12 @@ auto to_two_graph_naive_serial(HyperEdge& e_nbs, HyperNode& n_nbs, size_t s = 1)
 
 
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
-auto to_two_graph_naive_parallel_portal(bool verbose, ExecutionPolicy&& ep, HyperEdge& e_nbs, HyperNode& n_nbs, size_t s = 1, int num_bins = 32) {
+auto to_two_graph_naive_parallel_portal(bool verbose, ExecutionPolicy&& ep, HyperEdge& e_nbs, HyperNode& n_nbs, 
+size_t s, int num_threads, int num_bins = 32) {
   if(!verbose)
-    return to_two_graph_naive_parallel(ep, e_nbs, n_nbs, s, num_bins);
+    return to_two_graph_naive_parallel(ep, e_nbs, n_nbs, s, num_threads, num_bins);
   else
-    return to_two_graph_naive_parallel_with_counter(ep, e_nbs, n_nbs, s, num_bins);
+    return to_two_graph_naive_parallel_with_counter(ep, e_nbs, n_nbs, s, num_threads, num_bins);
 }
 
 }//namespace hypergraph

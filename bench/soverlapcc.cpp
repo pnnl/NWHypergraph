@@ -105,13 +105,13 @@ int main(int argc, char* argv[]) {
       hyperedges.stream_stats();
     }
 
-    for (auto&& s : s_values) {
-      auto&& s_adj =
+    for (auto&& num_thread : threads) {
+      auto _ = set_n_threads(num_thread);
+      for (auto&& s : s_values) {
+        auto&& s_adj =
           twograph_reader(loader_version, verbose, features, hyperedges,
-                          hypernodes, hyperedge_degrees, iperm, nrealedges, nrealnodes, s, num_bins);
-
-      for (auto&& thread : threads) {
-        auto _ = set_n_threads(thread);
+                          hypernodes, hyperedge_degrees, iperm, nrealedges, nrealnodes, 
+                          s, num_thread, num_bins);
         for (auto&& id : ids) {
           auto verifier = [&](auto&& E) {
             // only verify #cc in the result
@@ -141,7 +141,7 @@ int main(int argc, char* argv[]) {
           };
 
           auto record = [&](auto&& op) {
-            times.record(file, id, thread, s, std::forward<decltype(op)>(op),
+            times.record(file, id, num_thread, s, std::forward<decltype(op)>(op),
                          verifier, true);
           };
           for (int j = 0, e = trials; j < e; ++j) {
@@ -163,8 +163,8 @@ int main(int argc, char* argv[]) {
             }
           }
         }
-      }  // for thread
-    }    // for s
+      }  // for s
+    }    // for num_thread
   }      // for file
 
   times.print(std::cout);

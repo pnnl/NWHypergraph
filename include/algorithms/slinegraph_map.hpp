@@ -22,8 +22,7 @@ namespace hypergraph {
 
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_map_blocked(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
-std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
-  int num_threads = tbb::info::default_concurrency();
+std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
   std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_threads);
   size_t M = edges.size();
   size_t N = nodes.size();
@@ -79,8 +78,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
 
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_map_cyclic(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
-std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
-  int num_threads = tbb::info::default_concurrency();
+std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
   std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_threads);
   size_t M = edges.size();
   size_t N = nodes.size();
@@ -138,8 +136,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
 
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_map_blocked_with_counter(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
-std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
-  int num_threads = tbb::info::default_concurrency();  
+std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
   std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_threads);
   size_t M = edges.size();
   size_t N = nodes.size();
@@ -231,8 +228,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
 
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_map_cyclic_with_counter(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
-std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
-  int num_threads = tbb::info::default_concurrency();  
+std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
   std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_threads);
   std::vector<size_t> num_visits(num_threads, 0), num_counts(num_threads, 0), num_edges(num_threads, 0);
   size_t M = edges.size();
@@ -326,8 +322,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
 
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_hashmap_blocked(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
-std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
-  int num_threads = tbb::info::default_concurrency();  
+std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
   std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_threads);
   size_t M = edges.size();
   size_t N = nodes.size();
@@ -390,8 +385,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
 
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_hashmap_cyclic(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
-std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
-  int num_threads = tbb::info::default_concurrency();  
+std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
   std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_threads);
   size_t M = edges.size();
   size_t N = nodes.size();
@@ -456,8 +450,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
 
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_hashmap_blocked_with_counter(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
-std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
-  int num_threads = tbb::info::default_concurrency();  
+std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
   std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_threads);
   size_t M = edges.size();
   size_t N = nodes.size();
@@ -549,8 +542,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
 
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_hashmap_cyclic_with_counter(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
-std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
-  int num_threads = tbb::info::default_concurrency();  
+std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
   std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_threads);
   std::vector<size_t> num_visits(num_threads, 0), num_counts(num_threads, 0), num_edges(num_threads, 0);
   size_t M = edges.size();
@@ -644,8 +636,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
 
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_vector_blocked(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
-std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
-  int num_threads = tbb::info::default_concurrency();
+std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
   std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_threads);
   size_t M = edges.size();
   size_t N = nodes.size();
@@ -717,8 +708,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
 
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_vector_cyclic(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
-std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
-  int num_threads = tbb::info::default_concurrency();
+std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
   std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_threads);
   size_t M = edges.size();
   size_t N = nodes.size();
@@ -791,8 +781,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
 
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_vector_blocked_with_counter(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
-std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
-  int num_threads = tbb::info::default_concurrency();  
+std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
   std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_threads);
   size_t M = edges.size();
   size_t N = nodes.size();
@@ -897,8 +886,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
 
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_vector_cyclic_with_counter(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
-std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
-  int num_threads = tbb::info::default_concurrency();  
+std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
   std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_threads);
   std::vector<size_t> num_visits(num_threads, 0), num_counts(num_threads, 0), num_edges(num_threads, 0);
   size_t M = edges.size();
@@ -1000,8 +988,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
 
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_with_map_parallel2d(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
-std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
-  int num_threads = tbb::info::default_concurrency(); 
+std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
   std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_threads);
   size_t M = edges.size();
   size_t N = nodes.size();
@@ -1061,56 +1048,56 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
 
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_map_blocked_portal(bool verbose, ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
-std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
+std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
   if (!verbose) 
-    return to_two_graph_map_blocked(ep, edges, nodes, hyperedgedegrees, s, num_bins);
+    return to_two_graph_map_blocked(ep, edges, nodes, hyperedgedegrees, s, num_threads, num_bins);
   else
-    return to_two_graph_map_blocked_with_counter(ep, edges, nodes, hyperedgedegrees, s, num_bins);
+    return to_two_graph_map_blocked_with_counter(ep, edges, nodes, hyperedgedegrees, s, num_threads, num_bins);
 }
 
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_map_cyclic_portal(bool verbose, ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
-std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
+std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
   if (!verbose) 
-    return to_two_graph_map_cyclic(ep, edges, nodes, hyperedgedegrees, s, num_bins);
+    return to_two_graph_map_cyclic(ep, edges, nodes, hyperedgedegrees, s, num_threads, num_bins);
   else
-    return to_two_graph_map_cyclic_with_counter(ep, edges, nodes, hyperedgedegrees, s, num_bins);
+    return to_two_graph_map_cyclic_with_counter(ep, edges, nodes, hyperedgedegrees, s, num_threads, num_bins);
 }
 
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_hashmap_blocked_portal(bool verbose, ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
-std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
+std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
   if (!verbose) 
-    return to_two_graph_hashmap_blocked(ep, edges, nodes, hyperedgedegrees, s, num_bins);
+    return to_two_graph_hashmap_blocked(ep, edges, nodes, hyperedgedegrees, s, num_threads, num_bins);
   else
-    return to_two_graph_hashmap_blocked_with_counter(ep, edges, nodes, hyperedgedegrees, s, num_bins);
+    return to_two_graph_hashmap_blocked_with_counter(ep, edges, nodes, hyperedgedegrees, s, num_threads, num_bins);
 }
 
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_hashmap_cyclic_portal(bool verbose, ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
-std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
+std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
   if (!verbose) 
-    return to_two_graph_hashmap_cyclic(ep, edges, nodes, hyperedgedegrees, s, num_bins);
+    return to_two_graph_hashmap_cyclic(ep, edges, nodes, hyperedgedegrees, s, num_threads, num_bins);
   else
-    return to_two_graph_hashmap_cyclic_with_counter(ep, edges, nodes, hyperedgedegrees, s, num_bins);
+    return to_two_graph_hashmap_cyclic_with_counter(ep, edges, nodes, hyperedgedegrees, s, num_threads, num_bins);
 }
 
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_vector_blocked_portal(bool verbose, ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
-std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
+std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
   if (!verbose) 
-    return to_two_graph_vector_blocked(ep, edges, nodes, hyperedgedegrees, s, num_bins);
+    return to_two_graph_vector_blocked(ep, edges, nodes, hyperedgedegrees, s, num_threads, num_bins);
   else
-    return to_two_graph_vector_blocked_with_counter(ep, edges, nodes, hyperedgedegrees, s, num_bins);
+    return to_two_graph_vector_blocked_with_counter(ep, edges, nodes, hyperedgedegrees, s, num_threads, num_bins);
 }
 
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_vector_cyclic_portal(bool verbose, ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
-std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
+std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
   if (!verbose) 
-    return to_two_graph_vector_cyclic(ep, edges, nodes, hyperedgedegrees, s, num_bins);
+    return to_two_graph_vector_cyclic(ep, edges, nodes, hyperedgedegrees, s, num_threads, num_bins);
   else
-    return to_two_graph_vector_cyclic_with_counter(ep, edges, nodes, hyperedgedegrees, s, num_bins);
+    return to_two_graph_vector_cyclic_with_counter(ep, edges, nodes, hyperedgedegrees, s, num_threads, num_bins);
 }
 
 /*

@@ -14,7 +14,7 @@
 #include <adaptors/vertex_range.hpp>
 
 #include "util/slinegraph_helper.hpp"
-#include "tbb/task_arena.h"
+#include <tbb/task_arena.h>
 #include <tbb/blocked_range2d.h>
 
 namespace nw {
@@ -263,10 +263,9 @@ std::vector<index_t>& hyperedgedegrees, size_t s) {
 */
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_efficient_parallel_clean(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
-std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
+std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
   size_t M = edges.size();
-  size_t N = nodes.size();
-  int num_threads = tbb::info::default_concurrency();  
+  size_t N = nodes.size();  
   using linegraph_t = std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>;
   linegraph_t two_graphs(num_threads);
   if (1 == s) {
@@ -299,10 +298,10 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
 */
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_efficient_parallel_2d(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
-std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
+std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
   size_t M = edges.size();
   size_t N = nodes.size();
-  int num_threads = tbb::info::default_concurrency();  
+
   using linegraph_t = std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>;
   linegraph_t two_graphs(num_threads);
   if (1 == s) {
@@ -345,10 +344,10 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
 */
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_efficient_parallel_cyclic(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
-std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
+std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
   size_t M = edges.size();
   size_t N = nodes.size();
-  int num_threads = tbb::info::default_concurrency();  
+
   using linegraph_t = std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>;
   linegraph_t two_graphs(num_threads);
   if (1 == s) {
@@ -426,10 +425,10 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
 */
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_efficient_parallel_cyclic_with_counter(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
-std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
+std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
   size_t M = edges.size();
   size_t N = nodes.size();
-  int num_threads = tbb::info::default_concurrency(); 
+
   using linegraph_t = std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>;
   linegraph_t two_graphs(num_threads);
   if (1 == s) {
@@ -529,10 +528,10 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
 */
 template<directedness edge_directedness = undirected, class T, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_weighted_efficient_parallel_clean(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
-std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
+std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
   size_t M = edges.size();
   size_t N = nodes.size();
-  int num_threads = tbb::info::default_concurrency(); 
+
   if (1 == s) {
     nw::util::life_timer _(__func__);
     //avoid intersection when s=1
@@ -610,12 +609,12 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
 */
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_efficient_parallel_optional_features_clean(std::bitset<8>& features, ExecutionPolicy&& ep, HyperEdge& e_nbs, HyperNode& n_nbs, 
-std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
+std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
   size_t M = e_nbs.size();
   size_t N = n_nbs.size();
   auto edges = e_nbs.begin();
   auto nodes = n_nbs.begin();
-  int num_threads = tbb::info::default_concurrency(); 
+
   if (1 == s) {
     nw::util::life_timer _(__func__);
     //avoid intersection when s=1
@@ -702,12 +701,12 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
 */
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_efficient_parallel_with_counter(ExecutionPolicy&& ep, HyperEdge& e_nbs, HyperNode& n_nbs, 
-std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
+std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
   size_t M = e_nbs.size();
   size_t N = n_nbs.size();
   auto edges = e_nbs.begin();
   auto nodes = n_nbs.begin();
-  int num_threads = tbb::info::default_concurrency();
+
   if (1 == s) {
     nw::util::life_timer _(__func__);
     std::vector<size_t> num_visits(num_threads, 0), num_edges(num_threads, 0);
@@ -813,12 +812,12 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
 */
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_efficient_parallel_optional_features_with_counter(std::bitset<8>& features, ExecutionPolicy&& ep, HyperEdge& e_nbs, HyperNode& n_nbs, 
-std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
+std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
   size_t M = e_nbs.size();
   size_t N = n_nbs.size();
   auto edges = e_nbs.begin();
   auto nodes = n_nbs.begin();
-  int num_threads = tbb::info::default_concurrency();
+
   if (1 == s) {
     nw::util::life_timer _(__func__);
     std::atomic<size_t> nedges = 0;
@@ -923,11 +922,12 @@ auto to_two_graph_efficient_parallel_clean_without_sequeeze(
   HyperEdge& edges, 
   HyperNode& nodes, 
   std::vector<index_t>& hyperedgedegrees, 
-  size_t s = 1, 
+  size_t s,
+  int num_threads, 
   int num_bins = 32) {
   size_t M = edges.size();
   size_t N = nodes.size();
-  int num_threads = tbb::info::default_concurrency();
+
   if (1 == s) {
     nw::util::life_timer _(__func__);
     //avoid intersection when s=1
@@ -997,11 +997,12 @@ auto to_two_graph_weighted_efficient_parallel_clean_without_squeeze(
   HyperEdge& edges, 
   HyperNode& nodes, 
   std::vector<index_t>& hyperedgedegrees, 
-  size_t s = 1, 
+  size_t s,
+  int num_threads, 
   int num_bins = 32) {
   size_t M = edges.size();
   size_t N = nodes.size();
-  int num_threads = tbb::info::default_concurrency();
+
   if (1 == s) {
     nw::util::life_timer _(__func__);
     //avoid intersection when s=1
@@ -1069,16 +1070,16 @@ auto to_two_graph_weighted_efficient_parallel_clean_without_squeeze(
 
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_efficient_parallel_cyclic_portal(bool verbose, ExecutionPolicy&& ep, 
-HyperEdge& e_nbs, HyperNode& n_nbs, std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
+HyperEdge& e_nbs, HyperNode& n_nbs, std::vector<index_t>& hyperedgedegrees, size_t s, int numb_threads, int num_bins = 32) {
   if(!verbose)
-    return to_two_graph_efficient_parallel_cyclic(ep, e_nbs, n_nbs, hyperedgedegrees, s, num_bins);
+    return to_two_graph_efficient_parallel_cyclic(ep, e_nbs, n_nbs, hyperedgedegrees, s, numb_threads, num_bins);
   else
-    return to_two_graph_efficient_parallel_cyclic_with_counter(ep, e_nbs, n_nbs, hyperedgedegrees, s, num_bins);
+    return to_two_graph_efficient_parallel_cyclic_with_counter(ep, e_nbs, n_nbs, hyperedgedegrees, s, numb_threads, num_bins);
 }
 
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_efficient_parallel_portal(bool verbose, std::bitset<8>& features, ExecutionPolicy&& ep, HyperEdge& e_nbs, HyperNode& n_nbs, 
-std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
+std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
   //if none feature selected, then default to turn all on
   if (features.none()) features[heuristics::ALL] = true;
   if (features[heuristics::NONE]) {
@@ -1090,10 +1091,10 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
 
   if (features[heuristics::ALL]) {
     if (!verbose) 
-      return to_two_graph_efficient_parallel_clean(ep, e_nbs, n_nbs, hyperedgedegrees, s, num_bins);
+      return to_two_graph_efficient_parallel_clean(ep, e_nbs, n_nbs, hyperedgedegrees, s, num_threads, num_bins);
     else {
       print_heuristics_verbose(heuristics::ALL);
-      return to_two_graph_efficient_parallel_with_counter(ep, e_nbs, n_nbs, hyperedgedegrees, s, num_bins);
+      return to_two_graph_efficient_parallel_with_counter(ep, e_nbs, n_nbs, hyperedgedegrees, s, num_threads, num_bins);
     }
   }
   else {
@@ -1102,14 +1103,14 @@ std::vector<index_t>& hyperedgedegrees, size_t s = 1, int num_bins = 32) {
       for (int i = heuristics::DEG_PRUNING; i <= heuristics::NONE; ++i) {
         if (features[i]) print_heuristics_verbose((heuristics)i);
       }
-      return to_two_graph_efficient_parallel_optional_features_clean(features, ep, e_nbs, n_nbs, hyperedgedegrees, s, num_bins);
+      return to_two_graph_efficient_parallel_optional_features_clean(features, ep, e_nbs, n_nbs, hyperedgedegrees, s, num_threads, num_bins);
     }
     else {
       //with counter
       for (int i = heuristics::DEG_PRUNING; i <= heuristics::NONE; ++i) {
         if (features[i]) print_heuristics_verbose((heuristics)i);
       }
-      return to_two_graph_efficient_parallel_optional_features_with_counter(features, ep, e_nbs, n_nbs, hyperedgedegrees, s, num_bins);
+      return to_two_graph_efficient_parallel_optional_features_with_counter(features, ep, e_nbs, n_nbs, hyperedgedegrees, s, num_threads, num_bins);
     }
   }
 }

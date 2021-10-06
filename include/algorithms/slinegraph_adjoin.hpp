@@ -30,14 +30,15 @@ template <directedness edge_directedness = undirected, class ExecutionPolicy,
           class Hypergraph, class HypergraphT>
 auto to_two_graph_map_frontier_blocked(ExecutionPolicy&& ep, Hypergraph& h,
                                HypergraphT& ht, std::vector<index_t>& degrees,
-                               std::vector<vertex_id_t>& frontier, size_t s = 1,
-                               int num_bins = 32) {
+                               std::vector<vertex_id_t>& frontier, size_t s,
+                               int num_threads, int num_bins = 32) {
   std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(
-      num_bins);
+      num_threads);
+  auto M = frontier.size();
   if (1 < s) {
     nw::util::life_timer _(__func__);
     tbb::parallel_for(
-        tbb::blocked_range<size_t>(0ul, frontier.size()),
+        tbb::blocked_range<size_t>(0ul, M, M / num_bins),
         [&](const tbb::blocked_range<size_t>& r) {
           int worker_index = tbb::this_task_arena::current_thread_index();
           for (size_t i = r.begin(), e = r.end(); i != e; ++i) {
@@ -63,7 +64,7 @@ auto to_two_graph_map_frontier_blocked(ExecutionPolicy&& ep, Hypergraph& h,
     {
       nw::util::life_timer _(__func__);
       tbb::parallel_for(
-          tbb::blocked_range<size_t>(0ul, frontier.size()),
+          tbb::blocked_range<size_t>(0ul, M, M / num_bins),
           [&](const tbb::blocked_range<size_t>& r) {
             int worker_index = tbb::this_task_arena::current_thread_index();
             for (size_t i = r.begin(), e = r.end(); i != e; ++i) {
@@ -87,7 +88,7 @@ auto to_two_graph_map_frontier_blocked(ExecutionPolicy&& ep, Hypergraph& h,
     result.open_for_push_back();
     // do this in serial
     std::for_each(nw::graph::counting_iterator<int>(0),
-                  nw::graph::counting_iterator<int>(num_bins), [&](auto i) {
+                  nw::graph::counting_iterator<int>(num_threads), [&](auto i) {
                     std::for_each(two_graphs[i].begin(), two_graphs[i].end(),
                                   [&](auto&& e) { result.push_back(e); });
                   });
@@ -105,10 +106,10 @@ template <directedness edge_directedness = undirected, class ExecutionPolicy,
           class Hypergraph, class HypergraphT>
 auto to_two_graph_map_frontier_cyclic(ExecutionPolicy&& ep, Hypergraph& h,
                                HypergraphT& ht, std::vector<index_t>& degrees,
-                               std::vector<vertex_id_t>& frontier, size_t s = 1,
-                               int num_bins = 32) {
+                               std::vector<vertex_id_t>& frontier, size_t s,
+                               int num_threads, int num_bins = 32) {
   std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(
-      num_bins);
+      num_threads);
   if (1 < s) {
     nw::util::life_timer _(__func__);
     tbb::parallel_for(
@@ -182,7 +183,7 @@ auto to_two_graph_map_frontier_cyclic(ExecutionPolicy&& ep, Hypergraph& h,
     result.open_for_push_back();
     // do this in serial
     std::for_each(nw::graph::counting_iterator<int>(0),
-                  nw::graph::counting_iterator<int>(num_bins), [&](auto i) {
+                  nw::graph::counting_iterator<int>(num_threads), [&](auto i) {
                     std::for_each(two_graphs[i].begin(), two_graphs[i].end(),
                                   [&](auto&& e) { result.push_back(e); });
                   });
@@ -199,17 +200,17 @@ template <directedness edge_directedness = undirected, class ExecutionPolicy,
           class Hypergraph, class HypergraphT>
 auto to_two_graph_efficient_frontier_blocked(ExecutionPolicy&& ep, Hypergraph& h,
                                HypergraphT& ht, std::vector<index_t>& degrees,
-                               std::vector<vertex_id_t>& frontier, size_t s = 1,
-                               int num_bins = 32) {
+                               std::vector<vertex_id_t>& frontier, size_t s,
+                               int num_threads, int num_bins = 32) {
   size_t M = frontier.size();
   using linegraph_t = std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>;
-  linegraph_t two_graphs(num_bins);
+  linegraph_t two_graphs(num_threads);
   if (1 == s) {
     //avoid intersection when s=1
     {
         nw::util::life_timer _(__func__);
         tbb::parallel_for(
-            tbb::blocked_range<size_t>(0ul, M),
+            tbb::blocked_range<size_t>(0ul, M, M / num_bins),
             [&](const tbb::blocked_range<size_t>& r) {
               int worker_index = tbb::this_task_arena::current_thread_index();
               std::vector<bool> visitedE(h.size(), false);
@@ -237,7 +238,7 @@ auto to_two_graph_efficient_frontier_blocked(ExecutionPolicy&& ep, Hypergraph& h
     nw::graph::edge_list<edge_directedness> result(0);
     result.open_for_push_back();
     //do this in serial
-    std::for_each(nw::graph::counting_iterator<int>(0), nw::graph::counting_iterator<int>(num_bins), [&](auto i) {
+    std::for_each(nw::graph::counting_iterator<int>(0), nw::graph::counting_iterator<int>(num_threads), [&](auto i) {
       std::for_each(two_graphs[i].begin(), two_graphs[i].end(), [&](auto&& e){
         result.push_back(e);
       });
@@ -251,7 +252,7 @@ auto to_two_graph_efficient_frontier_blocked(ExecutionPolicy&& ep, Hypergraph& h
     {
       nw::util::life_timer _(__func__);
       tbb::parallel_for(
-          tbb::blocked_range<size_t>(0ul, M),
+          tbb::blocked_range<size_t>(0ul, M, M / num_bins),
           [&](const tbb::blocked_range<size_t>& r) {
             int worker_index = tbb::this_task_arena::current_thread_index();
             std::vector<bool> visitedE(h.size(), false);
@@ -301,11 +302,11 @@ template <directedness edge_directedness = undirected, class ExecutionPolicy,
           class Hypergraph, class HypergraphT>
 auto to_two_graph_efficient_frontier_cyclic(ExecutionPolicy&& ep, Hypergraph& h,
                                HypergraphT& ht, std::vector<index_t>& degrees,
-                               std::vector<vertex_id_t>& frontier, size_t s = 1,
-                               int num_bins = 32) {
+                               std::vector<vertex_id_t>& frontier, size_t s,
+                               int num_threads, int num_bins = 32) {
   size_t M = frontier.size();
   using linegraph_t = std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>;
-  linegraph_t two_graphs(num_bins);
+  linegraph_t two_graphs(num_threads);
   if (1 == s) {
     {
       nw::util::life_timer _(__func__);
@@ -338,7 +339,7 @@ auto to_two_graph_efficient_frontier_cyclic(ExecutionPolicy&& ep, Hypergraph& h,
     nw::graph::edge_list<edge_directedness> result(0);
     result.open_for_push_back();
     //do this in serial
-    std::for_each(nw::graph::counting_iterator<int>(0), nw::graph::counting_iterator<int>(num_bins), [&](auto i) {
+    std::for_each(nw::graph::counting_iterator<int>(0), nw::graph::counting_iterator<int>(num_threads), [&](auto i) {
       std::for_each(two_graphs[i].begin(), two_graphs[i].end(), [&](auto&& e){
         result.push_back(e);
       });
@@ -402,14 +403,15 @@ template <directedness edge_directedness = undirected, class ExecutionPolicy,
           class Hypergraph, class HypergraphT>
 auto to_two_graph_hashmap_frontier_blocked(ExecutionPolicy&& ep, Hypergraph& h,
                                HypergraphT& ht, std::vector<index_t>& degrees,
-                               std::vector<vertex_id_t>& frontier, size_t s = 1,
-                               int num_bins = 32) {
+                               std::vector<vertex_id_t>& frontier, size_t s,
+                               int num_threads, int num_bins = 32) {
   std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(
-      num_bins);
+      num_threads);
+  auto M = frontier.size();
   if (1 < s) {
     nw::util::life_timer _(__func__);
     tbb::parallel_for(
-        tbb::blocked_range(0ul, frontier.size()),
+        tbb::blocked_range(0ul, M, M / num_bins),
         [&](auto& i) {
           int worker_index = tbb::this_task_arena::current_thread_index();
           for (auto j = i.begin(); j != i.end(); ++j) {
@@ -436,7 +438,7 @@ auto to_two_graph_hashmap_frontier_blocked(ExecutionPolicy&& ep, Hypergraph& h,
     {
       nw::util::life_timer _(__func__);
       tbb::parallel_for(
-          tbb::blocked_range(0ul, frontier.size()),
+          tbb::blocked_range(0ul, M, M / num_bins),
           [&](auto& i) {
             int worker_index = tbb::this_task_arena::current_thread_index();
             for (auto j = i.begin(); j != i.end(); ++j) {
@@ -460,7 +462,7 @@ auto to_two_graph_hashmap_frontier_blocked(ExecutionPolicy&& ep, Hypergraph& h,
     result.open_for_push_back();
     // do this in serial
     std::for_each(nw::graph::counting_iterator<int>(0),
-                  nw::graph::counting_iterator<int>(num_bins), [&](auto i) {
+                  nw::graph::counting_iterator<int>(num_threads), [&](auto i) {
                     std::for_each(two_graphs[i].begin(), two_graphs[i].end(),
                                   [&](auto&& e) { result.push_back(e); });
                   });
@@ -478,10 +480,10 @@ template <directedness edge_directedness = undirected, class ExecutionPolicy,
           class Hypergraph, class HypergraphT>
 auto to_two_graph_hashmap_frontier_cyclic(ExecutionPolicy&& ep, Hypergraph& h,
                                HypergraphT& ht, std::vector<index_t>& degrees,
-                               std::vector<vertex_id_t>& frontier, size_t s = 1,
-                               int num_bins = 32) {
+                               std::vector<vertex_id_t>& frontier, size_t s,
+                               int num_threads, int num_bins = 32) {
   std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(
-      num_bins);
+      num_threads);
   if (1 < s) {
     nw::util::life_timer _(__func__);
     tbb::parallel_for(
@@ -555,7 +557,7 @@ auto to_two_graph_hashmap_frontier_cyclic(ExecutionPolicy&& ep, Hypergraph& h,
     result.open_for_push_back();
     // do this in serial
     std::for_each(nw::graph::counting_iterator<int>(0),
-                  nw::graph::counting_iterator<int>(num_bins), [&](auto i) {
+                  nw::graph::counting_iterator<int>(num_threads), [&](auto i) {
                     std::for_each(two_graphs[i].begin(), two_graphs[i].end(),
                                   [&](auto&& e) { result.push_back(e); });
                   });
@@ -581,7 +583,7 @@ template<directedness edge_directedness = undirected, class ExecutionPolicy, cla
 auto to_two_graph_map_frontier_cyclic_portal(ExecutionPolicy&& ep, Hypergraph& h, HypergraphT& ht,
 std::vector<index_t>& degrees, std::vector<vertex_id_t>& iperm,
 size_t nrealedges, size_t nrealnodes, 
-size_t s = 1, int num_bins = 32) {
+size_t s, int num_threads, int num_bins = 32) {
   //frontier will contain the number of edges no matter what the ids of them become (with adjoin or relabel)
   std::vector<vertex_id_t> frontier; 
   if (iperm.empty()) {
@@ -637,14 +639,14 @@ size_t s = 1, int num_bins = 32) {
                     [&](auto i) { frontier[i] = iperm[i + start]; });
     }
   }
-  return to_two_graph_map_frontier_cyclic(ep, h, ht, degrees, frontier, s, num_bins);
+  return to_two_graph_map_frontier_cyclic(ep, h, ht, degrees, frontier, s, num_threads, num_bins);
 }
 
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class Hypergraph, class HypergraphT>
 auto to_two_graph_map_frontier_blocked_portal(ExecutionPolicy&& ep, Hypergraph& h, HypergraphT& ht,
 std::vector<index_t>& degrees, std::vector<vertex_id_t>& iperm,
 size_t nrealedges, size_t nrealnodes, 
-size_t s = 1, int num_bins = 32) {
+size_t s, int num_threads, int num_bins = 32) {
   //frontier will contain the number of edges no matter what the ids of them become (with adjoin or relabel)
   std::vector<vertex_id_t> frontier; 
   if (iperm.empty()) {
@@ -700,7 +702,7 @@ size_t s = 1, int num_bins = 32) {
                     [&](auto i) { frontier[i] = iperm[i + start]; });
     }
   }
-  return to_two_graph_map_frontier_blocked(ep, h, ht, degrees, frontier, s, num_bins);
+  return to_two_graph_map_frontier_blocked(ep, h, ht, degrees, frontier, s, num_threads, num_bins);
 }
 
 /*
@@ -719,7 +721,7 @@ template<directedness edge_directedness = undirected, class ExecutionPolicy, cla
 auto to_two_graph_efficient_frontier_cyclic_portal(ExecutionPolicy&& ep, Hypergraph& h, HypergraphT& ht,
 std::vector<index_t>& degrees, std::vector<vertex_id_t>& iperm,
 size_t nrealedges, size_t nrealnodes, 
-size_t s = 1, int num_bins = 32) {
+size_t s, int num_threads, int num_bins = 32) {
   //frontier will contain the number of edges no matter what the ids of them become (with adjoin or relabel)
   std::vector<vertex_id_t> frontier; 
   if (iperm.empty()) {
@@ -775,14 +777,14 @@ size_t s = 1, int num_bins = 32) {
                     [&](auto i) { frontier[i] = iperm[i + start]; });
     }
   }
-  return to_two_graph_efficient_frontier_cyclic(ep, h, ht, degrees, frontier, s, num_bins);
+  return to_two_graph_efficient_frontier_cyclic(ep, h, ht, degrees, frontier, s, num_threads, num_bins);
 }
 
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class Hypergraph, class HypergraphT>
 auto to_two_graph_efficient_frontier_blocked_portal(ExecutionPolicy&& ep, Hypergraph& h, HypergraphT& ht,
 std::vector<index_t>& degrees, std::vector<vertex_id_t>& iperm,
 size_t nrealedges, size_t nrealnodes, 
-size_t s = 1, int num_bins = 32) {
+size_t s, int num_threads, int num_bins = 32) {
   //frontier will contain the number of edges no matter what the ids of them become (with adjoin or relabel)
   std::vector<vertex_id_t> frontier; 
   if (iperm.empty()) {
@@ -838,7 +840,7 @@ size_t s = 1, int num_bins = 32) {
                     [&](auto i) { frontier[i] = iperm[i + start]; });
     }
   }
-  return to_two_graph_efficient_frontier_blocked(ep, h, ht, degrees, frontier, s, num_bins);
+  return to_two_graph_efficient_frontier_blocked(ep, h, ht, degrees, frontier, s, num_threads, num_bins);
 }
 
 /*
@@ -858,7 +860,7 @@ template<directedness edge_directedness = undirected, class ExecutionPolicy, cla
 auto to_two_graph_hashmap_frontier_blocked_portal(ExecutionPolicy&& ep, Hypergraph& h, HypergraphT& ht,
 std::vector<index_t>& degrees, std::vector<vertex_id_t>& iperm,
 size_t nrealedges, size_t nrealnodes, 
-size_t s = 1, int num_bins = 32) {
+size_t s, int num_threads, int num_bins = 32) {
   std::vector<vertex_id_t> frontier; //frontier will contain the number of edges no matter the ids of it
   if (iperm.empty()) {
     //without relabel by degree
@@ -909,7 +911,7 @@ size_t s = 1, int num_bins = 32) {
                     [&](auto i) { frontier[i] = iperm[i + start]; });
     }
   }
-  return to_two_graph_hashmap_frontier_blocked(ep, h, ht, degrees, frontier, s, num_bins);
+  return to_two_graph_hashmap_frontier_blocked(ep, h, ht, degrees, frontier, s, num_threads, num_bins);
 }
 
 /*
@@ -929,7 +931,7 @@ template<directedness edge_directedness = undirected, class ExecutionPolicy, cla
 auto to_two_graph_hashmap_frontier_cyclic_portal(ExecutionPolicy&& ep, Hypergraph& h, HypergraphT& ht,
 std::vector<index_t>& degrees, std::vector<vertex_id_t>& iperm,
 size_t nrealedges, size_t nrealnodes, 
-size_t s = 1, int num_bins = 32) {
+size_t s, int num_threads, int num_bins = 32) {
   std::vector<vertex_id_t> frontier; //frontier will contain the number of edges no matter the ids of it
   if (iperm.empty()) {
     //without relabel by degree
@@ -980,7 +982,7 @@ size_t s = 1, int num_bins = 32) {
                     [&](auto i) { frontier[i] = iperm[i + start]; });
     }
   }
-  return to_two_graph_hashmap_frontier_cyclic(ep, h, ht, degrees, frontier, s, num_bins);
+  return to_two_graph_hashmap_frontier_cyclic(ep, h, ht, degrees, frontier, s, num_threads, num_bins);
 }
 
 
