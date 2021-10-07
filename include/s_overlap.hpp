@@ -36,7 +36,9 @@ enum soverlap_version {
   HashMap_Cyclic = 14,
   Vector_Blocked = 15,
   Vector_Cyclic = 16,
-  SPGEMM_KIJ = 17, //TODO not ready
+  Static_HashMap_Blocked = 17,
+  Static_HashMap_Cyclic = 18,
+  SPGEMM_KIJ = 99, //TODO not ready
   Unknown
 };
 
@@ -68,7 +70,9 @@ std::ostream& operator<<(std::ostream& out, const soverlap_version value){
         INSERT_ELEMENT(HashMap_Blocked);
         INSERT_ELEMENT(HashMap_Cyclic);  
         INSERT_ELEMENT(Vector_Blocked);  
-        INSERT_ELEMENT(Vector_Cyclic);  
+        INSERT_ELEMENT(Vector_Cyclic);
+        INSERT_ELEMENT(Static_HashMap_Blocked);
+        INSERT_ELEMENT(Static_HashMap_Cyclic);        
         INSERT_ELEMENT(Unknown);           
 #undef INSERT_ELEMENT
     }   
@@ -324,6 +328,34 @@ auto twograph_reader(int loader_version, bool verbose, std::bitset<8> &features,
     case Vector_Cyclic: {
       nw::graph::edge_list<undirected> &&linegraph =
           to_two_graph_vector_cyclic_portal<undirected>(
+              verbose, std::execution::par_unseq, edges, nodes, edgedegrees, s,
+              num_threads, num_bins);
+      // where when an empty edge list is passed in, an adjacency still have two
+      // elements
+      if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
+      nw::graph::adjacency<0> s_adj(linegraph);
+      std::cout << "line graph edges = " << linegraph.size()
+                << ", adjacency size = " << s_adj.size()
+                << ", max = " << s_adj.max() << std::endl;
+      return s_adj;
+    }
+    case Static_HashMap_Blocked: {
+      nw::graph::edge_list<undirected> &&linegraph =
+          to_two_graph_static_hashmap_blocked_portal<undirected>(
+              verbose, std::execution::par_unseq, edges, nodes, edgedegrees, s,
+              num_threads, num_bins);
+      // where when an empty edge list is passed in, an adjacency still have two
+      // elements
+      if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
+      nw::graph::adjacency<0> s_adj(linegraph);
+      std::cout << "line graph edges = " << linegraph.size()
+                << ", adjacency size = " << s_adj.size()
+                << ", max = " << s_adj.max() << std::endl;
+      return s_adj;
+    }
+    case Static_HashMap_Cyclic: {
+      nw::graph::edge_list<undirected> &&linegraph =
+          to_two_graph_static_hashmap_cyclic_portal<undirected>(
               verbose, std::execution::par_unseq, edges, nodes, edgedegrees, s,
               num_threads, num_bins);
       // where when an empty edge list is passed in, an adjacency still have two
