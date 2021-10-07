@@ -37,6 +37,7 @@ static constexpr const char USAGE[] =
                             9)HashMap_Frontier_Blocked 10)HashMap_Frontier_Cyclic 11)Efficient_Frontier_Blocked 12)Efficient_Frontier_Cyclic
                             13)HashMap_Blocked 14)HashMap_Cyclic 15)Vector_Blocked 16)Vector_Cyclic
                             17)Static_HashMap_Blocked 18)Static_HashMap_Cyclic
+                            19)Efficient_Blocked_Size 20)Map_Blocked_Size 21)HashMap_Blocked_Size 22)Vector_Blocked_Size
       --feature ID          heuristics in finding soverlap 0)all 1)degree-based pruning 2)skip visited 3)short circuit 4)none [default: 0]
       -f FILE               input file paths (can have multiples and different file format)
       -n NUM                number of trials [default: 1]

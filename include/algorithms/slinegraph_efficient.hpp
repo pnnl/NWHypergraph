@@ -259,8 +259,47 @@ std::vector<index_t>& hyperedgedegrees, size_t s) {
     }, tbb::auto_partitioner());
 }
 /*
-* clean without counter. All features on. Fastest version.
+* clean without counter. All features on. Fastest version. Can specify bin size for each block.
 */
+template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
+auto to_two_graph_efficient_blocked_vary_size(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
+std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int max_bins = 1) {
+  size_t M = edges.size();
+  size_t N = nodes.size();  
+  using linegraph_t = std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>;
+  if (1 == s) {
+    linegraph_t two_graphs(num_threads);
+    //avoid intersection when s=1
+    {
+        nw::util::life_timer _(__func__);
+        to_two_graph_blocked_range(std::forward<linegraph_t>(two_graphs), edges, nodes, max_bins, 0, M);
+    }
+    nw::graph::edge_list<edge_directedness> result(0);
+    result.open_for_push_back();
+    //do this in serial
+    std::for_each(nw::graph::counting_iterator<int>(0), nw::graph::counting_iterator<int>(num_threads), [&](auto i) {
+      std::for_each(two_graphs[i].begin(), two_graphs[i].end(), [&](auto&& e){
+        result.push_back(e);
+      });
+    });
+    result.close_for_push_back();
+
+    return result;
+  }
+  else {
+    //when s > 1
+    auto M = edges.size();
+    //block size: 1, 4, 16, 64, 256, 1024, ... until reach 4^num_bins
+    for (size_t i = 1; max_bins > 0; i *= 4, --max_bins) {
+      linegraph_t two_graphs(num_threads);
+      size_t num_bins = M / i; // num_bins: M, M/4, M/16, M/256, ...
+      to_two_graph_blocked_range(std::forward<linegraph_t>(two_graphs), edges, nodes, num_bins, 0, M, hyperedgedegrees, s); 
+    }
+    //abandon results
+    return nw::graph::edge_list<edge_directedness>(0);
+  }//else
+}
+
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_efficient_parallel_clean(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
 std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
