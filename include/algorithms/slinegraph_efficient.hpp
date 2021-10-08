@@ -302,7 +302,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int max_bins 
 
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_efficient_parallel_clean(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
-std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
+std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int bin_size = 32) {
   size_t M = edges.size();
   size_t N = nodes.size();  
   using linegraph_t = std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>;
@@ -311,7 +311,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins 
     //avoid intersection when s=1
     {
         nw::util::life_timer _(__func__);
-        to_two_graph_blocked_range(std::forward<linegraph_t>(two_graphs), edges, nodes, num_bins, 0, M);
+        to_two_graph_blocked_range(std::forward<linegraph_t>(two_graphs), edges, nodes, M / bin_size, 0, M);
     }
     nw::graph::edge_list<edge_directedness> result(0);
     result.open_for_push_back();
@@ -327,7 +327,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins 
   }
   else {
     //when s > 1
-    to_two_graph_blocked_range(std::forward<linegraph_t>(two_graphs), edges, nodes, num_bins, 0, M, hyperedgedegrees, s); 
+    to_two_graph_blocked_range(std::forward<linegraph_t>(two_graphs), edges, nodes, M / bin_size, 0, M, hyperedgedegrees, s); 
     return create_edgelist_with_squeeze<edge_directedness>(two_graphs);
   }//else
 }
@@ -567,7 +567,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins 
 */
 template<directedness edge_directedness = undirected, class T, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_weighted_efficient_parallel_clean(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
-std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
+std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int bin_size = 32) {
   size_t M = edges.size();
   size_t N = nodes.size();
 
@@ -575,7 +575,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins 
     nw::util::life_timer _(__func__);
     //avoid intersection when s=1
     std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_threads);
-    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M, M / num_bins), [&](tbb::blocked_range<vertex_id_t>& r) {
+    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M, bin_size), [&](tbb::blocked_range<vertex_id_t>& r) {
       int worker_index = tbb::this_task_arena::current_thread_index();
       std::vector<bool> visitedE(M, false);
       for (auto hyperE = r.begin(), e = r.end(); hyperE < e; ++hyperE) {
@@ -609,7 +609,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins 
     std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t, T>>> two_graphs(num_threads);
     {
     nw::util::life_timer _(__func__);
-    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M, M / num_bins), [&](tbb::blocked_range<vertex_id_t>& r) {
+    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M, bin_size), [&](tbb::blocked_range<vertex_id_t>& r) {
       int worker_index = tbb::this_task_arena::current_thread_index();
       std::vector<bool> visitedE(M, false);
       for (auto hyperE = r.begin(), e = r.end(); hyperE != e; ++hyperE) {
@@ -648,7 +648,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins 
 */
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_efficient_parallel_optional_features_clean(std::bitset<8>& features, ExecutionPolicy&& ep, HyperEdge& e_nbs, HyperNode& n_nbs, 
-std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
+std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int bin_size = 32) {
   size_t M = e_nbs.size();
   size_t N = n_nbs.size();
   auto edges = e_nbs.begin();
@@ -658,7 +658,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins 
     nw::util::life_timer _(__func__);
     //avoid intersection when s=1
     std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_threads);
-    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M, M / num_bins), [&](tbb::blocked_range<vertex_id_t>& r) {
+    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M, bin_size), [&](tbb::blocked_range<vertex_id_t>& r) {
       int worker_index = tbb::this_task_arena::current_thread_index();
       std::vector<bool> visitedE(M, false);
       for (auto hyperE = r.begin(), e = r.end(); hyperE < e; ++hyperE) {
@@ -694,7 +694,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins 
     std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_threads);
     {
     nw::util::life_timer _(__func__);
-    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M, M / num_bins), [&](tbb::blocked_range<vertex_id_t>& r) {
+    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M, bin_size), [&](tbb::blocked_range<vertex_id_t>& r) {
       int worker_index = tbb::this_task_arena::current_thread_index();
       std::vector<bool> visitedE(M, false);
       for (auto hyperE = r.begin(), e = r.end(); hyperE != e; ++hyperE) {
@@ -740,7 +740,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins 
 */
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_efficient_parallel_with_counter(ExecutionPolicy&& ep, HyperEdge& e_nbs, HyperNode& n_nbs, 
-std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
+std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int bin_size = 32) {
   size_t M = e_nbs.size();
   size_t N = n_nbs.size();
   auto edges = e_nbs.begin();
@@ -751,7 +751,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins 
     std::vector<size_t> num_visits(num_threads, 0), num_edges(num_threads, 0);
     //avoid intersection when s=1
     std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_threads);
-    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M, M / num_bins), [&](tbb::blocked_range<vertex_id_t>& r) {
+    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M, bin_size), [&](tbb::blocked_range<vertex_id_t>& r) {
       int worker_index = tbb::this_task_arena::current_thread_index();
       std::vector<bool> visitedE(M, false);
       for (auto hyperE = r.begin(), e = r.end(); hyperE < e; ++hyperE) {
@@ -798,7 +798,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins 
     {
     nw::util::life_timer _(__func__);
     std::vector<size_t> num_visits(num_threads, 0), num_edges(num_threads, 0);
-    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M, M / num_bins), [&](tbb::blocked_range<vertex_id_t>& r) {
+    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M, bin_size), [&](tbb::blocked_range<vertex_id_t>& r) {
       int worker_index = tbb::this_task_arena::current_thread_index();
       std::vector<bool> visitedE(M, false);
       for (auto hyperE = r.begin(), e = r.end(); hyperE != e; ++hyperE) {
@@ -851,7 +851,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins 
 */
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_efficient_parallel_optional_features_with_counter(std::bitset<8>& features, ExecutionPolicy&& ep, HyperEdge& e_nbs, HyperNode& n_nbs, 
-std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
+std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int bin_size = 32) {
   size_t M = e_nbs.size();
   size_t N = n_nbs.size();
   auto edges = e_nbs.begin();
@@ -862,7 +862,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins 
     std::atomic<size_t> nedges = 0;
     //avoid intersection when s=1
     std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_threads);
-    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M, M / num_bins), [&](tbb::blocked_range<vertex_id_t>& r) {
+    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M, bin_size), [&](tbb::blocked_range<vertex_id_t>& r) {
       int worker_index = tbb::this_task_arena::current_thread_index();
       std::vector<bool> visitedE(M, false);
       for (auto hyperE = r.begin(), e = r.end(); hyperE < e; ++hyperE) {
@@ -901,7 +901,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins 
     {
     nw::util::life_timer _(__func__);
     std::atomic<size_t> nvisited = 0, nbelowS = 0, nduplicates = 0, nintersections = 0, nedges = 0;
-    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M, M / num_bins), [&](tbb::blocked_range<vertex_id_t>& r) {
+    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M, bin_size), [&](tbb::blocked_range<vertex_id_t>& r) {
       int worker_index = tbb::this_task_arena::current_thread_index();
       std::vector<bool> visitedE(M, false);
       for (auto hyperE = r.begin(), e = r.end(); hyperE != e; ++hyperE) {
@@ -963,7 +963,7 @@ auto to_two_graph_efficient_parallel_clean_without_sequeeze(
   std::vector<index_t>& hyperedgedegrees, 
   size_t s,
   int num_threads, 
-  int num_bins = 32) {
+  int bin_size = 32) {
   size_t M = edges.size();
   size_t N = nodes.size();
 
@@ -971,7 +971,7 @@ auto to_two_graph_efficient_parallel_clean_without_sequeeze(
     nw::util::life_timer _(__func__);
     //avoid intersection when s=1
     std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_threads);
-    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M, M / num_bins), [&](tbb::blocked_range<vertex_id_t>& r) {
+    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M, bin_size), [&](tbb::blocked_range<vertex_id_t>& r) {
       int worker_index = tbb::this_task_arena::current_thread_index();
       std::vector<bool> visitedE(M, false);
       for (auto hyperE = r.begin(), e = r.end(); hyperE < e; ++hyperE) {
@@ -994,7 +994,7 @@ auto to_two_graph_efficient_parallel_clean_without_sequeeze(
     std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_threads);
     {
     nw::util::life_timer _(__func__);
-    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M, M / num_bins), [&](tbb::blocked_range<vertex_id_t>& r) {
+    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M, bin_size), [&](tbb::blocked_range<vertex_id_t>& r) {
       int worker_index = tbb::this_task_arena::current_thread_index();
       std::vector<bool> visitedE(M, false);
       for (auto hyperE = r.begin(), e = r.end(); hyperE != e; ++hyperE) {
@@ -1038,7 +1038,7 @@ auto to_two_graph_weighted_efficient_parallel_clean_without_squeeze(
   std::vector<index_t>& hyperedgedegrees, 
   size_t s,
   int num_threads, 
-  int num_bins = 32) {
+  int bin_size = 32) {
   size_t M = edges.size();
   size_t N = nodes.size();
 
@@ -1046,7 +1046,7 @@ auto to_two_graph_weighted_efficient_parallel_clean_without_squeeze(
     nw::util::life_timer _(__func__);
     //avoid intersection when s=1
     std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t, T>>> two_graphs(num_threads);
-    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M, M / num_bins), [&](tbb::blocked_range<vertex_id_t>& r) {
+    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M, bin_size), [&](tbb::blocked_range<vertex_id_t>& r) {
       int worker_index = tbb::this_task_arena::current_thread_index();
       std::vector<bool> visitedE(M, false);
       for (auto hyperE = r.begin(), e = r.end(); hyperE < e; ++hyperE) {
@@ -1071,7 +1071,7 @@ auto to_two_graph_weighted_efficient_parallel_clean_without_squeeze(
     std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t, T>>> two_graphs(num_threads);
     {
     nw::util::life_timer _(__func__);
-    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M, M / num_bins), [&](tbb::blocked_range<vertex_id_t>& r) {
+    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M, bin_size), [&](tbb::blocked_range<vertex_id_t>& r) {
       int worker_index = tbb::this_task_arena::current_thread_index();
       std::vector<bool> visitedE(M, false);
       for (auto hyperE = r.begin(), e = r.end(); hyperE != e; ++hyperE) {

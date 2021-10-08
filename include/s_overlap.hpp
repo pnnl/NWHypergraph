@@ -174,7 +174,7 @@ auto twograph_reader(int loader_version, bool verbose, std::bitset<8> &features,
       return s_adj;
     }
     case Ensemble_Blocked: {
-      std::vector<std::map<size_t, size_t>> neighbor_count =
+      std::vector<std::unordered_map<size_t, size_t>>&& neighbor_count =
           to_two_graph_count_neighbors_blocked(edges, nodes);
       nw::graph::edge_list<undirected> &&linegraph =
           populate_linegraph_from_neighbor_map<undirected>(neighbor_count, s);
@@ -188,7 +188,7 @@ auto twograph_reader(int loader_version, bool verbose, std::bitset<8> &features,
       return s_adj;
     }
     case Ensemble_Cyclic: {
-      std::vector<std::map<size_t, size_t>> neighbor_count =
+      std::vector<std::unordered_map<size_t, size_t>>&& neighbor_count =
           to_two_graph_count_neighbors_cyclic(edges, nodes);
       nw::graph::edge_list<undirected> &&linegraph =
           populate_linegraph_from_neighbor_map<undirected>(neighbor_count, s);
@@ -202,7 +202,7 @@ auto twograph_reader(int loader_version, bool verbose, std::bitset<8> &features,
       return s_adj;
     }
     case Map_Frontier_Blocked: {
-      nw::graph::edge_list<undirected> &&linegraph =
+      nw::graph::edge_list<undirected>&& linegraph =
           to_two_graph_map_frontier_blocked_portal<undirected>(
               std::execution::par_unseq, edges, nodes, edgedegrees,
               iperm,
