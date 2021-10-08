@@ -42,6 +42,7 @@ enum soverlap_version {
   Map_Blocked_Size = 20,
   HashMap_Blocked_Size = 21,
   Vector_Blocked_Size = 22,
+  Static_HashMap_Blocked_Size = 23,
   SPGEMM_KIJ = 99, //TODO not ready
   Unknown
 };
@@ -81,6 +82,7 @@ std::ostream& operator<<(std::ostream& out, const soverlap_version value){
         INSERT_ELEMENT(Map_Blocked_Size);
         INSERT_ELEMENT(HashMap_Blocked_Size);
         INSERT_ELEMENT(Vector_Blocked_Size); 
+        INSERT_ELEMENT(Static_HashMap_Blocked_Size); 
         INSERT_ELEMENT(Unknown);           
 #undef INSERT_ELEMENT
     }   
@@ -420,6 +422,20 @@ auto twograph_reader(int loader_version, bool verbose, std::bitset<8> &features,
     case Vector_Blocked_Size: {
       nw::graph::edge_list<undirected> &&linegraph =
           to_two_graph_vector_blocked_vary_size<undirected>(
+              std::execution::par_unseq, edges, nodes,
+              edgedegrees, s, num_threads, num_bins);
+      // where when an empty edge list is passed in, an adjacency still have two
+      // elements
+      if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
+      nw::graph::adjacency<0> s_adj(linegraph);
+      std::cout << "line graph edges = " << linegraph.size()
+                << ", adjacency size = " << s_adj.size()
+                << ", max = " << s_adj.max() << std::endl;
+      return s_adj;
+    } 
+    case Static_HashMap_Blocked_Size: {
+      nw::graph::edge_list<undirected> &&linegraph =
+          to_two_graph_static_hashmap_blocked_vary_size<undirected>(
               std::execution::par_unseq, edges, nodes,
               edgedegrees, s, num_threads, num_bins);
       // where when an empty edge list is passed in, an adjacency still have two
