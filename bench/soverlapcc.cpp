@@ -30,22 +30,23 @@ static constexpr const char USAGE[] =
 
   Options:
       -h, --help            show this screen
-      --version ID          algorithm version to run [default: 0]
-      --loader-version ID   soverlap computation loader kernel version [default: 4] 
+      --version ID          connected component algorithm version to run [default: 0]
+      --loader-version ID   soverlap computation loader kernel version [default: 14] 
                             0)Efficient_Blocked 1)Efficient_Cyclic 2)Naive 3)Map_Blocked 4)Map_Cyclic 
                             5)Ensemble_Blocked 6)Ensemble_Cyclic 7)Map_Frontier_Blocked 8)Map_Frontier_Cyclic 
-                            9)HashMap_Frontier_Blocked 10)HashMap_Frontier_Cyclic 11)Efficient_Frontier_Blocked 12)Efficient_Frontier_Cyclic
+                            9)HashMap_Frontier_Blocked 10)HashMap_Frontier_Cyclic 
+                            11)Efficient_Frontier_Blocked 12)Efficient_Frontier_Cyclic
                             13)HashMap_Blocked 14)HashMap_Cyclic 15)Vector_Blocked 16)Vector_Cyclic
                             17)Static_HashMap_Blocked 18)Static_HashMap_Cyclic
                             19)Efficient_Blocked_Size 20)Map_Blocked_Size 21)HashMap_Blocked_Size 22)Vector_Blocked_Size
       --feature ID          heuristics in finding soverlap 0)all 1)degree-based pruning 2)skip visited 3)short circuit 4)none [default: 0]
-      -f FILE               input file paths (can have multiples and different file format)
+      -f FILE               input file (can have multiples and different file formats: mtx, csv, adj)
       -n NUM                number of trials [default: 1]
-      -B NUM                number of bins [default: 32]
+      -B NUM                stride or block size [default: 32]
       -s NUM                s value of soverlap [default: 1]
       --relabel NUM         relabel the hypergraph - 0(hyperedge)/1(hypernode) [default: -1]
       --direction DIR       hypergraph relabeling direction - ascending/descending [default: ascending]
-      --adjoin              adjoin the smaller set among edges and hypernodes with the larger set
+      --adjoin              adjoin the id spaces of the hyperedges and hypernodes (smaller one comes after the larger one) 
       --log FILE            log times to a file
       --log-header          add a header to the log file
       -d, --debug           run in debug mode
