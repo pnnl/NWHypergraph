@@ -14,7 +14,7 @@
 #include <iostream>
 #include <vector>
 #include <tuple>
-#include <map>
+#include <unordered_map>
 #include <containers/edge_list.hpp>
 #include <util/intersection_size.hpp>
 #include <pybind11/pybind11.h>
@@ -47,11 +47,11 @@ private:
     //for each hyperedge, map stores its hyperedge neighbor list
     //which the key is the adjacent hyperedge id
     //the value is the number of overlap hypernodes
-    std::vector<std::map<size_t, size_t>> edge_neighbor_count_;
+    std::vector<std::unordered_map<size_t, size_t>> edge_neighbor_count_;
     //for each hypernode, map stores its hypernode neighbor list
     //which the key is the adjacent hypernode
     //the value is the number of overlap hyperedges
-    std::vector<std::map<size_t, size_t>> node_neighbor_count_;   
+    std::vector<std::unordered_map<size_t, size_t>> node_neighbor_count_;   
 public:
     py::array_t<Index_t, py::array::c_style | py::array::forcecast> row_;
     py::array_t<Index_t, py::array::c_style | py::array::forcecast> col_;
@@ -136,7 +136,7 @@ public:
         //NWHypergraph<Index_t, Attributes...> newh(new_row, new_col, new_data);
 
         //create a mapping from the new id to old id from the equal class
-        std::map<Index_t, std::set<Index_t>> dict;
+        std::unordered_map<Index_t, std::set<Index_t>> dict;
         if (return_equivalence_class) {
             for (auto &&[k, v] : equivalence_class_dict){
                 auto rep = *v.begin();
@@ -181,7 +181,7 @@ public:
         //NWHypergraph<Index_t, Attributes...> newh(new_col, new_row, new_data);
 
         //create a mapping from the new id to old id from the equal class
-        std::map<Index_t, std::set<Index_t>> dict;
+        std::unordered_map<Index_t, std::set<Index_t>> dict;
         if (return_equivalence_class) {
             for (auto &&[k, v] : equivalence_class_dict){
                 auto rep = *v.begin();
@@ -238,7 +238,7 @@ public:
         //create a new hypergraph from the new rol, col and data
         //NWHypergraph<Index_t, Attributes...> newh(new_row, new_col, new_data);
 
-        std::map<Index_t, std::set<Index_t>> dict;
+        std::unordered_map<Index_t, std::set<Index_t>> dict;
         if (return_equivalence_class) {
             for (auto &&[k, v] : equivalence_class_edges){
                 auto rep = *v.begin();
@@ -258,8 +258,8 @@ public:
         return dict;
     }
 
-    std::vector<std::map<size_t, size_t>> get_edge_neighbor_counts() const { return edge_neighbor_count_; }
-    std::vector<std::map<size_t, size_t>> get_node_neighbor_counts() const { return node_neighbor_count_; }
+    std::vector<std::unordered_map<size_t, size_t>> get_edge_neighbor_counts() const { return edge_neighbor_count_; }
+    std::vector<std::unordered_map<size_t, size_t>> get_node_neighbor_counts() const { return node_neighbor_count_; }
 
     Slinegraph<Index_t, Attributes...> s_linegraph(int s = 1, bool edges = true) {
         Slinegraph<Index_t, Attributes...> slineg(*this, s, edges);
@@ -461,7 +461,7 @@ public:
     * */
     py::list toplexes_v2() {
         std::vector<Index_t> tops;
-        //std::map<Index_t, bool> tops;
+        //std::unordered_map<Index_t, bool> tops;
         for (Index_t e = 0; e < max_edge_; ++e) {
             bool flag = true;
             std::vector<Index_t> old_tops(tops);
@@ -505,7 +505,7 @@ public:
         //if all elements are found, return true
         //O(m+n), where m is the size of lhs, n is the size of rhs
         auto issubset = []<class A>(A&& lhs, A&& rhs) {
-            std::map<Index_t, size_t> frequency;
+            std::unordered_map<Index_t, size_t> frequency;
             std::for_each (lhs.begin(), lhs.end(), [&](auto&& x) {
                 auto v = std::get<0>(x);
                 ++frequency[v];

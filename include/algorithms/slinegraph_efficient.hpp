@@ -301,7 +301,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int max_bins 
 }
 
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
-auto to_two_graph_efficient_parallel_clean(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
+auto to_two_graph_efficient_blocked(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
 std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int bin_size = 32) {
   size_t M = edges.size();
   size_t N = nodes.size();  
@@ -956,7 +956,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int bin_size 
 * clean without counter. All features on. Fastest version.
 */
 template<directedness edge_directedness = nw::graph::undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
-auto to_two_graph_efficient_parallel_clean_without_sequeeze(
+auto to_two_graph_efficient_blocked_without_sequeeze(
   ExecutionPolicy&& ep, 
   HyperEdge& edges, 
   HyperNode& nodes, 
@@ -1117,7 +1117,7 @@ HyperEdge& e_nbs, HyperNode& n_nbs, std::vector<index_t>& hyperedgedegrees, size
 }
 
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
-auto to_two_graph_efficient_parallel_portal(bool verbose, std::bitset<8>& features, ExecutionPolicy&& ep, HyperEdge& e_nbs, HyperNode& n_nbs, 
+auto to_two_graph_efficient_blocked_portal(bool verbose, std::bitset<8>& features, ExecutionPolicy&& ep, HyperEdge& e_nbs, HyperNode& n_nbs, 
 std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
   //if none feature selected, then default to turn all on
   if (features.none()) features[heuristics::ALL] = true;
@@ -1130,7 +1130,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins 
 
   if (features[heuristics::ALL]) {
     if (!verbose) 
-      return to_two_graph_efficient_parallel_clean(ep, e_nbs, n_nbs, hyperedgedegrees, s, num_threads, num_bins);
+      return to_two_graph_efficient_blocked(ep, e_nbs, n_nbs, hyperedgedegrees, s, num_threads, num_bins);
     else {
       print_heuristics_verbose(heuristics::ALL);
       return to_two_graph_efficient_parallel_with_counter(ep, e_nbs, n_nbs, hyperedgedegrees, s, num_threads, num_bins);

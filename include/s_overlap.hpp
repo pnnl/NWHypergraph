@@ -108,7 +108,7 @@ auto twograph_reader(int loader_version, bool verbose, std::bitset<8> &features,
   switch (loader_version) {
     case Efficient_Blocked: {
       nw::graph::edge_list<undirected> &&linegraph =
-          to_two_graph_efficient_parallel_portal<undirected>(
+          to_two_graph_efficient_blocked_portal<undirected>(
               verbose, features, std::execution::par_unseq, edges, nodes,
               edgedegrees, s, num_threads, num_bins);
       // where when an empty edge list is passed in, an adjacency still have two

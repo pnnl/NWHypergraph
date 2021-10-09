@@ -1069,6 +1069,10 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int bin_size 
             if (hyperE < anotherhyperE) ++K[anotherhyperE];
           }
         }
+        if (K.bucket_count() < K.size()) {
+          std::cout << "!! Collision" << std::endl;
+          exit(EXIT_FAILURE);
+        }
         for (auto &&[anotherhyperE, val] : K) {
           //if soverlap is not used, continue;
           if (0 == val) continue;
@@ -1140,6 +1144,10 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins 
             if (hyperedgedegrees[anotherhyperE] < s) continue;
             if (hyperE < anotherhyperE) ++K[anotherhyperE];
           }
+        }
+        if (K.bucket_count() < K.size()) {
+          std::cout << "!! Collision" << std::endl;
+          exit(EXIT_FAILURE);
         }
         for (auto &&[anotherhyperE, val] : K) {
           if (0 == val) continue;
@@ -1804,7 +1812,7 @@ template<class HyperEdge, class HyperNode>
 auto to_two_graph_count_neighbors_cyclic(HyperEdge& edges, HyperNode& nodes, size_t min_s, int num_bins = 32) {
   nw::util::life_timer _(__func__);
   size_t M = edges.size();
-  std::vector<std::map<size_t, size_t>> two_graphs(M, std::map<size_t, size_t>());
+  std::vector<std::unordered_map<size_t, size_t>> two_graphs(M, std::unordered_map<size_t, size_t>());
   tbb::parallel_for(nw::graph::cyclic_neighbor_range(edges, num_bins), [&](auto& i) {
     int worker_index = tbb::this_task_arena::current_thread_index();    
     for (auto&& j = i.begin(); j != i.end(); ++j) {
