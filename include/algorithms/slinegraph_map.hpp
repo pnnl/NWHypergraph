@@ -339,6 +339,10 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int bin_size 
             if (hyperE < anotherhyperE) ++K[anotherhyperE];
           }
         }
+        if (K.bucket_count() < K.size()) {
+          std::cout << "!! Collision" << std::endl;
+          exit(EXIT_FAILURE);
+        }
         for (auto &&[anotherhyperE, val] : K) {
           if (val >= s) 
             two_graphs[worker_index].push_back(std::make_pair<vertex_id_t, vertex_id_t>(std::forward<vertex_id_t>(hyperE), std::forward<vertex_id_t>(anotherhyperE)));
@@ -1144,10 +1148,6 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins 
             if (hyperedgedegrees[anotherhyperE] < s) continue;
             if (hyperE < anotherhyperE) ++K[anotherhyperE];
           }
-        }
-        if (K.bucket_count() < K.size()) {
-          std::cout << "!! Collision" << std::endl;
-          exit(EXIT_FAILURE);
         }
         for (auto &&[anotherhyperE, val] : K) {
           if (0 == val) continue;
