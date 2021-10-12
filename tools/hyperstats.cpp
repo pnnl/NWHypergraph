@@ -115,6 +115,9 @@ int main(int argc, char* argv[]) {
         hyperE_max_degree = std::max(hyperE_max_degree, deg);
         hyperE_total_degree += deg;
     });
+    std::size_t n = hyperedge_degrees.size() / 2;
+    nth_element(hyperedge_degrees.begin(), hyperedge_degrees.begin() + n, hyperedge_degrees.end());
+    auto hyperE_median_degree = hyperedge_degrees[n];
     double hyperE_avg_degree = hyperE_total_degree * 1.0 / M;
     //hypernodes
     std::size_t N = hypernodes.size();
@@ -124,12 +127,16 @@ int main(int argc, char* argv[]) {
         hyperN_max_degree = std::max(hyperN_max_degree, deg);
         hyperN_total_degree += deg;
     });
+    std::size_t m = hypernode_degrees.size() / 2;
+    nth_element(hypernode_degrees.begin(), hypernode_degrees.begin() + m, hypernode_degrees.end());
+    auto hyperN_median_degree = hypernode_degrees[n];
     double hyperN_avg_degree = hyperN_total_degree * 1.0 / N;
     std::cout << "num_hyperedges = " << M << " num_hypernodes = " << N << std::endl;
     std::cout << "d_edge_max= " << hyperE_max_degree << " d_node_max= " << hyperN_max_degree << std::endl;
     std::cout << "d_edge_total= " << hyperE_total_degree << " d_node_total= " << hyperN_total_degree << std::endl;
     std::cout << "d_edge_avg= " << hyperE_avg_degree << " d_node_avg= " << hyperN_avg_degree << std::endl;
-    
+    std::cout << "d_edge_median= " << hyperE_median_degree << " d_node_median= " << hyperN_median_degree << std::endl;
+
     if (debug) {
       hypernodes.stream_indices();
       hyperedges.stream_indices();
