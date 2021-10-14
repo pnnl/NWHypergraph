@@ -326,6 +326,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int bin_size 
   std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_threads);
   size_t M = edges.size();
   size_t N = nodes.size();
+  tbb::affinity_partitioner ap;
   if (1 < s) {
     nw::util::life_timer _(__func__);
     tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M, bin_size), [&](tbb::blocked_range<vertex_id_t>& r) {
@@ -344,7 +345,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int bin_size 
             two_graphs[worker_index].push_back(std::make_pair<vertex_id_t, vertex_id_t>(std::forward<vertex_id_t>(hyperE), std::forward<vertex_id_t>(anotherhyperE)));
         }
       }
-    }, tbb::auto_partitioner());
+    }, ap);
   }
   else {
     {
@@ -367,7 +368,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int bin_size 
           }
         }
       }
-    }, tbb::auto_partitioner());
+    }, ap);
     }
     nw::graph::edge_list<edge_directedness> result(0);
     result.open_for_push_back();
