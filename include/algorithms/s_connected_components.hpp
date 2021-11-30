@@ -58,7 +58,27 @@ auto linegraph_Afforest(ExecutionPolicy&& ep, HyperNode& hypernodes, SGraph& s_a
   return std::tuple(N, E);
   */
 }
-
+/*
+* soverlap cc using label propagation cc
+*/
+template<class ExecutionPolicy, class SGraph>
+auto linegraph_lpcc(ExecutionPolicy&& ep, SGraph& s_adj) {
+  nw::util::life_timer _(__func__);
+  auto E = lpcc(ep, s_adj);
+  return E;
+  /*
+  //if no component found, then return an empty pair
+  if (E.empty()) return std::tuple(E, E);
+  size_t nhypernodes = hypernodes.max() + 1;
+  std::vector<vertex_id_t> N(nhypernodes);
+  //for each hypernode, find N[i]
+  std::for_each(ep, tbb::counting_iterator<vertex_id_t>(0ul), tbb::counting_iterator<vertex_id_t>(nhypernodes), [&](auto hyperN) {
+    auto hyperE = std::get<0>(*hypernodes[hyperN].begin());
+    N[hyperN] = E[hyperE];
+  });
+  return std::tuple(N, E);
+  */
+}
 /*
 * Inefficient version of relabeling
 * Copy the original graph while relabeling hyperedges or hypernodes

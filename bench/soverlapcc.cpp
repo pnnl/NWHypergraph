@@ -162,6 +162,12 @@ int main(int argc, char* argv[]) {
                                             hypernodes, s_adj);
                 });
                 break;
+              case 2:
+                record([&] {
+                  return linegraph_lpcc(std::execution::par_unseq,
+                                        s_adj);
+                });
+                break;
               default:
                 std::cout << "Unknown algorithm version " << id << "\n";
             }
