@@ -23,3 +23,6 @@ target_link_libraries(hystat.exe tools)
 
 add_executable(mm2mm.exe mmio_to_mmio.cpp)
 target_link_libraries(mm2mm.exe tools)
+
+add_executable(hypergen.exe hypergenerator.cpp)
+target_link_libraries(hypergen.exe tools)

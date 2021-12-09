@@ -14,13 +14,13 @@
 #include "containers/edge_list_hy.hpp"
 #include "containers/compressed_hy.hpp"
 #include "generators/configuration_model.hpp"
-#include "io/mmio.hpp"
+#include "io/mmio_hy.hpp"
 
-using namespace nw::hypergraph::bench;
+using namespace nw::hypergraph::tools;
 using namespace nw::hypergraph;
 
 static constexpr const char USAGE[] =
-    R"(hygen.exe: random hypergraph generator driver.
+    R"(hygen.exe: random unweighted hypergraph generator driver
   Usage:
       hygen.exe (-h | --help)
       hygen.exe [-f FILE] [--output FILE] [--deg-seqa FILE] [--deg-seqb FILE]
@@ -28,7 +28,7 @@ static constexpr const char USAGE[] =
   Options:
       -h, --help            show this screen
       -f FILE               input matrix market file to extract degree sequences
-      --output FILE         output random graph as matrix market format
+      --output FILE         output random hypergraph as matrix market format
       --degs-edges FILE     degree sequence of edges in FILE
       --degs-nodes FILE     degree sequence of nodes in FILE
 )";
@@ -42,7 +42,7 @@ int main(int argc, char* argv[]) {
     std::string input = args["-f"].asString();
     std::string output = args["--output"].asString();
     std::string deg_seqa = args["--degs-edges"].asString();
-    std::string deg_seqa = args["--degs-nodes"].asString();
+    std::string deg_seqb = args["--degs-nodes"].asString();
 
     auto reader = [&](std::string file) {
       auto aos_a = load_graph<nw::graph::directed>(file);
@@ -58,19 +58,18 @@ int main(int argc, char* argv[]) {
         return std::tuple(hyperedge_degrees, hypernode_degrees);
       }
     };
-    std::vector hyperedge_degrees, hypernode_degrees;
+
+    nw::graph::edge_list<nw::graph::directed> edges;
     if ("" != input) {
         auto&&[hyperedge_degrees, hypernode_degrees] = reader(input);
+        edges = configuration_model(hyperedge_degrees, hypernode_degrees, false);
     }
 
     if ("" != output) {
       std::cout << "Writing mtx file" << std::endl;
-      if (0 == idx)
-        write_mm_hy(output, hyperedges, M, N);
-      else if (1 == idx)
-        write_mm_hy(output, hypernodes, N, M);
-      else
-        std::cerr << "unrecognized flag" << std::endl;
+      auto hyperedges = build_adjacency<0>(edges);
+      auto hypernodes = build_adjacency<1>(edges);
+      write_mm_hy(output, hyperedges, hyperedges.size(), hypernodes.size());
     }
 
   return 0;

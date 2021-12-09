@@ -9,7 +9,7 @@
 //
 
 #pragma once
-#include <edge_list.hpp>
+#include <containers/edge_list.hpp>
 #include <execution>
 #include <vector>
 #include <random>
@@ -18,53 +18,6 @@
 namespace nw {
 namespace hypergraph {
 
-/* 
-* dist_min - Minimum value of distribution.  
-* dist_max - Maximum value of distribution.
-*/
-std::size_t power_gen (double dist_min, double dist_max) {
-  /* Inverse square.  */
-  double exponent = -2;
-
-  double min_pow = pow (dist_min, exponent + 1);
-  double max_pow = pow (dist_max, exponent + 1);
-
-  return (std::size_t) pow((max_pow - min_pow) * drand48 ()
-                      + min_pow, 1 / (exponent + 1));
-}
-static double standard_exponential_unlikely(bitgen_t *bitgen_state,
-                                                uint8_t idx, double x) {
-  if (idx == 0) {
-    /* Switch to 1.0 - U to avoid log(0.0), see GH 13361 */
-    return ziggurat_exp_r - log(1.0 - next_double(bitgen_state));
-  } else if ((fe_double[idx - 1] - fe_double[idx]) * next_double(bitgen_state) +
-                 fe_double[idx] <
-             exp(-x)) {
-    return x;
-  } else {
-    return random_standard_exponential(bitgen_state);
-  }
-}
-double random_standard_exponential(bitgen_t *bitgen_state) {
-  uint64_t ri;
-  uint8_t idx;
-  double x;
-  ri = next_uint64(bitgen_state);
-  ri >>= 3;
-  idx = ri & 0xFF;
-  ri >>= 8;
-  x = ri * we_double[idx];
-  if (ri < ke_double[idx]) {
-    return x; /* 98.9% of the time we return here 1st try */
-  }
-  return standard_exponential_unlikely(bitgen_state, idx, x);
-}
-
-double random_power(bitgen_t *bitgen_state, double a) {
-  return pow(1 - exp(-random_standard_exponential(bitgen_state)), 1. / a);
-}
-
-std::vector<std::size_t> power_law_gen(double std::size_t samples)
 /*
 * Return a random undirected bipartite graph (in edge_list) from two given degree sequences.
 * The bipartite graph is composed of two partitions. 
@@ -78,10 +31,10 @@ std::vector<std::size_t> power_law_gen(double std::size_t samples)
 * 
 */
 template<class T>
-nw::graph::edge_list<nw::graph::undirected> 
+nw::graph::edge_list<nw::graph::directed> 
 configuration_model(std::vector<T>& deg_seqa, std::vector<T>& deg_seqb, bool contiguous_id_space = false) {
     //validate degree sequences such that their summation are equivalent
-    nw::graph::edge_list<nw::graph::undirected> el;
+    nw::graph::edge_list<nw::graph::directed> el;
     T suma = std::reduce(std::execution::par_unseq, deg_seqa.cbegin(), deg_seqa.cend());
     T sumb = std::reduce(std::execution::par_unseq, deg_seqb.cbegin(), deg_seqb.cend());
     if (suma != sumb) {

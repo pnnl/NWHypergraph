@@ -16,7 +16,6 @@
 # cmake .. -DNW_HYPERGRAPH_BUILD_TEST=ON (or OFF)
 # cmake .. -DNW_HYPERGRAPH_BUILD_BENCH=ON (or OFF)
 # cmake .. -DNW_HYPERGRAPH_BUILD_PYBIND=OFF (or ON)
-# cmake .. -DNW_HYPERGRAPH_USE_TBBMALLOC=ON (or OFF)
 # cmake .. -DNW_HYPERGRAPH_BUILD_TOOLS=OFF (or ON)
 #
 ##########################################################################
@@ -75,7 +74,6 @@ option(NW_HYPERGRAPH_EXECUTION_POLICY "with(out) C++ parallel execution policy" 
 option(NW_HYPERGRAPH_BUILD_TEST "Determines whether to build tests." ON)
 option(NW_HYPERGRAPH_BUILD_BENCH "Determines whether to build performance benchmarks." ON)
 option(NW_HYPERGRAPH_BUILD_PYBIND "Determines whether to build python binding modules." OFF)
-option(NW_HYPERGRAPH_USE_TBBMALLOC "Link to tbbmalloc" OFF)
 option(NW_HYPERGRAPH_BUILD_TOOLS "Determines whether to build tools." OFF)
 
 add_subdirectory(include)
