@@ -1,5 +1,6 @@
 # NWHy: Northwest Hypergraph Processing Framework
-NWHy is a C++ hypergraph processing framework for shared memory. It mainly focuses on using s-line graph to approximate hypergraphs. It also provides Python APIs for s-overlap computation. The Python APIs are provided using [Pybind11](https://pybind11.readthedocs.io/en/stable/). Pybind11 is included as a git submodule.
+NWHy is a C++ hypergraph processing framework for shared memory. 
+It focuses on constructing s-line graphs, a lower-order approximation of a given hypergraph, and compute different metrics such as s-connected components, s-betweenness centrality, s-closeness centrality, etc. It also provides Python APIs for s-overlap computation. The Python APIs are provided using [Pybind11](https://pybind11.readthedocs.io/en/stable/). Pybind11 is included as a git submodule.
 
 ## Organization
 
@@ -9,7 +10,7 @@ The algorithms for hypergraph and s-line graphs are under include/algorithms/ di
 
 ## How to compile
 
-NWHy is built upon NWGraph (NWGr) library. It uses NWGr graph abstractions and concepts as the building blocks for hypergraph models, containers and implementations in NWHy. NWHy also uses many graph algorithms in NWGr. Sepecifically, NWHy replies on a branch of NWGr called adj_fill. This is a customized implemenation of NWGr for bipartite graphs. NWHy uses [Intel OneTBB](https://github.com/oneapi-src/oneTBB) as the parallel backend.   
+NWHy is built upon NWGraph (NWGr) library. It uses NWGr graph abstractions and concepts as the building blocks for hypergraph models, containers and implementations in NWHy. NWHy also uses many graph algorithms in NWGr. Sepecifically, NWHy relies on a branch of NWGr called adj_fill. The adj_fill branch is a customized implemenation of NWGr for bipartite graphs. NWHy uses [Intel OneTBB](https://github.com/oneapi-src/oneTBB) as the parallel backend.   
 
 
 
@@ -41,7 +42,7 @@ To enable test cases and examples under build/test directory:
 ```
 $ cmake .. -DNW_HYPERGRAPH_BUILD_TEST=ON (or OFF)
 ```
-To generate benchmark binaries under build/bench/ directory:
+To generate applications under build/bench/ directory:
 ```
 $ cmake .. -DNW_HYPERGRAPH_BUILD_BENCH=ON (or OFF)
 ```
@@ -49,7 +50,7 @@ To enable Python binding modules compilation, and generate Python wheel file:
 ```
 $ cmake .. -DNW_HYPERGRAPH_BUILD_PYBIND=OFF (or ON)
 ```
-To generate tool binaries under build/tools/ directory:
+To generate tools under build/tools/ directory:
 ```
 $ cmake .. -DNW_HYPERGRAPH_BUILD_TOOLS=OFF (or ON)
 ```
@@ -60,7 +61,7 @@ $ make VERBOSE=1
 
 ## Running code in NWHy
 
-NWHy uses command-line interface description language [DOCOPT](http://docopt.org/) to define the interface of our command-line apps.
+NWHy uses command-line interface description language [DOCOPT](http://docopt.org/) to define the interface of our command-line applications and tools.
 
 A typical interface of the binary looks like this:
 ```
@@ -140,10 +141,13 @@ first line of the file should store the string
 
 ## Use NWHy as a Python Module
 
-NWHy has been used by [HyperNetX(HNX)](https://pnnl.github.io/HyperNetX/build/index.html) as C++ backend. HNX is a hypergraph library provides classes and methods for modeling the entities and relationships found in complex networks as hypergraphs, the natural models for multi-dimensional network data. See 
+NWHy has been used by [HyperNetX(HNX)](https://pnnl.github.io/HyperNetX/build/index.html) as the C++ backend. HNX is a hypergraph library provides classes and methods for modeling the entities and relationships found in complex networks as hypergraphs, the natural models for multi-dimensional network data. See 
 [NWHy](https://pypi.org/project/nwhy/) PyPI release page and 
 [User Guide](https://pnnl.github.io/HyperNetX/build/nwhy.html) for more information.
 
+### Pytest
+
+NWHy uses Pytest framework for the unit test for our Python APIs. The unit test cases are under python/test/ directory.
 
 ## Tools in NWHy
 

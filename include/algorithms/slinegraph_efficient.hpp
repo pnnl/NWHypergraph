@@ -29,6 +29,12 @@ NONE,
 UPPER_TRIANGULAR
 };
 
+/**
+* This function prints the heuristics for efficient algorithm.
+*
+* @param[in] h heuristic enum ID
+*
+*/
 void print_heuristics_verbose(heuristics h) {
   switch (h) {
   case ALL:
@@ -48,32 +54,27 @@ void print_heuristics_verbose(heuristics h) {
   }
 }
 
-/// Basic helper used for all of the inner set intersections.
+/// Short circuit for the set intersection.
 ///
 /// This wraps `std::set_intersection` to produce the size of the set rather
 /// than the set itself, and also handles the fact that our iterator value types
 /// are tuples where we only care about the first element for ordering.
+/// we can pass in s and check s against n there when we increment n and as soon we see n==s we can immediately return without doing the full intersection.
+/// and return true/false .
+/// We don't have to use std::set_intersection, instead write our own as this one above and make the return type to be bool
 ///
 /// @tparam           A The type of the first iterator.
 /// @tparam           B The type of the second iterator.
 /// @tparam           C The type of the third iterator.
 /// @tparam           D The type of the fourth iterator.
-/// @tparam ExecutionPolicy The type of the parallel execution policy.
 ///
 /// @param            i The beginning of the first range.
 /// @param           ie The end of the first range.
 /// @param            j The beginning of the second range.
 /// @param           je The end of the second range.
-/// @param           ep The parallel execution policy.
+/// @param            s The value of s to short circuit.
 ///
-/// @returns            The size of the intersected set.
-
-/*
-*
-we can pass in s  and check s against n  there when we increment n and as soon we see n==s we can immediately return without doing the full intersection.
-and return true/false .
-We don't have to use std::set_intersection, instead write our own as this one above and make the return type to be bool
-*/
+/// @returns            true/false whether the first range and the second range 
 template <class A, class B, class C, class D>
 bool is_intersection_size_s(A i, B&& ie, C j, D&& je, size_t s = 1) {
   // Custom comparator because we know our iterator operator* produces tuples
@@ -101,9 +102,20 @@ bool is_intersection_size_s(A i, B&& ie, C j, D&& je, size_t s = 1) {
     }
     return false;
 }
-/*
-* This version is for s=1
-**/
+/**
+* Efficient computation of a s-line graph of a hypergraph. 
+* It uses blocked range as workload distribution strategy. This version is for s = 1.
+*
+* @tparam HyperEdge the type of hyperedge incidence
+* @tparam HyperNode the type of hypernode incidence
+* @param[out] two_graphs thread local edge list of s-line graph
+* @param[in] edges adjacency for hyperedges
+* @param[in] nodes adjacency for hypernodes
+* @param[in] num_bins the number of bins to divide the workload
+* @param[in] range_begin the begin of the range to split
+* @param[in] range_end the end of the range to split
+*
+*/
 template <class HyperEdge, class HyperNode>
 void to_two_graph_blocked_range(
     std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>&& two_graphs,
@@ -138,10 +150,21 @@ void to_two_graph_blocked_range(
       tbb::auto_partitioner());
 }
 
-/*
-* Efficient soverlap computation using blocked range.
-* This version is for s>1
-**/
+/**
+* Efficient computation of a s-line graph of a hypergraph. 
+* It uses blocked range as workload distribution strategy. This version is for s > 1.
+*
+* @tparam HyperEdge the type of hyperedge incidence
+* @tparam HyperNode the type of hypernode incidence
+* @param[out] two_graphs thread local edge list of s-line graph
+* @param[in] edges adjacency for hyperedges
+* @param[in] nodes adjacency for hypernodes
+* @param[in] num_bins the number of bins to divide the workload
+* @param[in] range_begin the begin of the range to split
+* @param[in] range_end the end of the range to split
+* @param[in] hyperedgedegrees the degrees of hyperedges
+* @param[in] s the number of overlapping vertices between each hyperedge pair
+*/
 template <class HyperEdge, class HyperNode>
 void to_two_graph_blocked_range(
     std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>&& two_graphs,
@@ -187,7 +210,23 @@ void to_two_graph_blocked_range(
       },
       tbb::auto_partitioner());
 }
-
+/**
+* Efficient computation of a s-line graph of a hypergraph. 
+* It uses experimental 2 dimensional blocked range as workload distribution strategy. This version is for s = 1.
+*
+* @tparam HyperEdge the type of hyperedge incidence
+* @tparam HyperNode the type of hypernode incidence
+* @param[out] two_graphs thread local edge list of s-line graph
+* @param[in] edges adjacency for hyperedges
+* @param[in] nodes adjacency for hypernodes
+* @param[in] num_bins the number of bins to divide the workload
+* @param[in] rowrange_begin the begin of the 1D range to split
+* @param[in] rowrange_end the end of the 1D range to split
+* @param[in] row_grainsize the grain size of the 1D range
+* @param[in] colrange_begin the begin of the 2D range to split
+* @param[in] colrange_end the end of the 2D range to split
+* @param[in] col_grainsize he grain size of the 2D range
+*/
 template<class HyperEdge, class HyperNode>
 void to_two_graph_block_range2d(std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>&& two_graphs, 
 HyperEdge& edges, HyperNode& nodes, int num_bins, 
@@ -219,6 +258,26 @@ size_t colrange_begin, size_t colrange_end, size_t col_grainsize) {
     }, tbb::auto_partitioner());
     //return two_graphs;
 }
+
+/**
+* Efficient computation of a s-line graph of a hypergraph. 
+* It uses experimental 2 dimensional blocked range as workload distribution strategy. This version is for s > 1.
+*
+* @tparam HyperEdge the type of hyperedge incidence
+* @tparam HyperNode the type of hypernode incidence
+* @param[out] two_graphs thread local edge list of s-line graph
+* @param[in] edges adjacency for hyperedges
+* @param[in] nodes adjacency for hypernodes
+* @param[in] num_bins the number of bins to divide the workload
+* @param[in] rowrange_begin the begin of the 1D range to split
+* @param[in] rowrange_end the end of the 1D range to split
+* @param[in] row_grainsize the grain size of the 1D range
+* @param[in] colrange_begin the begin of the 2D range to split
+* @param[in] colrange_end the end of the 2D range to split
+* @param[in] col_grainsize he grain size of the 2D range
+* @param[in] hyperedgedegrees the degrees of hyperedges
+* @param[in] s the number of overlapping vertices between each hyperedge pair
+*/
 template<class HyperEdge, class HyperNode>
 void to_two_graph_block_range2d(std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>&& two_graphs, 
 HyperEdge& edges, HyperNode& nodes, int num_bins, 
@@ -258,6 +317,23 @@ std::vector<index_t>& hyperedgedegrees, size_t s) {
      
     }, tbb::auto_partitioner());
 }
+
+/**
+* Efficient computation of a s-line graph of a hypergraph. 
+* It uses blocked range as workload distribution strategy. This version is for s > 1.
+*
+* @tparam HyperEdge the type of hyperedge incidence
+* @tparam HyperNode the type of hypernode incidence
+* @param[out] two_graphs thread local edge list of s-line graph
+* @param[in] edges adjacency for hyperedges
+* @param[in] nodes adjacency for hypernodes
+* @param[in] num_bins the number of bins to divide the workload
+* @param[in] range_begin the begin of the range to split
+* @param[in] range_end the end of the range to split
+* @param[in] hyperedgedegrees the degrees of hyperedges
+* @param[in] s the number of overlapping vertices between each hyperedge pair
+* @returns the edge list of the s-line graph
+*/
 /*
 * clean without counter. All features on. Fastest version. Can specify bin size for each block.
 */

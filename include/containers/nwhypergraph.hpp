@@ -35,6 +35,13 @@ namespace hypergraph {
 //forward-declaration
 template<class Index_t, typename... Attributes> class Slinegraph;
 
+/**
+* Container of a hypergraph.
+*
+* @tparam Index_t the type of vertices in the NWHypergraph
+* @tparam Attributes the type of the weights in the NWHypergraph
+*
+*/
 template<class Index_t, typename... Attributes>
 class NWHypergraph {
 private:

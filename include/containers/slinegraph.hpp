@@ -36,6 +36,13 @@ namespace hypergraph {
 
 template<class Index_t, typename... Attributes> class NWHypergraph;
 
+/**
+* Container of the Slinegraph.
+*
+* @tparam Index_t the type of vertices in the slinegraph
+* @tparam Attributes the type of the weights in the slinegraph
+*
+*/
 template<class Index_t, typename... Attributes> 
 class Slinegraph {
 private:

@@ -19,8 +19,14 @@ using namespace nw::graph;
 namespace nw {
 namespace hypergraph {
 
-/*
-* Do NOT squeeze the edge lists and combine them in the new edge list.
+/**
+* Create edge list without squeeze by consolidating the thread local edge lists.
+*
+* @tparam edge_directedness the type of edge directedness
+* @tparam T the weight type of the edge list
+* @param[in] two_graphs thread local edge lists
+* @returns the edge list of the s-line graph
+*
 */
 template<directedness edge_directedness = nw::graph::undirected, class... T>
 auto create_edgelist_without_squeeze(std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t, T...>>> &two_graphs) {
@@ -39,8 +45,14 @@ auto create_edgelist_without_squeeze(std::vector<std::vector<std::tuple<vertex_i
     return result;
 }
 
-/*
+/**
+* Create edge list with squeeze by consolidating the thread local edge lists.
 * Squeeze the edge lists such that the ids are consecutive in the new edge list.
+* @tparam edge_directedness the type of edge directedness
+* @tparam T the weight type of the edge list
+* @param[in] two_graphs thread local edge lists
+* @returns the edge list of the s-line graph
+*
 */
 template<directedness edge_directedness = nw::graph::undirected, class... T>
 auto create_edgelist_with_squeeze(std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t, T...>>> &two_graphs) {
@@ -74,9 +86,16 @@ auto create_edgelist_with_squeeze(std::vector<std::vector<std::tuple<vertex_id_t
 
     return result;
 }
-/*
+/**
+* Create edge list with squeeze by consolidating the thread local edge lists.
 * Squeeze the edge lists such that the ids are consecutive in the new edge list.
 * And return the mapping between the new ids and old ids.
+* @tparam edge_directedness the type of edge directedness
+* @tparam T the weight type of the edge list
+* @param[in] two_graphs thread local edge lists
+* @param[out] relabel_map the mapping between the old ids and the new ids
+* @returns the edge list of the s-line graph
+*
 */
 template<directedness edge_directedness = nw::graph::undirected, class... T>
 auto create_edgelist_with_squeeze(std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t, T...>>> &two_graphs,

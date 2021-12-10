@@ -15,12 +15,23 @@
 namespace nw {
 namespace hypergraph {
 
-
-/*
-* Parallel naive version, clean version, for perf testing
+/**
+* Parallel naive version, clean version, for perf testing.
+* The naive algorithm considers every possible pairs of hyperedges.
+*
+* @tparam edge_directedness the type of edge directedness
+* @tparam HyperEdge the type of the hyperedge incidence
+* @tparam HyperNode the type of the hypernode incidence
+* @param[in] e_nbs adjacency for hyperedges
+* @param[in] n_nbs adjacency for hypernodes
+* @param[in] s the number of the overlapping vertices between hyperedge pairs
+* @param[in] num_threads the number of threads to run
+* @param[in] num_bins the number of bins to divide the workload
+* @returns the edge list of the s-line graph
+*
 */
-template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
-auto to_two_graph_naive_parallel(ExecutionPolicy&& ep, HyperEdge& e_nbs, HyperNode& n_nbs, 
+template<directedness edge_directedness = undirected, class HyperEdge, class HyperNode>
+auto to_two_graph_naive_parallel(HyperEdge& e_nbs, HyperNode& n_nbs, 
 size_t s, int num_threads, int num_bins = 32) {
   size_t M = e_nbs.size();
   std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_threads);
@@ -40,11 +51,23 @@ size_t s, int num_threads, int num_bins = 32) {
   return create_edgelist_with_squeeze(two_graphs);
 }
 
-/*
-* Parallel naive version with statistic counters, for benchmarking
+/**
+* Parallel naive version with statistic counters, for benchmarking.
+* The naive algorithm considers every possible pairs of hyperedges.
+*
+* @tparam edge_directedness the type of edge directedness
+* @tparam HyperEdge the type of the hyperedge incidence
+* @tparam HyperNode the type of the hypernode incidence
+* @param[in] e_nbs adjacency for hyperedges
+* @param[in] n_nbs adjacency for hypernodes
+* @param[in] s the number of the overlapping vertices between hyperedge pairs
+* @param[in] num_threads the number of threads to run
+* @param[in] num_bins the number of bins to divide the workload
+* @returns the edge list of the s-line graph
+*
 */
-template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
-auto to_two_graph_naive_parallel_with_counter(ExecutionPolicy&& ep, HyperEdge& e_nbs, HyperNode& n_nbs, 
+template<directedness edge_directedness = undirected, class HyperEdge, class HyperNode>
+auto to_two_graph_naive_parallel_with_counter(HyperEdge& e_nbs, HyperNode& n_nbs, 
 size_t s, int num_threads, int num_bins = 32) {
 
   size_t M = e_nbs.size();
@@ -84,8 +107,18 @@ size_t s, int num_threads, int num_bins = 32) {
   return create_edgelist_with_squeeze(two_graphs);
 }
 
-/*
-* TODO Have not squeeze.
+/**
+* Sequential naive version without squeeze.
+* The naive algorithm considers every possible pairs of hyperedges.
+*
+* @tparam edge_directedness the type of edge directedness
+* @tparam HyperEdge the type of the hyperedge incidence
+* @tparam HyperNode the type of the hypernode incidence
+* @param[in] e_nbs adjacency for hyperedges
+* @param[in] n_nbs adjacency for hypernodes
+* @param[in] s the number of the overlapping vertices between hyperedge pairs
+* @returns the edge list of the s-line graph
+*
 */
 template<directedness edge_directedness = undirected, class HyperEdge, class HyperNode>
 auto to_two_graph_naive_serial(HyperEdge& e_nbs, HyperNode& n_nbs, size_t s = 1) {
@@ -108,14 +141,28 @@ auto to_two_graph_naive_serial(HyperEdge& e_nbs, HyperNode& n_nbs, size_t s = 1)
   return two_graph;
 }
 
-
-template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
-auto to_two_graph_naive_parallel_portal(bool verbose, ExecutionPolicy&& ep, HyperEdge& e_nbs, HyperNode& n_nbs, 
+/**
+* Naive version portal.
+*
+* @tparam edge_directedness the type of edge directedness
+* @tparam HyperEdge the type of the hyperedge incidence
+* @tparam HyperNode the type of the hypernode incidence
+* @param[in] verbose flag to control verbose stats collection
+* @param[in] e_nbs adjacency for hyperedges
+* @param[in] n_nbs adjacency for hypernodes
+* @param[in] s the number of the overlapping vertices between hyperedge pairs
+* @param[in] num_threads the number of threads to run
+* @param[in] num_bins the number of bins to divide the workload
+* @returns the edge list of the s-line graph
+*
+*/
+template<directedness edge_directedness = undirected, class HyperEdge, class HyperNode>
+auto to_two_graph_naive_parallel_portal(bool verbose, HyperEdge& e_nbs, HyperNode& n_nbs, 
 size_t s, int num_threads, int num_bins = 32) {
   if(!verbose)
-    return to_two_graph_naive_parallel(ep, e_nbs, n_nbs, s, num_threads, num_bins);
+    return to_two_graph_naive_parallel(e_nbs, n_nbs, s, num_threads, num_bins);
   else
-    return to_two_graph_naive_parallel_with_counter(ep, e_nbs, n_nbs, s, num_threads, num_bins);
+    return to_two_graph_naive_parallel_with_counter(e_nbs, n_nbs, s, num_threads, num_bins);
 }
 
 }//namespace hypergraph

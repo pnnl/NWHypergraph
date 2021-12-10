@@ -18,6 +18,9 @@
 namespace nw {
 namespace hypergraph {
 
+/*
+* Below are different versions of sline graph computation algorithms.
+*/
 enum soverlap_version {
   Efficient_Blocked = 0,
   Efficient_Cyclic = 1,
@@ -89,15 +92,35 @@ std::ostream& operator<<(std::ostream& out, const soverlap_version value){
 
     return out << strings[value];
 }
-
+/**
+* This function prints the versions of the sline graph algorithms. 
+*
+*/
 void print_soverlap_version() {
   for (int i = Efficient_Blocked; i < Unknown; ++i) {
     std::cout << i << ")" << static_cast<soverlap_version>(i) << " ";
   }
   std::cout << std::endl;
 }
-
-auto twograph_reader(int loader_version, bool verbose, std::bitset<8> &features,
+/**
+* This function computes the s-line graph of a hypergraph and returns the edge list of the s-line graph. 
+* Only unweighted hypergraph is supported for now.
+*
+* @param[in] version s-line graph algorithm version id
+* @param[in] verbose flag to control verbose stats collection
+* @param[in] features a fixed-size sequence of 8 bits to control which heuristics are enabled in the efficient version
+* @param[in] edges adjacency for hyperedges
+* @param[in] nodes adjacency for hypernodes
+* @param[in] iperm permutation array of hyperedges/nodes IDs when adjoin is enabled
+* @param[in] nrealedges the number of real hyperedges when adjoin is enabled
+* @param[in] nrealnodes the number of real nodes when adjoin is enabled
+* @param[in] s the number of the overlapping vertices between hyperedge pairs
+* @param[in] num_threads the number of threads to run
+* @param[in] num_bins the number of bins to divide the workload
+* @returns the edge list of the s-line graph
+*
+*/
+auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
                      nw::graph::adjacency<0> &edges, nw::graph::adjacency<1> &nodes,
                      std::vector<nw::graph::index_t> &edgedegrees,
                      std::vector<vertex_id_t>& iperm,
@@ -105,7 +128,7 @@ auto twograph_reader(int loader_version, bool verbose, std::bitset<8> &features,
                      size_t s,
                      int num_threads, 
                      int num_bins = 32) {
-  switch (loader_version) {
+  switch (version) {
     case Efficient_Blocked: {
       nw::graph::edge_list<undirected> &&linegraph =
           to_two_graph_efficient_blocked_portal<undirected>(
@@ -137,7 +160,7 @@ auto twograph_reader(int loader_version, bool verbose, std::bitset<8> &features,
     case Naive: {
       nw::graph::edge_list<undirected> &&linegraph =
           to_two_graph_naive_parallel_portal<undirected>(
-              verbose, std::execution::par_unseq, edges, nodes, s, num_threads, num_bins);
+              verbose, edges, nodes, s, num_threads, num_bins);
       // where when an empty edge list is passed in, an adjacency still have two
       // elements
       if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
