@@ -121,6 +121,7 @@ void to_two_graph_blocked_range(
     std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>&& two_graphs,
     HyperEdge& edges, HyperNode& nodes, int num_bins, size_t range_begin,
     size_t range_end) {
+  nw::util::life_timer _(__func__);
   auto M = edges.size();
   tbb::parallel_for(
       tbb::blocked_range<vertex_id_t>(range_begin, range_end, (range_end - range_begin) / num_bins),
@@ -203,6 +204,118 @@ void to_two_graph_blocked_range(
                     std::make_pair<vertex_id_t, vertex_id_t>(
                         std::forward<vertex_id_t>(hyperE),
                         std::forward<vertex_id_t>(anotherhyperE)));
+              }
+            }  // each neighbor of hyperN
+          }    // each neighbor of hyperE
+        }      // for each hyperE
+      },
+      tbb::auto_partitioner());
+}
+/**
+* Efficient computation of a weighted s-line graph of a hypergraph for s = 1. 
+* It uses blocked range as workload distribution strategy.
+*
+* @tparam T the type of weight in the 1-line graph
+* @tparam HyperEdge the type of hyperedge incidence
+* @tparam HyperNode the type of hypernode incidence
+* @param[out] two_graphs thread local edge list of s-line graph
+* @param[in] edges adjacency for hyperedges
+* @param[in] nodes adjacency for hypernodes
+* @param[in] num_bins the number of bins to divide the workload
+* @param[in] range_begin the begin of the range to split
+* @param[in] range_end the end of the range to split
+*
+*/
+template <class T, class HyperEdge, class HyperNode>
+void to_weighted_two_graph_blocked(
+    std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t, T>>>&& two_graphs,
+    HyperEdge& edges, HyperNode& nodes, int num_bins, size_t range_begin,
+    size_t range_end) {
+  nw::util::life_timer _(__func__);
+  auto M = edges.size();
+  tbb::parallel_for(
+      tbb::blocked_range<vertex_id_t>(range_begin, range_end, (range_end - range_begin) / num_bins),
+      [&](tbb::blocked_range<vertex_id_t>& r) {
+        int worker_index = tbb::this_task_arena::current_thread_index();
+        std::vector<bool> visitedE(M, false);
+        for (auto hyperE = r.begin(), e = r.end(); hyperE < e; ++hyperE) {
+          std::fill(visitedE.begin(), visitedE.end(), false);
+          // all neighbors of hyperedges are hypernode
+          for (auto&& [hyperN] : edges[hyperE]) {
+            for (auto&& [anotherhyperE] : nodes[hyperN]) {
+              if (hyperE >= anotherhyperE) continue;
+              //if hyperE-anotherhyperE has been inserted, abort
+              //this is to avoid duplicate edges inserted into slinegraph
+              if (visitedE[anotherhyperE])
+                continue;
+              else
+                visitedE[anotherhyperE] = true;
+              two_graphs[worker_index].push_back(
+                  std::make_tuple<vertex_id_t, vertex_id_t, T>(
+                      std::forward<vertex_id_t>(hyperE),
+                      std::forward<vertex_id_t>(anotherhyperE), 
+                      1));
+            }
+          }
+        }  // for
+      },
+      tbb::auto_partitioner());
+}
+/**
+* Efficient computation of a weighted s-line graph of a hypergraph for s > 1. 
+* The weight is the number of overlapping vertices.
+* Can not use short circuit (i.e. is_intersection_size_s) any more.
+* It uses blocked range as workload distribution strategy.
+*
+* @tparam T the type of weight in the 1-line graph
+* @tparam HyperEdge the type of hyperedge incidence
+* @tparam HyperNode the type of hypernode incidence
+* @param[out] two_graphs thread local edge list of s-line graph
+* @param[in] edges adjacency for hyperedges
+* @param[in] nodes adjacency for hypernodes
+* @param[in] num_bins the number of bins to divide the workload
+* @param[in] range_begin the begin of the range to split
+* @param[in] range_end the end of the range to split
+* @param[in] hyperedgedegrees the degrees of hyperedges
+* @param[in] s the number of overlapping vertices between each hyperedge pair
+*/
+template <class T, class HyperEdge, class HyperNode>
+void to_weighted_two_graph_blocked(
+    std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t, T>>>&& two_graphs,
+    HyperEdge& edges, HyperNode& nodes, int num_bins, size_t range_begin,
+    size_t range_end, std::vector<index_t>& hyperedgedegrees, size_t s) {
+  nw::util::life_timer _(__func__);
+  auto M = edges.size();
+  tbb::parallel_for(
+      tbb::blocked_range<vertex_id_t>(range_begin, range_end, (range_end - range_begin) / num_bins),
+      [&](tbb::blocked_range<vertex_id_t>& r) {
+        int worker_index = tbb::this_task_arena::current_thread_index();
+        std::vector<bool> visitedE(M, false);
+        for (auto hyperE = r.begin(), e = r.end(); hyperE != e; ++hyperE) {
+          std::fill(visitedE.begin(), visitedE.end(), false);
+          if (hyperedgedegrees[hyperE] < s) continue;
+          // all neighbors of hyperedges are hypernode
+          for (auto&& [hyperN] : edges[hyperE]) {
+            for (auto&& [anotherhyperE] : nodes[hyperN]) {
+              // so we check compid of each hyperedge
+              // travese upper triangluar with lhs > rhs
+              // avoid self edge with lhs == rhs
+              if (hyperE >= anotherhyperE) continue;
+              // filter edges deg(e) < s
+              if (hyperedgedegrees[anotherhyperE] < s) continue;
+              // avoid duplicate intersections
+              if (visitedE[anotherhyperE])
+                continue;
+              else
+                visitedE[anotherhyperE] = true;
+              // O(average degree of hyperedges)
+              size_t s_value = nw::graph::intersection_size(edges[hyperE], edges[anotherhyperE]);
+              if (s_value >= s) {
+                two_graphs[worker_index].push_back(
+                    std::make_tuple<vertex_id_t, vertex_id_t>(
+                        std::forward<vertex_id_t>(hyperE),
+                        std::forward<vertex_id_t>(anotherhyperE), 
+                        s_value));
               }
             }  // each neighbor of hyperN
           }    // each neighbor of hyperE
@@ -320,7 +433,8 @@ std::vector<index_t>& hyperedgedegrees, size_t s) {
 
 /**
 * Efficient computation of a s-line graph of a hypergraph. 
-* It uses blocked range as workload distribution strategy. Can specify bin size for each block.
+* It uses cyclic neighbor range as workload distribution strategy. 
+* This version is for s = 1.
 *
 * @tparam HyperEdge the type of hyperedge incidence
 * @tparam HyperNode the type of hypernode incidence
@@ -328,39 +442,124 @@ std::vector<index_t>& hyperedgedegrees, size_t s) {
 * @param[in] edges adjacency for hyperedges
 * @param[in] nodes adjacency for hypernodes
 * @param[in] num_bins the number of bins to divide the workload
-* @param[in] range_begin the begin of the range to split
-* @param[in] range_end the end of the range to split
+*
+*/
+template <class HyperEdge, class HyperNode>
+void to_two_graph_cyclic_range(std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>&& two_graphs,
+    HyperEdge& edges, HyperNode& nodes, int num_bins) {
+  nw::util::life_timer _(__func__);
+  size_t M = edges.size();
+  tbb::parallel_for(
+      nw::graph::cyclic_neighbor_range(edges, num_bins),
+      [&](auto& i) {
+        int worker_index = tbb::this_task_arena::current_thread_index();
+        std::vector<bool> visitedE(M, false);
+        for (auto&& j = i.begin(); j != i.end(); ++j) {
+          auto&& [hyperE, hyperE_ngh] = *j;
+          std::fill(visitedE.begin(), visitedE.end(), false);
+          // all neighbors of hyperedges are hypernode
+          for (auto&& [hyperN] : hyperE_ngh) {
+            for (auto&& [anotherhyperE] : nodes[hyperN]) {
+              if (hyperE >= anotherhyperE) continue;
+              if (visitedE[anotherhyperE])
+                continue;
+              else
+                visitedE[anotherhyperE] = true;
+              two_graphs[worker_index].push_back(
+                  std::make_pair<vertex_id_t, vertex_id_t>(
+                      std::forward<vertex_id_t>(hyperE),
+                      std::forward<vertex_id_t>(anotherhyperE)));
+            }
+          }
+        }
+      },
+      tbb::auto_partitioner());
+}
+/**
+* Efficient computation of a s-line graph of a hypergraph. 
+* It uses cyclic neighbor range as workload distribution strategy. 
+* This version is for s > 1.
+*
+* @tparam HyperEdge the type of hyperedge incidence
+* @tparam HyperNode the type of hypernode incidence
+* @param[out] two_graphs thread local edge list of s-line graph
+* @param[in] edges adjacency for hyperedges
+* @param[in] nodes adjacency for hypernodes
+* @param[in] num_bins the number of bins to divide the workload
 * @param[in] hyperedgedegrees the degrees of hyperedges
 * @param[in] s the number of overlapping vertices between each hyperedge pair
-* @returns the edge list of the s-line graph
+*
 */
-/*
-* clean without counter. All features on. Fastest version. Can specify bin size for each block.
+template <class HyperEdge, class HyperNode>
+void to_two_graph_cyclic_range(std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>&& two_graphs,
+    HyperEdge& edges, HyperNode& nodes, int num_bins, std::vector<index_t>& hyperedgedegrees, size_t s) {
+  nw::util::life_timer _(__func__);
+  size_t M = edges.size();
+  tbb::parallel_for(
+      nw::graph::cyclic_neighbor_range(edges, num_bins),
+      [&](auto& i) {
+        int worker_index = tbb::this_task_arena::current_thread_index();
+        std::vector<bool> visitedE(M, false);
+        for (auto&& j = i.begin(); j != i.end(); ++j) {
+          auto&& [hyperE, hyperE_ngh] = *j;
+          if (hyperedgedegrees[hyperE] < s) continue;
+          std::fill(visitedE.begin(), visitedE.end(), false);
+          // all neighbors of hyperedges are hypernode
+          for (auto&& [hyperN] : hyperE_ngh) {
+            for (auto&& [anotherhyperE] : nodes[hyperN]) {
+              // so we check compid of each hyperedge
+              // travese upper triangluar with lhs > rhs
+              // avoid self edge with lhs == rhs
+              if (hyperE >= anotherhyperE) continue;
+              // filter edges deg(e) < s
+              if (hyperedgedegrees[anotherhyperE] < s) continue;
+              // avoid duplicate intersections
+              if (visitedE[anotherhyperE])
+                continue;
+              else
+                visitedE[anotherhyperE] = true;
+              // O(average degree of hyperedges)
+              if (is_intersection_size_s(edges[hyperE].begin(),
+                                         edges[hyperE].end(),
+                                         edges[anotherhyperE].begin(),
+                                         edges[anotherhyperE].end(), s))
+                two_graphs[worker_index].push_back(
+                    std::make_pair<vertex_id_t, vertex_id_t>(
+                        std::forward<vertex_id_t>(hyperE),
+                        std::forward<vertex_id_t>(anotherhyperE)));
+            }  // each neighbor of hyperN
+          }    // each neighbor of hyperE
+        }
+      },
+      tbb::auto_partitioner());
+}
+
+/**
+* Efficient computation of a s-line graph of a hypergraph. 
+* It uses blocked range as workload distribution strategy. 
+* clean without counter. All features on. 
+* For various bin sizes experiments only.
+*
+* @tparam edge_directedness the type of the edge directedness
+* @tparam HyperEdge the type of hyperedge incidence
+* @tparam HyperNode the type of hypernode incidence
+* @param[in] edges adjacency for hyperedges
+* @param[in] nodes adjacency for hypernodes
+* @param[in] hyperedgedegrees the degrees of hyperedges
+* @param[in] s the number of overlapping vertices between each hyperedge pair
+* @param[in] num_threads the number of threads
+* @param[in] max_bins the maximum number of bins to experiment with
+* @returns edge list of 1-line graph or an empty edge list if s > 1
 */
 template<directedness edge_directedness = undirected, class HyperEdge, class HyperNode>
 auto to_two_graph_efficient_blocked_vary_size (HyperEdge& edges, HyperNode& nodes, 
 std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int max_bins = 1) {
   size_t M = edges.size();
-  size_t N = nodes.size();  
   using linegraph_t = std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>;
   if (1 == s) {
     linegraph_t two_graphs(num_threads);
-    //avoid intersection when s=1
-    {
-        nw::util::life_timer _(__func__);
-        to_two_graph_blocked_range(std::forward<linegraph_t>(two_graphs), edges, nodes, max_bins, 0, M);
-    }
-    nw::graph::edge_list<edge_directedness> result(0);
-    result.open_for_push_back();
-    //do this in serial
-    std::for_each(nw::graph::counting_iterator<int>(0), nw::graph::counting_iterator<int>(num_threads), [&](auto i) {
-      std::for_each(two_graphs[i].begin(), two_graphs[i].end(), [&](auto&& e){
-        result.push_back(e);
-      });
-    });
-    result.close_for_push_back();
-
-    return result;
+    to_two_graph_blocked_range(std::forward<linegraph_t>(two_graphs), edges, nodes, max_bins, 0, M);
+    return create_edgelist_without_squeeze(two_graphs);
   }
   else {
     //when s > 1
@@ -376,40 +575,55 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int max_bins 
   }//else
 }
 
+/**
+* Efficient computation of a s-line graph of a hypergraph. 
+* It uses blocked range as workload distribution strategy. 
+* Clean without counter. All features on. Fastest version.
+*
+* @tparam edge_directedness the type of the edge directedness
+* @tparam HyperEdge the type of hyperedge incidence
+* @tparam HyperNode the type of hypernode incidence
+* @param[in] edges adjacency for hyperedges
+* @param[in] nodes adjacency for hypernodes
+* @param[in] hyperedgedegrees the degrees of hyperedges
+* @param[in] s the number of overlapping vertices between each hyperedge pair
+* @param[in] num_threads the number of threads
+* @param[in] bin_size the size of bin after dividing the workload
+* @returns the edge list of the s-line graph
+*/
 template<directedness edge_directedness = undirected, class HyperEdge, class HyperNode>
 auto to_two_graph_efficient_blocked (HyperEdge& edges, HyperNode& nodes, 
 std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int bin_size = 32) {
   size_t M = edges.size();
-  size_t N = nodes.size();  
   using linegraph_t = std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>;
   linegraph_t two_graphs(num_threads);
   if (1 == s) {
-    //avoid intersection when s=1
-    {
-        nw::util::life_timer _(__func__);
-        to_two_graph_blocked_range(std::forward<linegraph_t>(two_graphs), edges, nodes, M / bin_size, 0, M);
-    }
-    nw::graph::edge_list<edge_directedness> result(0);
-    result.open_for_push_back();
-    //do this in serial
-    std::for_each(nw::graph::counting_iterator<int>(0), nw::graph::counting_iterator<int>(num_threads), [&](auto i) {
-      std::for_each(two_graphs[i].begin(), two_graphs[i].end(), [&](auto&& e){
-        result.push_back(e);
-      });
-    });
-    result.close_for_push_back();
-
-    return result;
-  }
-  else {
-    //when s > 1
-    to_two_graph_blocked_range(std::forward<linegraph_t>(two_graphs), edges, nodes, M / bin_size, 0, M, hyperedgedegrees, s); 
+    to_two_graph_blocked_range(std::forward<linegraph_t>(two_graphs), edges,
+                               nodes, M / bin_size, 0, M);
+    return create_edgelist_without_squeeze(two_graphs);
+  } else {
+    // when s > 1
+    to_two_graph_blocked_range(std::forward<linegraph_t>(two_graphs), edges,
+                               nodes, M / bin_size, 0, M, hyperedgedegrees, s);
     return create_edgelist_with_squeeze<edge_directedness>(two_graphs);
-  }//else
+  }  // else
 }
 
-/*
-* clean without counter. All features on. Fastest version implemented in block range 2d.
+/**
+* Efficient computation of a s-line graph of a hypergraph. 
+* It uses 2D blocked range as workload distribution strategy. 
+* Clean without counter. All features on. 
+*
+* @tparam edge_directedness the type of the edge directedness
+* @tparam HyperEdge the type of hyperedge incidence
+* @tparam HyperNode the type of hypernode incidence
+* @param[in] edges adjacency for hyperedges
+* @param[in] nodes adjacency for hypernodes
+* @param[in] hyperedgedegrees the degrees of hyperedges
+* @param[in] s the number of overlapping vertices between each hyperedge pair
+* @param[in] num_threads the number of threads
+* @param[in] bin_size the number of bins to divide the workload
+* @returns the edge list of the s-line graph
 */
 template<directedness edge_directedness = undirected, class HyperEdge, class HyperNode>
 auto to_two_graph_efficient_parallel_2d (HyperEdge& edges, HyperNode& nodes, 
@@ -454,89 +668,55 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins 
   }//else
 }
 
-/*
-* clean without counter. All features on. Fastest version implemented in block range 2d.
+/**
+* Efficient computation of a s-line graph of a hypergraph. 
+* It uses cyclic range as workload distribution strategy. 
+* Clean without counter. All features on. Fastest version.
+*
+* @tparam edge_directedness the type of the edge directedness
+* @tparam HyperEdge the type of hyperedge incidence
+* @tparam HyperNode the type of hypernode incidence
+* @param[in] edges adjacency for hyperedges
+* @param[in] nodes adjacency for hypernodes
+* @param[in] hyperedgedegrees the degrees of hyperedges
+* @param[in] s the number of overlapping vertices between each hyperedge pair
+* @param[in] num_threads the number of threads
+* @param[in] num_bins the number of bins to divide the workload
+* @returns the edge list of the s-line graph
 */
 template<directedness edge_directedness = undirected, class HyperEdge, class HyperNode>
 auto to_two_graph_efficient_parallel_cyclic (HyperEdge& edges, HyperNode& nodes, 
 std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
-  size_t M = edges.size();
-  size_t N = nodes.size();
-
   using linegraph_t = std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>;
   linegraph_t two_graphs(num_threads);
   if (1 == s) {
-    {
-      nw::util::life_timer _(__func__);
-      tbb::parallel_for(nw::graph::cyclic_neighbor_range(edges, num_bins), [&](auto& i) {
-        int worker_index = tbb::this_task_arena::current_thread_index();
-        std::vector<bool> visitedE(M, false);
-        for (auto&& j = i.begin(); j != i.end(); ++j) {
-        auto&& [hyperE, hyperE_ngh] = *j;
-        std::fill(visitedE.begin(), visitedE.end(), false);
-        //all neighbors of hyperedges are hypernode
-        for (auto &&[hyperN] : hyperE_ngh) {
-          for (auto &&[anotherhyperE] : nodes[hyperN]) {
-            if (hyperE >= anotherhyperE) continue;
-            if (visitedE[anotherhyperE]) continue; else visitedE[anotherhyperE] = true;  
-            two_graphs[worker_index].push_back(std::make_pair<vertex_id_t, vertex_id_t>(std::forward<vertex_id_t>(hyperE), std::forward<vertex_id_t>(anotherhyperE)));
-          }
-        }
-        }
-      }, tbb::auto_partitioner());
-    }
-    nw::graph::edge_list<edge_directedness> result(0);
-    result.open_for_push_back();
-    //do this in serial
-    std::for_each(nw::graph::counting_iterator<int>(0), nw::graph::counting_iterator<int>(num_threads), [&](auto i) {
-      std::for_each(two_graphs[i].begin(), two_graphs[i].end(), [&](auto&& e){
-        result.push_back(e);
-      });
-    });
-    result.close_for_push_back();
-
-    return result;
+    to_two_graph_cyclic_range(std::forward<linegraph_t>(two_graphs), edges, nodes, num_bins);
+    return create_edgelist_without_squeeze(two_graphs);
   }
   else {
     //when s > 1
-    //create an array of line graphs for each thread
-    {
-      nw::util::life_timer _(__func__);
-      tbb::parallel_for(nw::graph::cyclic_neighbor_range(edges, num_bins), [&](auto& i) {
-        int worker_index = tbb::this_task_arena::current_thread_index();
-        std::vector<bool> visitedE(M, false);
-        for (auto&& j = i.begin(); j != i.end(); ++j) {
-          auto&& [hyperE, hyperE_ngh] = *j;
-          if (hyperedgedegrees[hyperE] < s) continue;
-          std::fill(visitedE.begin(), visitedE.end(), false);
-            //all neighbors of hyperedges are hypernode
-          for (auto &&[hyperN] : hyperE_ngh) {
-            for (auto &&[anotherhyperE] : nodes[hyperN]) {
-              //so we check compid of each hyperedge        
-              //travese upper triangluar with lhs > rhs
-              //avoid self edge with lhs == rhs
-              if (hyperE >= anotherhyperE) continue;
-              //filter edges deg(e) < s
-              if (hyperedgedegrees[anotherhyperE] < s) continue;
-                    //avoid duplicate intersections
-              if (visitedE[anotherhyperE]) continue; else visitedE[anotherhyperE] = true;         
-                    //O(average degree of hyperedges)
-              if (is_intersection_size_s(edges[hyperE].begin(), edges[hyperE].end(),
-                edges[anotherhyperE].begin(), edges[anotherhyperE].end(), s)) 
-                two_graphs[worker_index].push_back(std::make_pair<vertex_id_t, vertex_id_t>(std::forward<vertex_id_t>(hyperE), std::forward<vertex_id_t>(anotherhyperE)));
-            }//each neighbor of hyperN
-          }//each neighbor of hyperE
-        }
-      }, tbb::auto_partitioner());
-    }
+    to_two_graph_cyclic_range(std::forward<linegraph_t>(two_graphs), edges, nodes, num_bins, hyperedgedegrees, s);
     return create_edgelist_with_squeeze(two_graphs);
   }//else
 }
 
 
 
-/*
+/**
+* Efficient computation of a s-line graph of a hypergraph. 
+* It uses cyclic range as workload distribution strategy. 
 * Counter version. All features on. For benchmark purpose.
+*
+* @tparam edge_directedness the type of the edge directedness
+* @tparam HyperEdge the type of hyperedge incidence
+* @tparam HyperNode the type of hypernode incidence
+* @param[in] edges adjacency for hyperedges
+* @param[in] nodes adjacency for hypernodes
+* @param[in] hyperedgedegrees the degrees of hyperedges
+* @param[in] s the number of overlapping vertices between each hyperedge pair
+* @param[in] num_threads the number of threads
+* @param[in] num_bins the number of bins to divide the workload
+* @returns the edge list of the s-line graph
 */
 template<directedness edge_directedness = undirected, class HyperEdge, class HyperNode>
 auto to_two_graph_efficient_parallel_cyclic_with_counter (HyperEdge& edges, HyperNode& nodes, 
@@ -1028,8 +1208,21 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int bin_size 
   }//else
 }
 
-/*
-* clean without counter. All features on. Fastest version.
+/**
+* Efficient computation of a s-line graph of a hypergraph. 
+* It uses blocked range as workload distribution strategy. 
+* Clean without counter. All features on. Fastest version. Do not squeeze.
+*
+* @tparam edge_directedness the type of the edge directedness
+* @tparam HyperEdge the type of hyperedge incidence
+* @tparam HyperNode the type of hypernode incidence
+* @param[in] edges adjacency for hyperedges
+* @param[in] nodes adjacency for hypernodes
+* @param[in] hyperedgedegrees the degrees of hyperedges
+* @param[in] s the number of overlapping vertices between each hyperedge pair
+* @param[in] num_threads the number of threads
+* @param[in] bin_size the size of bin after dividing the workload
+* @returns the edge list of the s-line graph
 */
 template<directedness edge_directedness = nw::graph::undirected, class HyperEdge, class HyperNode>
 auto to_two_graph_efficient_blocked_without_sequeeze(
@@ -1040,63 +1233,16 @@ auto to_two_graph_efficient_blocked_without_sequeeze(
   int num_threads, 
   int bin_size = 32) {
   size_t M = edges.size();
-  size_t N = nodes.size();
-
+  using linegraph_t = std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>;
+  linegraph_t two_graphs(num_threads);
   if (1 == s) {
-    nw::util::life_timer _(__func__);
-    //avoid intersection when s=1
-    std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_threads);
-    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M, bin_size), [&](tbb::blocked_range<vertex_id_t>& r) {
-      int worker_index = tbb::this_task_arena::current_thread_index();
-      std::vector<bool> visitedE(M, false);
-      for (auto hyperE = r.begin(), e = r.end(); hyperE < e; ++hyperE) {
-        std::fill(visitedE.begin(), visitedE.end(), false);
-        //all neighbors of hyperedges are hypernode
-        for (auto &&[hyperN] : edges[hyperE]) {
-          for (auto &&[anotherhyperE] : nodes[hyperN]) {
-            if (hyperE >= anotherhyperE) continue;
-            if (visitedE[anotherhyperE]) continue; else visitedE[anotherhyperE] = true;  
-            two_graphs[worker_index].push_back(std::make_tuple<vertex_id_t, vertex_id_t>(std::forward<vertex_id_t>(hyperE), std::forward<vertex_id_t>(anotherhyperE)));
-          }
-        }
-      } //for
-    }, tbb::auto_partitioner());
+    to_two_graph_blocked_range(std::forward<linegraph_t>(two_graphs), edges, nodes, M / bin_size, 0, M);
     return two_graphs;
   }
   else {
     //when s > 1
-    //create an array of line graphs for each thread
-    std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_threads);
-    {
-    nw::util::life_timer _(__func__);
-    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0, M, bin_size), [&](tbb::blocked_range<vertex_id_t>& r) {
-      int worker_index = tbb::this_task_arena::current_thread_index();
-      std::vector<bool> visitedE(M, false);
-      for (auto hyperE = r.begin(), e = r.end(); hyperE != e; ++hyperE) {
-        std::fill(visitedE.begin(), visitedE.end(), false);
-        if (hyperedgedegrees[hyperE] < s) continue;
-        //all neighbors of hyperedges are hypernode
-        for (auto &&[hyperN] : edges[hyperE]) {
-          for (auto &&[anotherhyperE] : nodes[hyperN]) {
-            //so we check compid of each hyperedge        
-            //travese upper triangluar with lhs > rhs
-            //avoid self edge with lhs == rhs
-            if (hyperE >= anotherhyperE) continue;
-            //filter edges deg(e) < s
-            if (hyperedgedegrees[anotherhyperE] < s) continue;
-            //avoid duplicate intersections
-            if (visitedE[anotherhyperE]) continue; else visitedE[anotherhyperE] = true;         
-            //O(average degree of hyperedges)
-            if (is_intersection_size_s(edges[hyperE].begin(), edges[hyperE].end(),
-            edges[anotherhyperE].begin(), edges[anotherhyperE].end(), s)) {
-              two_graphs[worker_index].push_back(std::make_tuple<vertex_id_t, vertex_id_t>(std::forward<vertex_id_t>(hyperE), std::forward<vertex_id_t>(anotherhyperE)));
-            }
-          }//each neighbor of hyperN
-        }//each neighbor of hyperE
-      } //for each hyperE
-     
-    }, tbb::auto_partitioner());
-    }
+    to_two_graph_blocked_range(std::forward<linegraph_t>(two_graphs), edges,
+                               nodes, M / bin_size, 0, M, hyperedgedegrees, s);
     return two_graphs;
   }//else
 }
