@@ -120,7 +120,7 @@ int main(int argc, char* argv[]) {
       case 0:
       {
           nw::graph::edge_list<undirected, int> &&linegraph = 
-          to_two_graph_weighted_efficient_parallel_clean<undirected, int>
+          to_weighted_two_graph_efficient_blocked<undirected, int>
           (hyperedges, hypernodes, edgedegrees, s, num_bins);
           //where when an empty edge list is passed in, an adjacency still have two elements
           if (0 == linegraph.size()) return nw::graph::adjacency<0, int>(0);
@@ -166,7 +166,7 @@ int main(int argc, char* argv[]) {
 	       	return delta_stepping_v10<distance_t>(s_adj, source, delta); 
 		// s_sssp_v0(s_adj, source, delta);
 	      default:
-		return delta_stepping_v10<distance_t>(s_adj, source, delta);
+		      return delta_stepping_v10<distance_t>(s_adj, source, delta);
                 // std::cerr << "Unknown version " << id << "\n";
                 // return std::make_tuple(std::vector<std::atomic<long unsigned int>, std::allocator<std::atomic<long unsigned int> > >());
 		// return true;

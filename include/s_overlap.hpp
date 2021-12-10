@@ -107,7 +107,7 @@ void print_soverlap_version() {
 * Only unweighted hypergraph is supported for now.
 *
 * @param[in] version s-line graph algorithm version id
-* @param[in] verbose flag to control verbose stats collection
+* @param[in] verbose flag to control stats collection
 * @param[in] features a fixed-size sequence of 8 bits to control which heuristics are enabled in the efficient version
 * @param[in] edges adjacency for hyperedges
 * @param[in] nodes adjacency for hypernodes
@@ -145,7 +145,7 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
     }
     case Efficient_Cyclic: {
       nw::graph::edge_list<undirected> &&linegraph =
-          to_two_graph_efficient_parallel_cyclic_portal<undirected>(
+          to_two_graph_efficient_cyclic_portal<undirected>(
               verbose, edges, nodes, edgedegrees, s,
               num_threads, num_bins);
       // where when an empty edge list is passed in, an adjacency still have two
