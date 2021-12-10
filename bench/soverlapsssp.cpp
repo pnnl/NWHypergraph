@@ -121,7 +121,7 @@ int main(int argc, char* argv[]) {
       {
           nw::graph::edge_list<undirected, int> &&linegraph = 
           to_two_graph_weighted_efficient_parallel_clean<undirected, int>
-          (std::execution::par_unseq, hyperedges, hypernodes, edgedegrees, s, num_bins);
+          (hyperedges, hypernodes, edgedegrees, s, num_bins);
           //where when an empty edge list is passed in, an adjacency still have two elements
           if (0 == linegraph.size()) return nw::graph::adjacency<0, int>(0);
           nw::graph::adjacency<0, int> s_adj(linegraph);

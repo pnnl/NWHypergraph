@@ -132,7 +132,7 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
     case Efficient_Blocked: {
       nw::graph::edge_list<undirected> &&linegraph =
           to_two_graph_efficient_blocked_portal<undirected>(
-              verbose, features, std::execution::par_unseq, edges, nodes,
+              verbose, features, edges, nodes,
               edgedegrees, s, num_threads, num_bins);
       // where when an empty edge list is passed in, an adjacency still have two
       // elements
@@ -146,7 +146,7 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
     case Efficient_Cyclic: {
       nw::graph::edge_list<undirected> &&linegraph =
           to_two_graph_efficient_parallel_cyclic_portal<undirected>(
-              verbose, std::execution::par_unseq, edges, nodes, edgedegrees, s,
+              verbose, edges, nodes, edgedegrees, s,
               num_threads, num_bins);
       // where when an empty edge list is passed in, an adjacency still have two
       // elements
@@ -403,7 +403,7 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
     case Efficient_Blocked_Size: {
       nw::graph::edge_list<undirected> &&linegraph =
           to_two_graph_efficient_blocked_vary_size<undirected>(
-              std::execution::par_unseq, edges, nodes,
+              edges, nodes,
               edgedegrees, s, num_threads, num_bins);
       // where when an empty edge list is passed in, an adjacency still have two
       // elements

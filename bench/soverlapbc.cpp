@@ -118,7 +118,7 @@ int main(int argc, char* argv[]) {
       switch (loader_version) {
       case 0:
       {
-          nw::graph::edge_list<undirected> &&linegraph = to_two_graph_efficient_blocked<undirected>(std::execution::par_unseq, hyperedges, hypernodes, hyperedge_degrees, s, num_bins);
+          nw::graph::edge_list<undirected> &&linegraph = to_two_graph_efficient_blocked<undirected>(hyperedges, hypernodes, hyperedge_degrees, s, num_bins);
           //where when an empty edge list is passed in, an adjacency still have two elements
           if (0 == linegraph.size()) return nw::graph::adjacency<1>(0);
           nw::graph::adjacency<1> s_adj(linegraph);
