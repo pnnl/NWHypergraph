@@ -43,6 +43,7 @@ target_sources(NW_HYPERGRAPH
   algorithms/slinegraph_map.hpp
   algorithms/slinegraph_adjoin.hpp
   algorithms/slinegraph_kij.hpp
+  algorithms/slinegraph_frontier.hpp
   )
 
 target_include_directories(NW_HYPERGRAPH INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})

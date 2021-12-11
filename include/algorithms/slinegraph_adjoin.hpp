@@ -12,6 +12,7 @@
 #include <adaptors/cyclic_range_adapter.hpp>
 #include <adaptors/vertex_range.hpp>
 
+#include "to_two_graph_efficient.hpp"
 #include "util/slinegraph_helper.hpp"
 #include <tbb/task_arena.h> //for tbb::this_task_arena::current_thread_index()
 #include <unordered_set>
@@ -275,7 +276,7 @@ auto to_two_graph_efficient_frontier_blocked(ExecutionPolicy&& ep, Hypergraph& h
                   else
                     visitedE[anotherhyperE] = true;
                   // O(average degree of hyperedges)
-                  if (is_intersection_size_s(h[hyperE].begin(),
+                  if (efficient::is_intersection_size_s(h[hyperE].begin(),
                                              h[hyperE].end(),
                                              h[anotherhyperE].begin(),
                                              h[anotherhyperE].end(), s)) {
@@ -377,7 +378,7 @@ auto to_two_graph_efficient_frontier_cyclic(ExecutionPolicy&& ep, Hypergraph& h,
                   else
                     visitedE[anotherhyperE] = true;
                   // O(average degree of hyperedges)
-                  if (is_intersection_size_s(h[hyperE].begin(),
+                  if (efficient::is_intersection_size_s(h[hyperE].begin(),
                                              h[hyperE].end(),
                                              h[anotherhyperE].begin(),
                                              h[anotherhyperE].end(), s))

@@ -14,6 +14,7 @@
 #include "algorithms/slinegraph_naive.hpp"
 #include "algorithms/slinegraph_adjoin.hpp"
 #include "algorithms/slinegraph_kij.hpp"
+#include "algorithms/slinegraph_frontier.hpp"
 
 namespace nw {
 namespace hypergraph {
@@ -46,6 +47,7 @@ enum soverlap_version {
   HashMap_Blocked_Size = 21,
   Vector_Blocked_Size = 22,
   Static_HashMap_Blocked_Size = 23,
+  Frontier_Blocked = 98,
   SPGEMM_KIJ = 99, //TODO not ready
   Unknown
 };
@@ -470,6 +472,21 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
                 << ", max = " << s_adj.max() << std::endl;
       return s_adj;
     } 
+    case Frontier_Blocked: {
+      std::cout << "graph edges = " << nodes.size() << std::endl;
+      nw::graph::edge_list<undirected> &&linegraph =
+          to_two_graph_frontier_blocked<undirected>(
+              edges, nodes, edgedegrees,
+              s, num_threads, num_bins);
+      // where when an empty edge list is passed in, an adjacency still have
+      // two elements
+      if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
+      nw::graph::adjacency<0> s_adj(linegraph);
+      std::cout << "line graph edges = " << linegraph.size()
+                << ", adjacency size = " << s_adj.size()
+                << ", max = " << s_adj.max() << std::endl;
+      return s_adj;
+    }
     case SPGEMM_KIJ: {
       std::cout << "graph edges = " << nodes.size() << std::endl;
       nw::graph::edge_list<undirected> &&linegraph =
