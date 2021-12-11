@@ -1,0 +1,89 @@
+# Workflow to test matrix builds
+
+name: Build matrix
+
+on:
+  push:
+    branches: [ master ]
+  workflow_dispatch:
+    branches: [ master ]
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  build:
+
+    strategy:
+      matrix:
+        compiler: [ 'g++-11', 'clang++-11' ]
+        os: [ 'macos-10.15', 'macos-11.0', 'ubuntu-20.04' ]
+      fail-fast: false
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - name: Checkout NWhy
+      uses: actions/checkout@v2
+      with:
+        path: NWhy
+
+    - name: Checkout NWgr
+      uses: actions/checkout@v2
+      with:
+        repository: NWmath/NWgr
+        token: ${{ secrets.PULL_FROM_NWMATH }}
+        ref: adj_fill
+        path: NWgr
+        
+    - name: Checkout NWut
+      uses: actions/checkout@v2
+      with:
+        repository: NWmath/NWut
+        token: ${{ secrets.PULL_FROM_NWMATH }}
+        ref: master
+        path: NWut
+
+    - name: apt update
+      run: |
+        sudo apt-get update
+      if: matrix.os == 'ubuntu-20.04'
+
+    - name: install tbb (Ubuntu)
+      run: |
+        sudo apt-get install -y libtbb2 libtbb-dev
+      if: matrix.os == 'ubuntu-20.04'
+
+    - name: install tbb (Mac)
+      run: |
+        brew install tbb
+      if: matrix.os == 'macos-10.15' || matrix.os == 'macos-11.0'
+
+    - name: setup gcc (Ubuntu)
+      run: |
+        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 100
+        sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-11 100
+        sudo update-alternatives --install /usr/bin/cc  cc  /usr/bin/gcc    100
+        sudo update-alternatives --install /usr/bin/c++ c++ /usr/bin/g++    100
+      if: matrix.os == 'ubuntu-20.04' && 'matrix.compiler == g++-11'
+
+    - name: setup clang (Ubuntu)
+      run: |
+        sudo apt-get install -y clang-11
+        sudo update-alternatives --install /usr/bin/clang   clang   /usr/bin/clang-11   110
+        sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-11 110
+        sudo update-alternatives --install /usr/bin/cc      cc      /usr/bin/clang      110
+        sudo update-alternatives --install /usr/bin/c++     c++     /usr/bin/clang++    110
+      if: matrix.os == 'ubuntu-20.04' && matrix.compiler == 'clang++-11'
+
+    - name: cmake
+      run: |
+        cd NWhy
+        mkdir build
+        cd build
+        cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_CXX_COMPILER=${{ matrix.compiler }}
+
+    - name: make
+      run: |
+        cd NWgr/build
+        make -k
