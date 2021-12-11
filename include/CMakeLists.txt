@@ -36,6 +36,8 @@ target_sources(NW_HYPERGRAPH
   algorithms/s_connected_components.hpp
   algorithms/s_breadth_first_search.hpp
   algorithms/toplexes.hpp
+  algorithms/to_two_graph_efficient.hpp
+  algorithms/to_two_graph_map.hpp
   algorithms/slinegraph_naive.hpp
   algorithms/slinegraph_efficient.hpp
   algorithms/slinegraph_map.hpp
