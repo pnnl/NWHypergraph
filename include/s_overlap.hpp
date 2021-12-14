@@ -474,7 +474,6 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
       return s_adj;
     } 
     case Frontier_Blocked: {
-      std::cout << "graph edges = " << nodes.size() << std::endl;
       nw::graph::edge_list<undirected> &&linegraph =
           to_two_graph_frontier_blocked<undirected>(
               edges, nodes, edgedegrees,
@@ -489,7 +488,6 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
       return s_adj;
     }
     case Frontier_Cyclic: {
-      std::cout << "graph edges = " << nodes.size() << std::endl;
       nw::graph::edge_list<undirected> &&linegraph =
           to_two_graph_frontier_cyclic<undirected>(
               edges, nodes, edgedegrees,

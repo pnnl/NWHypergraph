@@ -10,7 +10,7 @@
 #pragma once
 #include <numeric>
 
-
+#include "experimental/slinegraph_map.hpp"
 #include "util/slinegraph_helper.hpp"
 #include "to_two_graph_efficient.hpp"
 #include "to_two_graph_map.hpp"
@@ -347,8 +347,24 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins 
   }
 }
 
-template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
-auto to_two_graph_hashmap_blocked_with_counter(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
+/**
+* Computation of a s-line graph of a hypergraph. 
+* It uses blocked range as workload distribution strategy.
+* Using a hashmap to store overlapping counts. Benchmark only.
+*
+* @tparam edge_directedness the type of the edge directedness
+* @tparam HyperEdge the type of hyperedge incidence
+* @tparam HyperNode the type of hypernode incidence
+* @param[in] edges adjacency for hyperedges
+* @param[in] nodes adjacency for hypernodes
+* @param[in] hyperedgedegrees the degrees of hyperedges
+* @param[in] s the number of overlapping vertices between each hyperedge pair
+* @param[in] num_threads the number of bins to divide the workload
+* @param[in] num_bins the number of bins to divide the workload
+*
+*/
+template<directedness edge_directedness = undirected, class HyperEdge, class HyperNode>
+auto to_two_graph_hashmap_blocked_with_counter(HyperEdge& edges, HyperNode& nodes, 
 std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int bin_size = 32) {
   std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_threads);
   size_t M = edges.size();
@@ -391,6 +407,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int bin_size 
     for (auto &v : num_edges)
       std::cout << v << " ";
     std::cout << std::endl;
+    return create_edgelist_with_squeeze(two_graphs);
   }
   else {
     nw::util::life_timer _(__func__);
@@ -425,20 +442,26 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int bin_size 
     for (auto &v : num_edges)
       std::cout << v << " ";
     std::cout << std::endl;
-    nw::graph::edge_list<edge_directedness> result(0);
-    result.open_for_push_back();
-    //do this in serial
-    std::for_each(nw::graph::counting_iterator<int>(0), nw::graph::counting_iterator<int>(num_threads), [&](auto i) {
-      std::for_each(two_graphs[i].begin(), two_graphs[i].end(), [&](auto&& e){
-        result.push_back(e);
-      });
-    });
-    result.close_for_push_back();
-    return result;
+    return create_edgelist_without_squeeze(two_graphs);
   }
-  return create_edgelist_with_squeeze(two_graphs);
 }
 
+/**
+* Computation of a s-line graph of a hypergraph. 
+* It uses cyclic range as workload distribution strategy.
+* Using a hashmap to store overlapping counts. Benchmark only.
+*
+* @tparam edge_directedness the type of the edge directedness
+* @tparam HyperEdge the type of hyperedge incidence
+* @tparam HyperNode the type of hypernode incidence
+* @param[in] edges adjacency for hyperedges
+* @param[in] nodes adjacency for hypernodes
+* @param[in] hyperedgedegrees the degrees of hyperedges
+* @param[in] s the number of overlapping vertices between each hyperedge pair
+* @param[in] num_threads the number of bins to divide the workload
+* @param[in] num_bins the number of bins to divide the workload
+*
+*/
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
 auto to_two_graph_hashmap_cyclic_with_counter(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
 std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
@@ -484,6 +507,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins 
     for (auto &v : num_edges)
       std::cout << v << " ";
     std::cout << std::endl;
+    return create_edgelist_with_squeeze(two_graphs);
   }
   else {
     nw::util::life_timer _(__func__);
@@ -519,18 +543,8 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins 
     for (auto &v : num_edges)
       std::cout << v << " ";
     std::cout << std::endl;
-    nw::graph::edge_list<edge_directedness> result(0);
-    result.open_for_push_back();
-    //do this in serial
-    std::for_each(nw::graph::counting_iterator<int>(0), nw::graph::counting_iterator<int>(num_threads), [&](auto i) {
-      std::for_each(two_graphs[i].begin(), two_graphs[i].end(), [&](auto&& e){
-        result.push_back(e);
-      });
-    });
-    result.close_for_push_back();
-    return result;
-  }
-  return create_edgelist_with_squeeze(two_graphs);
+    return create_edgelist_without_squeeze(two_graphs);
+  } 
 }
 
 /**
@@ -604,8 +618,24 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins 
   }
 }
 
-template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
-auto to_two_graph_vector_blocked_with_counter(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
+/**
+* Computation of a s-line graph of a hypergraph. 
+* It uses blocked range as workload distribution strategy.
+* Using a vector to store overlapping counts. Benchmark only.
+*
+* @tparam edge_directedness the type of the edge directedness
+* @tparam HyperEdge the type of hyperedge incidence
+* @tparam HyperNode the type of hypernode incidence
+* @param[in] edges adjacency for hyperedges
+* @param[in] nodes adjacency for hypernodes
+* @param[in] hyperedgedegrees the degrees of hyperedges
+* @param[in] s the number of overlapping vertices between each hyperedge pair
+* @param[in] num_threads the number of bins to divide the workload
+* @param[in] bin_size the size of bins after dividing the workload
+*
+*/
+template<directedness edge_directedness = undirected, class HyperEdge, class HyperNode>
+auto to_two_graph_vector_blocked_with_counter(HyperEdge& edges, HyperNode& nodes, 
 std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int bin_size = 32) {
   std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_threads);
   size_t M = edges.size();
@@ -655,6 +685,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int bin_size 
     for (auto &v : num_edges)
       std::cout << v << " ";
     std::cout << std::endl;
+    return create_edgelist_with_squeeze(two_graphs);
   }
   else {
     nw::util::life_timer _(__func__);
@@ -695,22 +726,28 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int bin_size 
     for (auto &v : num_edges)
       std::cout << v << " ";
     std::cout << std::endl;
-    nw::graph::edge_list<edge_directedness> result(0);
-    result.open_for_push_back();
-    //do this in serial
-    std::for_each(nw::graph::counting_iterator<int>(0), nw::graph::counting_iterator<int>(num_threads), [&](auto i) {
-      std::for_each(two_graphs[i].begin(), two_graphs[i].end(), [&](auto&& e){
-        result.push_back(e);
-      });
-    });
-    result.close_for_push_back();
-    return result;
+    return create_edgelist_without_squeeze(two_graphs);
   }
-  return create_edgelist_with_squeeze(two_graphs);
 }
 
-template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
-auto to_two_graph_vector_cyclic_with_counter(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
+/**
+* Computation of a s-line graph of a hypergraph. 
+* It uses cyclic range as workload distribution strategy.
+* Using a fix-size vector to store overlapping counts. Benchmark only.
+*
+* @tparam edge_directedness the type of the edge directedness
+* @tparam HyperEdge the type of hyperedge incidence
+* @tparam HyperNode the type of hypernode incidence
+* @param[in] edges adjacency for hyperedges
+* @param[in] nodes adjacency for hypernodes
+* @param[in] hyperedgedegrees the degrees of hyperedges
+* @param[in] s the number of overlapping vertices between each hyperedge pair
+* @param[in] num_threads the number of bins to divide the workload
+* @param[in] num_bins the number of bins to divide the workload
+*
+*/
+template<directedness edge_directedness = undirected, class HyperEdge, class HyperNode>
+auto to_two_graph_vector_cyclic_with_counter(HyperEdge& edges, HyperNode& nodes, 
 std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
   std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_threads);
   std::vector<size_t> num_visits(num_threads, 0), num_counts(num_threads, 0), num_edges(num_threads, 0);
@@ -759,6 +796,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins 
     for (auto &v : num_edges)
       std::cout << v << " ";
     std::cout << std::endl;
+    return create_edgelist_with_squeeze(two_graphs);
   }
   else {
     nw::util::life_timer _(__func__);
@@ -797,18 +835,8 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins 
     for (auto &v : num_edges)
       std::cout << v << " ";
     std::cout << std::endl;
-    nw::graph::edge_list<edge_directedness> result(0);
-    result.open_for_push_back();
-    //do this in serial
-    std::for_each(nw::graph::counting_iterator<int>(0), nw::graph::counting_iterator<int>(num_threads), [&](auto i) {
-      std::for_each(two_graphs[i].begin(), two_graphs[i].end(), [&](auto&& e){
-        result.push_back(e);
-      });
-    });
-    result.close_for_push_back();
-    return result;
+    return create_edgelist_without_squeeze(two_graphs);
   }
-  return create_edgelist_with_squeeze(two_graphs);
 }
 
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
@@ -904,6 +932,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int bin_size 
         }
       }
     }, tbb::auto_partitioner());
+    return create_edgelist_with_squeeze(two_graphs);
   }
   else {
     {
@@ -928,18 +957,8 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int bin_size 
       }
     }, tbb::auto_partitioner());
     }
-    nw::graph::edge_list<edge_directedness> result(0);
-    result.open_for_push_back();
-    //do this in serial
-    std::for_each(nw::graph::counting_iterator<int>(0), nw::graph::counting_iterator<int>(num_threads), [&](auto i) {
-      std::for_each(two_graphs[i].begin(), two_graphs[i].end(), [&](auto&& e){
-        result.push_back(e);
-      });
-    });
-    result.close_for_push_back();
-    return result;
+    return create_edgelist_without_squeeze(two_graphs);
   }
-  return create_edgelist_with_squeeze(two_graphs);
 }
 
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
@@ -1550,7 +1569,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins 
   if (!verbose) 
     return to_two_graph_hashmap_blocked(edges, nodes, hyperedgedegrees, s, num_threads, num_bins);
   else
-    return to_two_graph_hashmap_blocked_with_counter(ep, edges, nodes, hyperedgedegrees, s, num_threads, num_bins);
+    return to_two_graph_hashmap_blocked_with_counter(edges, nodes, hyperedgedegrees, s, num_threads, num_bins);
 }
 
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
@@ -1568,7 +1587,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins 
   if (!verbose) 
     return to_two_graph_vector_blocked(edges, nodes, hyperedgedegrees, s, num_threads, num_bins);
   else
-    return to_two_graph_vector_blocked_with_counter(ep, edges, nodes, hyperedgedegrees, s, num_threads, num_bins);
+    return to_two_graph_vector_blocked_with_counter(edges, nodes, hyperedgedegrees, s, num_threads, num_bins);
 }
 
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
@@ -1577,7 +1596,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins 
   if (!verbose) 
     return to_two_graph_vector_cyclic(edges, nodes, hyperedgedegrees, s, num_threads, num_bins);
   else
-    return to_two_graph_vector_cyclic_with_counter(ep, edges, nodes, hyperedgedegrees, s, num_threads, num_bins);
+    return to_two_graph_vector_cyclic_with_counter(edges, nodes, hyperedgedegrees, s, num_threads, num_bins);
 }
 
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
