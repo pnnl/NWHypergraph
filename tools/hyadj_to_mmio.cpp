@@ -8,11 +8,8 @@
 // Author: Xu Tony Liu
 //
 
-#include "io/hypergraph_io.hpp"
 #include <docopt.h>
-#include <containers/edge_list.hpp>
-#include "common.hpp"
-
+#include "io/loader.hpp"
 /*
 * The file format is at
 * https://github.com/jshun/ligra/tree/ligra-h#input-format-for-ligra-h-applications
@@ -33,7 +30,6 @@ static constexpr const char USAGE[] =
       -V, --verbose         run in verbose mode
 )";
 
-using namespace nw::hypergraph::tools;
 using namespace nw::hypergraph;
 
 int main(int argc, char* argv[]) {

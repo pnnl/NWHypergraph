@@ -12,6 +12,9 @@
 #include <util/timer.hpp>
 #include <io/mmio.hpp>
 
+namespace nw {
+namespace hypergraph {
+
 template<class EdgeList>
 void mm_fill_adjoin(std::istream& inputStream, 
 EdgeList& A, 
@@ -202,3 +205,6 @@ const std::string& file_symmetry = "general") {
   std::ofstream outputStream(filename);
   hy_adjacency_stream<w_idx>(outputStream, A, size_col0, size_col1, file_symmetry, w_type);
 }
+
+}//namespace hypergraph
+}//namespace nw

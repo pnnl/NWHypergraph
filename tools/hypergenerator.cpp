@@ -8,15 +8,13 @@
 // Author: Xu Tony Liu
 //
 
-#include <fstream>
 #include <docopt.h>
-#include "common.hpp"
 #include "containers/edge_list_hy.hpp"
 #include "containers/compressed_hy.hpp"
 #include "generators/configuration_model.hpp"
-#include "io/mmio_hy.hpp"
+#include "io/loader.hpp"
 
-using namespace nw::hypergraph::tools;
+using namespace nw::graph;
 using namespace nw::hypergraph;
 
 static constexpr const char USAGE[] =
@@ -33,6 +31,11 @@ static constexpr const char USAGE[] =
       --degs-nodes FILE     degree sequence of nodes in FILE
 )";
 
+template <int Adj, directedness Directedness, class... Attributes>
+nw::graph::adjacency<Adj, Attributes...> build_adjacency(nw::graph::edge_list<Directedness, Attributes...>& graph) {
+  nw::util::life_timer _("build adjacency");
+  return { graph };
+}
 
 int main(int argc, char* argv[]) {
     std::vector<std::string> strings(argv + 1, argv + argc);

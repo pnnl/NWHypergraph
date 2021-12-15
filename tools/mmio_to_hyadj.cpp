@@ -8,12 +8,8 @@
 // Author: Xu Tony Liu
 //
 
-#include <unordered_set>
 #include <docopt.h>
-#include <containers/edge_list.hpp>
-#include "common.hpp"
-#include "io/hypergraph_io.hpp"
-
+#include "io/loader.hpp"
 
 static constexpr const char USAGE[] =
     R"(mm2adj.exe: convert matrix market file to hypergraph biadjacency file driver.
@@ -29,7 +25,6 @@ static constexpr const char USAGE[] =
       -V, --verbose         run in verbose mode
 )";
 
-using namespace nw::hypergraph::tools;
 using namespace nw::hypergraph;
 
 int main(int argc, char* argv[]) {
@@ -41,13 +36,13 @@ int main(int argc, char* argv[]) {
   std::string input_file = args["-i"].asString();
   std::string output_file = args["-o"].asString();
 
-  auto aos_a   = load_graph<directed>(input_file);
+  auto aos_a = load_graph<directed>(input_file);
   if (0 == aos_a.size()) {
     std::cerr << input_file << " is not matrix market file, convert abort" << std::endl;
     exit(1);
   }
-  adjacency<0> E(aos_a);
-  adjacency<1> N(aos_a);
+  nw::graph::adjacency<0> E(aos_a);
+  nw::graph::adjacency<1> N(aos_a);
   std::cout << "num_hyperedges:" << E.size() << " num_hypernodes:" << N.size() << std::endl;
   if (false == write_adj_hypergraph(output_file, E, N)){
     std::cerr << "write failed" << std::endl;

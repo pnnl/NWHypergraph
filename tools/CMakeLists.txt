@@ -2,8 +2,7 @@
 # Create an interface library for the benchmarks to depend on.
 # -----------------------------------------------------------------------------
 add_library(tools INTERFACE)
-target_sources(tools INTERFACE
-  common.hpp)
+target_sources(tools INTERFACE)
 target_include_directories(tools INTERFACE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 
 target_link_libraries(tools INTERFACE NW_HYPERGRAPH docopt date::date)

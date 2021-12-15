@@ -9,16 +9,13 @@
 //
 
 #include <unordered_map>
-#include <fstream>
 #include <docopt.h>
-#include <containers/edge_list.hpp>
 #include <util/parallel_for.hpp>
-#include "common.hpp"
 #include "containers/edge_list_hy.hpp"
 #include "containers/compressed_hy.hpp"
-#include "io/mmio_hy.hpp"
 
-using namespace nw::hypergraph::tools;
+#include "io/loader.hpp"
+
 using namespace nw::hypergraph;
 
 static constexpr const char USAGE[] =

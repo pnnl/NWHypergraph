@@ -9,8 +9,7 @@
 //
 
 #include <docopt.h>
-#include <containers/edge_list.hpp>
-#include "common.hpp"
+#include "io/loader.hpp"
 
 
 static constexpr const char USAGE[] =
@@ -28,7 +27,6 @@ static constexpr const char USAGE[] =
       -V, --verbose         run in verbose mode
 )";
 
-using namespace nw::hypergraph::tools;
 using namespace nw::hypergraph;
 
 int main(int argc, char* argv[]) {

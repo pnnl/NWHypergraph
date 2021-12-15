@@ -20,7 +20,7 @@ namespace hypergraph {
 * 3. sort the neighbor list of the relabeled neighbor list in step 2
 **/
 template<class... Attributes>
-auto relabel_by_degree(adjacency<0, Attributes...>& edges, adjacency<1, Attributes...>& nodes, 
+auto relabel_by_degree(nw::graph::adjacency<0, Attributes...>& edges, nw::graph::adjacency<1, Attributes...>& nodes, 
 int idx, std::string direction) {
   nw::util::life_timer _("relabel_by_degree");
   if (0 == idx) {
