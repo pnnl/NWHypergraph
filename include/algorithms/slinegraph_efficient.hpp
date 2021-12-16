@@ -62,7 +62,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int bin_size 
 * @param[in] hyperedgedegrees the degrees of hyperedges
 * @param[in] s the number of overlapping vertices between each hyperedge pair
 * @param[in] num_threads the number of threads
-* @param[in] bin_size the number of bins to divide the workload
+* @param[in] num_bins the number of bins to divide the workload
 * @returns the edge list of the s-line graph
 */
 template<directedness edge_directedness = undirected, class HyperEdge, class HyperNode>
