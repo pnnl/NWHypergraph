@@ -27,9 +27,9 @@ namespace hypergraph {
  * This to_two_graph operates on hypergraph based frontier.
  * The hypergraph can be relabeled by degree.
  * */
-template <directedness edge_directedness = undirected, class ExecutionPolicy,
+template <directedness edge_directedness = undirected,
           class Hypergraph, class HypergraphT>
-auto to_two_graph_map_frontier_blocked(ExecutionPolicy&& ep, Hypergraph& h,
+auto to_two_graph_map_frontier_blocked(Hypergraph& h,
                                HypergraphT& ht, std::vector<index_t>& degrees,
                                std::vector<vertex_id_t>& frontier, size_t s,
                                int num_threads, int num_bins = 32) {
@@ -85,16 +85,7 @@ auto to_two_graph_map_frontier_blocked(ExecutionPolicy&& ep, Hypergraph& h,
           },
           tbb::auto_partitioner());
     }
-    nw::graph::edge_list<edge_directedness> result(0);
-    result.open_for_push_back();
-    // do this in serial
-    std::for_each(nw::graph::counting_iterator<int>(0),
-                  nw::graph::counting_iterator<int>(num_threads), [&](auto i) {
-                    std::for_each(two_graphs[i].begin(), two_graphs[i].end(),
-                                  [&](auto&& e) { result.push_back(e); });
-                  });
-    result.close_for_push_back();
-    return result;
+    return create_edgelist_without_squeeze(two_graphs);
   }
   return create_edgelist_with_squeeze(two_graphs);
 }
@@ -103,9 +94,9 @@ auto to_two_graph_map_frontier_blocked(ExecutionPolicy&& ep, Hypergraph& h,
  * This to_two_graph operates on hypergraph based frontier.
  * The hypergraph can be relabeled by degree.
  * */
-template <directedness edge_directedness = undirected, class ExecutionPolicy,
+template <directedness edge_directedness = undirected,
           class Hypergraph, class HypergraphT>
-auto to_two_graph_map_frontier_cyclic(ExecutionPolicy&& ep, Hypergraph& h,
+auto to_two_graph_map_frontier_cyclic(Hypergraph& h,
                                HypergraphT& ht, std::vector<index_t>& degrees,
                                std::vector<vertex_id_t>& frontier, size_t s,
                                int num_threads, int num_bins = 32) {
@@ -180,16 +171,7 @@ auto to_two_graph_map_frontier_cyclic(ExecutionPolicy&& ep, Hypergraph& h,
           },
           tbb::auto_partitioner());
     }
-    nw::graph::edge_list<edge_directedness> result(0);
-    result.open_for_push_back();
-    // do this in serial
-    std::for_each(nw::graph::counting_iterator<int>(0),
-                  nw::graph::counting_iterator<int>(num_threads), [&](auto i) {
-                    std::for_each(two_graphs[i].begin(), two_graphs[i].end(),
-                                  [&](auto&& e) { result.push_back(e); });
-                  });
-    result.close_for_push_back();
-    return result;
+    return create_edgelist_without_squeeze(two_graphs);
   }
   return create_edgelist_with_squeeze(two_graphs);
 }
@@ -197,9 +179,9 @@ auto to_two_graph_map_frontier_cyclic(ExecutionPolicy&& ep, Hypergraph& h,
 /*
 * clean without counter. All heuristics on. Fastest version. Using blocked_range.
 */
-template <directedness edge_directedness = undirected, class ExecutionPolicy,
+template <directedness edge_directedness = undirected,
           class Hypergraph, class HypergraphT>
-auto to_two_graph_efficient_frontier_blocked(ExecutionPolicy&& ep, Hypergraph& h,
+auto to_two_graph_efficient_frontier_blocked(Hypergraph& h,
                                HypergraphT& ht, std::vector<index_t>& degrees,
                                std::vector<vertex_id_t>& frontier, size_t s,
                                int num_threads, int num_bins = 32) {
@@ -236,17 +218,7 @@ auto to_two_graph_efficient_frontier_blocked(ExecutionPolicy&& ep, Hypergraph& h
             },
             tbb::auto_partitioner());
     }
-    nw::graph::edge_list<edge_directedness> result(0);
-    result.open_for_push_back();
-    //do this in serial
-    std::for_each(nw::graph::counting_iterator<int>(0), nw::graph::counting_iterator<int>(num_threads), [&](auto i) {
-      std::for_each(two_graphs[i].begin(), two_graphs[i].end(), [&](auto&& e){
-        result.push_back(e);
-      });
-    });
-    result.close_for_push_back();
-
-    return result;
+    return create_edgelist_without_squeeze(two_graphs);
   }
   else {
     //when s > 1
@@ -299,9 +271,9 @@ auto to_two_graph_efficient_frontier_blocked(ExecutionPolicy&& ep, Hypergraph& h
 * clean without counter. All heuristics on. 
 * Operates on Adjoin hypergraph.
 */
-template <directedness edge_directedness = undirected, class ExecutionPolicy,
+template <directedness edge_directedness = undirected,
           class Hypergraph, class HypergraphT>
-auto to_two_graph_efficient_frontier_cyclic(ExecutionPolicy&& ep, Hypergraph& h,
+auto to_two_graph_efficient_frontier_cyclic(Hypergraph& h,
                                HypergraphT& ht, std::vector<index_t>& degrees,
                                std::vector<vertex_id_t>& frontier, size_t s,
                                int num_threads, int num_bins = 32) {
@@ -337,17 +309,7 @@ auto to_two_graph_efficient_frontier_cyclic(ExecutionPolicy&& ep, Hypergraph& h,
           },
           tbb::auto_partitioner());
     }
-    nw::graph::edge_list<edge_directedness> result(0);
-    result.open_for_push_back();
-    //do this in serial
-    std::for_each(nw::graph::counting_iterator<int>(0), nw::graph::counting_iterator<int>(num_threads), [&](auto i) {
-      std::for_each(two_graphs[i].begin(), two_graphs[i].end(), [&](auto&& e){
-        result.push_back(e);
-      });
-    });
-    result.close_for_push_back();
-
-    return result;
+    return create_edgelist_without_squeeze(two_graphs);
   }
   else {
     // when s > 1
@@ -400,9 +362,9 @@ auto to_two_graph_efficient_frontier_cyclic(ExecutionPolicy&& ep, Hypergraph& h,
  * This to_two_graph operates on hypergraph based frontier. Use an unordered_map instead of map.
  * The hypergraph can be relabeled by degree.
  * */
-template <directedness edge_directedness = undirected, class ExecutionPolicy,
+template <directedness edge_directedness = undirected,
           class Hypergraph, class HypergraphT>
-auto to_two_graph_hashmap_frontier_blocked(ExecutionPolicy&& ep, Hypergraph& h,
+auto to_two_graph_hashmap_frontier_blocked(Hypergraph& h,
                                HypergraphT& ht, std::vector<index_t>& degrees,
                                std::vector<vertex_id_t>& frontier, size_t s,
                                int num_threads, int num_bins = 32) {
@@ -459,16 +421,7 @@ auto to_two_graph_hashmap_frontier_blocked(ExecutionPolicy&& ep, Hypergraph& h,
           },
           tbb::auto_partitioner());
     }
-    nw::graph::edge_list<edge_directedness> result(0);
-    result.open_for_push_back();
-    // do this in serial
-    std::for_each(nw::graph::counting_iterator<int>(0),
-                  nw::graph::counting_iterator<int>(num_threads), [&](auto i) {
-                    std::for_each(two_graphs[i].begin(), two_graphs[i].end(),
-                                  [&](auto&& e) { result.push_back(e); });
-                  });
-    result.close_for_push_back();
-    return result;
+    return create_edgelist_without_squeeze(two_graphs);
   }
   return create_edgelist_with_squeeze(two_graphs);
 }
@@ -477,9 +430,9 @@ auto to_two_graph_hashmap_frontier_blocked(ExecutionPolicy&& ep, Hypergraph& h,
  * This to_two_graph operates on hypergraph based frontier. Use an unordered_map instead of map.
  * The hypergraph can be relabeled by degree.
  * */
-template <directedness edge_directedness = undirected, class ExecutionPolicy,
+template <directedness edge_directedness = undirected,
           class Hypergraph, class HypergraphT>
-auto to_two_graph_hashmap_frontier_cyclic(ExecutionPolicy&& ep, Hypergraph& h,
+auto to_two_graph_hashmap_frontier_cyclic(Hypergraph& h,
                                HypergraphT& ht, std::vector<index_t>& degrees,
                                std::vector<vertex_id_t>& frontier, size_t s,
                                int num_threads, int num_bins = 32) {
@@ -554,18 +507,84 @@ auto to_two_graph_hashmap_frontier_cyclic(ExecutionPolicy&& ep, Hypergraph& h,
           },
           tbb::auto_partitioner());
     }
-    nw::graph::edge_list<edge_directedness> result(0);
-    result.open_for_push_back();
-    // do this in serial
-    std::for_each(nw::graph::counting_iterator<int>(0),
-                  nw::graph::counting_iterator<int>(num_threads), [&](auto i) {
-                    std::for_each(two_graphs[i].begin(), two_graphs[i].end(),
-                                  [&](auto&& e) { result.push_back(e); });
-                  });
-    result.close_for_push_back();
-    return result;
+    return create_edgelist_without_squeeze(two_graphs);
   }
   return create_edgelist_with_squeeze(two_graphs);
+}
+
+/**
+* Build a frontier based on the number of edges if this is no id permutation
+* (meaning frontier contains the original ids of the hypergraph)
+* or based on the number of realedges and realnodes
+* (meaning frontier contains the relabeled ids of the adjoin graph)
+*
+* @tparam ExecutionPolicy the type of the execution policy
+* @param[in] ep execution policy
+* @param[in] iperm permutation array of the original hypergraph
+* @param[in] nedges the number of hyperedges in the original hypergraph
+* @param[in] nrealedges the number of real (hyper)edges in the adjoin graph
+* @param[in] nrealnodes the number of real nodes in the adjoin graph
+* @returns a frontier of the hyperedge ids
+*/
+template <class ExecutionPolicy>
+auto build_frontier(ExecutionPolicy& ep, std::vector<vertex_id_t>& iperm,
+                    size_t nedges, size_t nrealedges, size_t nrealnodes) {
+  //frontier will contain the number of edges no matter what the ids of them become (with adjoin or relabel)
+  std::vector<vertex_id_t> frontier; 
+  if (iperm.empty()) {
+    //without relabel by degree
+    size_t start, end;
+    if (0 == nrealnodes && 0 == nrealedges) {
+      // for original hypergraph, without adjoin or relabel by degree
+      start = 0ul;
+      end = nedges;
+      frontier.resize(end - start);
+      std::copy(ep, counting_iterator<vertex_id_t>(start), counting_iterator<vertex_id_t>(end), frontier.begin());
+    }
+    else {
+      // for adjoin hypergraph, without relabel by degree
+      if (nrealedges > nrealnodes) {
+        //if nrealedges is greater than nrealnodes,
+        //then in the adjacency, hyperedges are in the front from index 0 to nrealedges
+        start = 0ul;
+        end = nrealedges;
+      } else {
+        //if nrealedges is smaller than nrealnodes,
+        // then in the adjacency, hyperedges are in the back from index nrealnodes to nrealnode + nrealedges
+        start = nrealnodes;
+        end = nrealnodes + nrealedges;
+      }
+      frontier.resize(end - start);
+      std::copy(ep, counting_iterator<vertex_id_t>(start), counting_iterator<vertex_id_t>(end), frontier.begin());
+    }
+  }
+  else {
+    //with relabel by degree
+    if (0 == nrealnodes && 0 == nrealedges) {
+      // for original hypergraph, with relabel by degree
+      auto start = 0ul;
+      auto end = nedges;
+      frontier.resize(end - start);
+      std::copy(ep, counting_iterator<vertex_id_t>(start), counting_iterator<vertex_id_t>(end), frontier.begin());
+    }
+    else {
+      // for adjoin hypergraph, with relabel by degree
+      size_t start, end;
+      if (nrealedges < nrealnodes) {
+        start = nrealnodes;
+        end = nedges;
+      } else {
+        start = 0ul;
+        end = nrealedges;
+      }
+      frontier.resize(end - start);
+      //std::copy(ep, counting_iterator<vertex_id_t>(start), counting_iterator<vertex_id_t>(end), frontier.begin());
+      std::for_each(ep, nw::graph::counting_iterator<vertex_id_t>(0ul),
+                    nw::graph::counting_iterator<vertex_id_t>(end - start),
+                    [&](auto i) { frontier[i] = iperm[i + start]; });
+    }
+  }
+  return frontier;
 }
 
 /*
@@ -585,62 +604,8 @@ auto to_two_graph_map_frontier_cyclic_portal(ExecutionPolicy&& ep, Hypergraph& h
 std::vector<index_t>& degrees, std::vector<vertex_id_t>& iperm,
 size_t nrealedges, size_t nrealnodes, 
 size_t s, int num_threads, int num_bins = 32) {
-  //frontier will contain the number of edges no matter what the ids of them become (with adjoin or relabel)
-  std::vector<vertex_id_t> frontier; 
-  if (iperm.empty()) {
-    //without relabel by degree
-    size_t start, end;
-    if (0 == nrealnodes && 0 == nrealedges) {
-      // for original hypergraph, without adjoin or relabel by degree
-      start = 0ul;
-      end = h.size();
-      frontier.resize(end - start);
-      std::copy(ep, counting_iterator<vertex_id_t>(start), counting_iterator<vertex_id_t>(end), frontier.begin());
-    }
-    else {
-      // for adjoin hypergraph, without relabel by degree
-      if (nrealedges > nrealnodes) {
-        //if nrealedges is greater than nrealnodes,
-        //then in the adjacency, hyperedges are in the front from index 0 to nrealedges
-        start = 0ul;
-        end = nrealedges;
-      } else {
-        //if nrealedges is smaller than nrealnodes,
-        // then in the adjacency, hyperedges are in the back from index nrealnodes to nrealnode + nrealedges
-        start = nrealnodes;
-        end = nrealnodes + nrealedges;
-      }
-      frontier.resize(end - start);
-      std::copy(ep, counting_iterator<vertex_id_t>(start), counting_iterator<vertex_id_t>(end), frontier.begin());
-    }
-  }
-  else {
-    //with relabel by degree
-    if (0 == nrealnodes && 0 == nrealedges) {
-      // for original hypergraph, with relabel by degree
-      auto start = 0ul;
-      auto end = h.size();
-      frontier.resize(end - start);
-      std::copy(ep, counting_iterator<vertex_id_t>(start), counting_iterator<vertex_id_t>(end), frontier.begin());
-    }
-    else {
-      // for adjoin hypergraph, with relabel by degree
-      size_t start, end;
-      if (nrealedges < nrealnodes) {
-        start = nrealnodes;
-        end = h.size();
-      } else {
-        start = 0ul;
-        end = nrealedges;
-      }
-      frontier.resize(end - start);
-      //std::copy(ep, counting_iterator<vertex_id_t>(start), counting_iterator<vertex_id_t>(end), frontier.begin());
-      std::for_each(ep, nw::graph::counting_iterator<vertex_id_t>(0ul),
-                    nw::graph::counting_iterator<vertex_id_t>(end - start),
-                    [&](auto i) { frontier[i] = iperm[i + start]; });
-    }
-  }
-  return to_two_graph_map_frontier_cyclic(ep, h, ht, degrees, frontier, s, num_threads, num_bins);
+  auto frontier = build_frontier(ep, iperm, h.size(), nrealedges, nrealnodes);
+  return to_two_graph_map_frontier_cyclic(h, ht, degrees, frontier, s, num_threads, num_bins);
 }
 
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class Hypergraph, class HypergraphT>
@@ -648,62 +613,8 @@ auto to_two_graph_map_frontier_blocked_portal(ExecutionPolicy&& ep, Hypergraph& 
 std::vector<index_t>& degrees, std::vector<vertex_id_t>& iperm,
 size_t nrealedges, size_t nrealnodes, 
 size_t s, int num_threads, int num_bins = 32) {
-  //frontier will contain the number of edges no matter what the ids of them become (with adjoin or relabel)
-  std::vector<vertex_id_t> frontier; 
-  if (iperm.empty()) {
-    //without relabel by degree
-    size_t start, end;
-    if (0 == nrealnodes && 0 == nrealedges) {
-      // for original hypergraph, without adjoin or relabel by degree
-      start = 0ul;
-      end = h.size();
-      frontier.resize(end - start);
-      std::copy(ep, counting_iterator<vertex_id_t>(start), counting_iterator<vertex_id_t>(end), frontier.begin());
-    }
-    else {
-      // for adjoin hypergraph, without relabel by degree
-      if (nrealedges > nrealnodes) {
-        //if nrealedges is greater than nrealnodes,
-        //then in the adjacency, hyperedges are in the front from index 0 to nrealedges
-        start = 0ul;
-        end = nrealedges;
-      } else {
-        //if nrealedges is smaller than nrealnodes,
-        // then in the adjacency, hyperedges are in the back from index nrealnodes to nrealnode + nrealedges
-        start = nrealnodes;
-        end = nrealnodes + nrealedges;
-      }
-      frontier.resize(end - start);
-      std::copy(ep, counting_iterator<vertex_id_t>(start), counting_iterator<vertex_id_t>(end), frontier.begin());
-    }
-  }
-  else {
-    //with relabel by degree
-    if (0 == nrealnodes && 0 == nrealedges) {
-      // for original hypergraph, with relabel by degree
-      auto start = 0ul;
-      auto end = h.size();
-      frontier.resize(end - start);
-      std::copy(ep, counting_iterator<vertex_id_t>(start), counting_iterator<vertex_id_t>(end), frontier.begin());
-    }
-    else {
-      // for adjoin hypergraph, with relabel by degree
-      size_t start, end;
-      if (nrealedges < nrealnodes) {
-        start = nrealnodes;
-        end = h.size();
-      } else {
-        start = 0ul;
-        end = nrealedges;
-      }
-      frontier.resize(end - start);
-      //std::copy(ep, counting_iterator<vertex_id_t>(start), counting_iterator<vertex_id_t>(end), frontier.begin());
-      std::for_each(ep, nw::graph::counting_iterator<vertex_id_t>(0ul),
-                    nw::graph::counting_iterator<vertex_id_t>(end - start),
-                    [&](auto i) { frontier[i] = iperm[i + start]; });
-    }
-  }
-  return to_two_graph_map_frontier_blocked(ep, h, ht, degrees, frontier, s, num_threads, num_bins);
+  auto frontier = build_frontier(ep, iperm, h.size(), nrealedges, nrealnodes);
+  return to_two_graph_map_frontier_blocked(h, ht, degrees, frontier, s, num_threads, num_bins);
 }
 
 /*
@@ -723,62 +634,8 @@ auto to_two_graph_efficient_frontier_cyclic_portal(ExecutionPolicy&& ep, Hypergr
 std::vector<index_t>& degrees, std::vector<vertex_id_t>& iperm,
 size_t nrealedges, size_t nrealnodes, 
 size_t s, int num_threads, int num_bins = 32) {
-  //frontier will contain the number of edges no matter what the ids of them become (with adjoin or relabel)
-  std::vector<vertex_id_t> frontier; 
-  if (iperm.empty()) {
-    //without relabel by degree
-    size_t start, end;
-    if (0 == nrealnodes && 0 == nrealedges) {
-      // for original hypergraph, without adjoin or relabel by degree
-      start = 0ul;
-      end = h.size();
-      frontier.resize(end - start);
-      std::copy(ep, counting_iterator<vertex_id_t>(start), counting_iterator<vertex_id_t>(end), frontier.begin());
-    }
-    else {
-      // for adjoin hypergraph, without relabel by degree
-      if (nrealedges > nrealnodes) {
-        //if nrealedges is greater than nrealnodes,
-        //then in the adjacency, hyperedges are in the front from index 0 to nrealedges
-        start = 0ul;
-        end = nrealedges;
-      } else {
-        //if nrealedges is smaller than nrealnodes,
-        // then in the adjacency, hyperedges are in the back from index nrealnodes to nrealnode + nrealedges
-        start = nrealnodes;
-        end = nrealnodes + nrealedges;
-      }
-      frontier.resize(end - start);
-      std::copy(ep, counting_iterator<vertex_id_t>(start), counting_iterator<vertex_id_t>(end), frontier.begin());
-    }
-  }
-  else {
-    //with relabel by degree
-    if (0 == nrealnodes && 0 == nrealedges) {
-      // for original hypergraph, with relabel by degree
-      auto start = 0ul;
-      auto end = h.size();
-      frontier.resize(end - start);
-      std::copy(ep, counting_iterator<vertex_id_t>(start), counting_iterator<vertex_id_t>(end), frontier.begin());
-    }
-    else {
-      // for adjoin hypergraph, with relabel by degree
-      size_t start, end;
-      if (nrealedges < nrealnodes) {
-        start = nrealnodes;
-        end = h.size();
-      } else {
-        start = 0ul;
-        end = nrealedges;
-      }
-      frontier.resize(end - start);
-      //std::copy(ep, counting_iterator<vertex_id_t>(start), counting_iterator<vertex_id_t>(end), frontier.begin());
-      std::for_each(ep, nw::graph::counting_iterator<vertex_id_t>(0ul),
-                    nw::graph::counting_iterator<vertex_id_t>(end - start),
-                    [&](auto i) { frontier[i] = iperm[i + start]; });
-    }
-  }
-  return to_two_graph_efficient_frontier_cyclic(ep, h, ht, degrees, frontier, s, num_threads, num_bins);
+  auto frontier = build_frontier(ep, iperm, h.size(), nrealedges, nrealnodes);
+  return to_two_graph_efficient_frontier_cyclic(h, ht, degrees, frontier, s, num_threads, num_bins);
 }
 
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class Hypergraph, class HypergraphT>
@@ -786,62 +643,8 @@ auto to_two_graph_efficient_frontier_blocked_portal(ExecutionPolicy&& ep, Hyperg
 std::vector<index_t>& degrees, std::vector<vertex_id_t>& iperm,
 size_t nrealedges, size_t nrealnodes, 
 size_t s, int num_threads, int num_bins = 32) {
-  //frontier will contain the number of edges no matter what the ids of them become (with adjoin or relabel)
-  std::vector<vertex_id_t> frontier; 
-  if (iperm.empty()) {
-    //without relabel by degree
-    size_t start, end;
-    if (0 == nrealnodes && 0 == nrealedges) {
-      // for original hypergraph, without adjoin or relabel by degree
-      start = 0ul;
-      end = h.size();
-      frontier.resize(end - start);
-      std::copy(ep, counting_iterator<vertex_id_t>(start), counting_iterator<vertex_id_t>(end), frontier.begin());
-    }
-    else {
-      // for adjoin hypergraph, without relabel by degree
-      if (nrealedges > nrealnodes) {
-        //if nrealedges is greater than nrealnodes,
-        //then in the adjacency, hyperedges are in the front from index 0 to nrealedges
-        start = 0ul;
-        end = nrealedges;
-      } else {
-        //if nrealedges is smaller than nrealnodes,
-        // then in the adjacency, hyperedges are in the back from index nrealnodes to nrealnode + nrealedges
-        start = nrealnodes;
-        end = nrealnodes + nrealedges;
-      }
-      frontier.resize(end - start);
-      std::copy(ep, counting_iterator<vertex_id_t>(start), counting_iterator<vertex_id_t>(end), frontier.begin());
-    }
-  }
-  else {
-    //with relabel by degree
-    if (0 == nrealnodes && 0 == nrealedges) {
-      // for original hypergraph, with relabel by degree
-      auto start = 0ul;
-      auto end = h.size();
-      frontier.resize(end - start);
-      std::copy(ep, counting_iterator<vertex_id_t>(start), counting_iterator<vertex_id_t>(end), frontier.begin());
-    }
-    else {
-      // for adjoin hypergraph, with relabel by degree
-      size_t start, end;
-      if (nrealedges < nrealnodes) {
-        start = nrealnodes;
-        end = h.size();
-      } else {
-        start = 0ul;
-        end = nrealedges;
-      }
-      frontier.resize(end - start);
-      //std::copy(ep, counting_iterator<vertex_id_t>(start), counting_iterator<vertex_id_t>(end), frontier.begin());
-      std::for_each(ep, nw::graph::counting_iterator<vertex_id_t>(0ul),
-                    nw::graph::counting_iterator<vertex_id_t>(end - start),
-                    [&](auto i) { frontier[i] = iperm[i + start]; });
-    }
-  }
-  return to_two_graph_efficient_frontier_blocked(ep, h, ht, degrees, frontier, s, num_threads, num_bins);
+  auto frontier = build_frontier(ep, iperm, h.size(), nrealedges, nrealnodes);
+  return to_two_graph_efficient_frontier_blocked(h, ht, degrees, frontier, s, num_threads, num_bins);
 }
 
 /*
@@ -862,57 +665,8 @@ auto to_two_graph_hashmap_frontier_blocked_portal(ExecutionPolicy&& ep, Hypergra
 std::vector<index_t>& degrees, std::vector<vertex_id_t>& iperm,
 size_t nrealedges, size_t nrealnodes, 
 size_t s, int num_threads, int num_bins = 32) {
-  std::vector<vertex_id_t> frontier; //frontier will contain the number of edges no matter the ids of it
-  if (iperm.empty()) {
-    //without relabel by degree
-    size_t start, end;
-    if (0 == nrealnodes && 0 == nrealedges) {
-      // for original hypergraph, without adjoin or relabel by degree
-      start = 0ul;
-      end = h.size();
-      frontier.resize(end - start);
-      std::copy(ep, counting_iterator<vertex_id_t>(start), counting_iterator<vertex_id_t>(end), frontier.begin());
-    }
-    else {
-      // for adjoin hypergraph, without relabel by degree
-      if (nrealedges > nrealnodes) {
-        start = 0ul;
-        end = nrealedges;
-      } else {
-        start = nrealnodes;
-        end = nrealnodes + nrealedges;
-      }
-      frontier.resize(end - start);
-      std::copy(ep, counting_iterator<vertex_id_t>(start), counting_iterator<vertex_id_t>(end), frontier.begin());
-    }
-  }
-  else {
-    //with relabel by degree
-    if (0 == nrealnodes && 0 == nrealedges) {
-      // for original hypergraph, with relabel by degree
-      auto start = 0ul;
-      auto end = h.size();
-      frontier.resize(end - start);
-      std::copy(ep, counting_iterator<vertex_id_t>(start), counting_iterator<vertex_id_t>(end), frontier.begin());
-    }
-    else {
-      // for adjoin hypergraph, with relabel by degree
-      size_t start, end;
-      if (nrealedges < nrealnodes) {
-        start = nrealnodes;
-        end = h.size();
-      } else {
-        start = 0ul;
-        end = nrealedges;
-      }
-      frontier.resize(end - start);
-      //std::copy(ep, counting_iterator<vertex_id_t>(start), counting_iterator<vertex_id_t>(end), frontier.begin());
-      std::for_each(ep, nw::graph::counting_iterator<vertex_id_t>(0ul),
-                    nw::graph::counting_iterator<vertex_id_t>(end - start),
-                    [&](auto i) { frontier[i] = iperm[i + start]; });
-    }
-  }
-  return to_two_graph_hashmap_frontier_blocked(ep, h, ht, degrees, frontier, s, num_threads, num_bins);
+  auto frontier = build_frontier(ep, iperm, h.size(), nrealedges, nrealnodes);
+  return to_two_graph_hashmap_frontier_blocked(h, ht, degrees, frontier, s, num_threads, num_bins);
 }
 
 /*
@@ -933,57 +687,8 @@ auto to_two_graph_hashmap_frontier_cyclic_portal(ExecutionPolicy&& ep, Hypergrap
 std::vector<index_t>& degrees, std::vector<vertex_id_t>& iperm,
 size_t nrealedges, size_t nrealnodes, 
 size_t s, int num_threads, int num_bins = 32) {
-  std::vector<vertex_id_t> frontier; //frontier will contain the number of edges no matter the ids of it
-  if (iperm.empty()) {
-    //without relabel by degree
-    size_t start, end;
-    if (0 == nrealnodes && 0 == nrealedges) {
-      // for original hypergraph, without adjoin or relabel by degree
-      start = 0ul;
-      end = h.size();
-      frontier.resize(end - start);
-      std::copy(ep, counting_iterator<vertex_id_t>(start), counting_iterator<vertex_id_t>(end), frontier.begin());
-    }
-    else {
-      // for adjoin hypergraph, without relabel by degree
-      if (nrealedges > nrealnodes) {
-        start = 0ul;
-        end = nrealedges;
-      } else {
-        start = nrealnodes;
-        end = nrealnodes + nrealedges;
-      }
-      frontier.resize(end - start);
-      std::copy(ep, counting_iterator<vertex_id_t>(start), counting_iterator<vertex_id_t>(end), frontier.begin());
-    }
-  }
-  else {
-    //with relabel by degree
-    if (0 == nrealnodes && 0 == nrealedges) {
-      // for original hypergraph, with relabel by degree
-      auto start = 0ul;
-      auto end = h.size();
-      frontier.resize(end - start);
-      std::copy(ep, counting_iterator<vertex_id_t>(start), counting_iterator<vertex_id_t>(end), frontier.begin());
-    }
-    else {
-      // for adjoin hypergraph, with relabel by degree
-      size_t start, end;
-      if (nrealedges < nrealnodes) {
-        start = nrealnodes;
-        end = h.size();
-      } else {
-        start = 0ul;
-        end = nrealedges;
-      }
-      frontier.resize(end - start);
-      //std::copy(ep, counting_iterator<vertex_id_t>(start), counting_iterator<vertex_id_t>(end), frontier.begin());
-      std::for_each(ep, nw::graph::counting_iterator<vertex_id_t>(0ul),
-                    nw::graph::counting_iterator<vertex_id_t>(end - start),
-                    [&](auto i) { frontier[i] = iperm[i + start]; });
-    }
-  }
-  return to_two_graph_hashmap_frontier_cyclic(ep, h, ht, degrees, frontier, s, num_threads, num_bins);
+  auto frontier = build_frontier(ep, iperm, h.size(), nrealedges, nrealnodes);
+  return to_two_graph_hashmap_frontier_cyclic(h, ht, degrees, frontier, s, num_threads, num_bins);
 }
 
 
