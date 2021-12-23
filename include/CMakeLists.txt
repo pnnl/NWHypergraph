@@ -38,6 +38,7 @@ target_sources(NW_HYPERGRAPH
   algorithms/toplexes.hpp
   algorithms/experimental/slinegraph_efficient.hpp
   algorithms/experimental/slinegraph_map.hpp
+  algorithms/to_two_graph_frontier.hpp
   algorithms/to_two_graph_efficient.hpp
   algorithms/to_two_graph_map.hpp
   algorithms/slinegraph_naive.hpp

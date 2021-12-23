@@ -233,7 +233,7 @@ void to_two_graph_frontier_cyclic(
 * @param[in] s the number of overlapping vertices between each hyperedge pair
 * @param[in] num_threads the number of threads
 * @param[in] bin_size the size of bins after dividing the workload
-*
+* @returns the edge list of the s-line graph
 */
 template<directedness edge_directedness = undirected, class HyperEdge, class HyperNode>
 auto to_two_graph_frontier_blocked(HyperEdge& edges, HyperNode& nodes, 
@@ -268,7 +268,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int bin_size 
 * @param[in] s the number of overlapping vertices between each hyperedge pair
 * @param[in] num_threads the number of threads
 * @param[in] num_bins the number of bins to divide the workload
-*
+* @returns the edge list of the s-line graph
 */
 template<directedness edge_directedness = undirected, class HyperEdge, class HyperNode>
 auto to_two_graph_frontier_cyclic(HyperEdge& edges, HyperNode& nodes, 

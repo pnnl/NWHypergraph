@@ -20,160 +20,98 @@
 #include <unordered_map>
 #include <map>
 
+#include "to_two_graph_frontier.hpp"
+
+using namespace nw::hypergraph;
+
 namespace nw {
 namespace hypergraph {
 
-/*
- * This to_two_graph operates on hypergraph based frontier.
- * The hypergraph can be relabeled by degree.
- * */
+/**
+* Computation of an s-line graph of a hypergraph. 
+* It uses a frontier to contain the workload.
+* It uses blocked range as workload distribution strategy.
+* Using a map to store overlapping counts for s > 1,
+* and a set to avoid duplicate edges for s = 1.
+*
+* @tparam edge_directedness the type of the edge directedness
+* @tparam Hypergraph the type of the hyperedge incidence, or the adjoin graph
+* @tparam HypergraphT the type of the hypernode incidence, or the transpose of adjoin graph
+* @param[in] h adjacency for hyperedges, or the adjacency of the adjoin graph
+* @param[in] ht adjacency for hypernodes, or the dual of the adjoin graph
+* @param[in] degrees the degrees of hyperedges
+* @param[in] frontier the worklist of all the hyperedges to check
+* @param[in] s the number of overlapping vertices between each hyperedge pair
+* @param[in] num_threads the number of threads
+* @param[in] num_bins the number of bins to divide the workload
+*
+*/
 template <directedness edge_directedness = undirected,
           class Hypergraph, class HypergraphT>
 auto to_two_graph_map_frontier_blocked(Hypergraph& h,
                                HypergraphT& ht, std::vector<index_t>& degrees,
                                std::vector<vertex_id_t>& frontier, size_t s,
                                int num_threads, int num_bins = 32) {
-  std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(
-      num_threads);
+  using linegraph_t =
+      std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>;
+  linegraph_t two_graphs(num_threads);
   auto M = frontier.size();
   if (1 < s) {
-    nw::util::life_timer _(__func__);
-    tbb::parallel_for(
-        tbb::blocked_range<size_t>(0ul, M, M / num_bins),
-        [&](const tbb::blocked_range<size_t>& r) {
-          int worker_index = tbb::this_task_arena::current_thread_index();
-          for (size_t i = r.begin(), e = r.end(); i != e; ++i) {
-            auto hyperE = frontier[i];
-            if (degrees[hyperE] < s) continue;
-            std::map<size_t, size_t> overlaps;
-            for (auto&& [hyperN] : h[hyperE]) {
-              for (auto&& [anotherhyperE] : ht[hyperN]) {
-                if (degrees[anotherhyperE] < s) continue;
-                if (hyperE < anotherhyperE) ++overlaps[anotherhyperE];
-              }
-            }
-            for (auto& [anotherhyperE, val] : overlaps)
-              if (val >= s)
-              two_graphs[worker_index].push_back(
-                  std::make_tuple<vertex_id_t, vertex_id_t>(
-                      std::forward<vertex_id_t>(hyperE),
-                      std::forward<vertex_id_t>(anotherhyperE)));
-          }
-        },
-        tbb::auto_partitioner());
+    using container_t = std::map<size_t, size_t>;
+    frontier::to_two_graph_frontier_hashmap_blocked<container_t>(
+        std::forward<linegraph_t>(two_graphs), h, ht, degrees, frontier, s,
+        num_bins);
+    return create_edgelist_with_squeeze<edge_directedness>(two_graphs);
   } else {
-    {
-      nw::util::life_timer _(__func__);
-      tbb::parallel_for(
-          tbb::blocked_range<size_t>(0ul, M, M / num_bins),
-          [&](const tbb::blocked_range<size_t>& r) {
-            int worker_index = tbb::this_task_arena::current_thread_index();
-            for (size_t i = r.begin(), e = r.end(); i != e; ++i) {
-              auto hyperE = frontier[i];
-              std::set<size_t> overlaps;
-              for (auto&& [hyperN] : h[hyperE]) {
-                for (auto&& [anotherhyperE] : ht[hyperN]) {
-                  if (hyperE < anotherhyperE) overlaps.insert(anotherhyperE);
-                }
-              }
-              for (auto& anotherhyperE : overlaps)
-                two_graphs[worker_index].push_back(
-                    std::make_tuple<vertex_id_t, vertex_id_t>(
-                        std::forward<vertex_id_t>(hyperE),
-                        std::forward<vertex_id_t>(anotherhyperE)));
-            }
-          },
-          tbb::auto_partitioner());
-    }
-    return create_edgelist_without_squeeze(two_graphs);
+    using container_t = std::set<size_t>;
+    frontier::to_two_graph_frontier_set_blocked<container_t>(
+        std::forward<linegraph_t>(two_graphs), h, ht, frontier, num_bins);
+    return create_edgelist_without_squeeze<edge_directedness>(two_graphs);
   }
-  return create_edgelist_with_squeeze(two_graphs);
 }
 
-/*
- * This to_two_graph operates on hypergraph based frontier.
- * The hypergraph can be relabeled by degree.
- * */
-template <directedness edge_directedness = undirected,
-          class Hypergraph, class HypergraphT>
-auto to_two_graph_map_frontier_cyclic(Hypergraph& h,
-                               HypergraphT& ht, std::vector<index_t>& degrees,
-                               std::vector<vertex_id_t>& frontier, size_t s,
-                               int num_threads, int num_bins = 32) {
-  std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(
-      num_threads);
+/**
+* Computation of an s-line graph of a hypergraph. 
+* It uses a frontier to contain the workload.
+* It uses cyclic range as workload distribution strategy.
+* Using a map to store overlapping counts for s > 1,
+* and a set to avoid duplicate edges for s = 1.
+*
+* @tparam edge_directedness the type of the edge directedness
+* @tparam Hypergraph the type of the hyperedge incidence, or the adjoin graph
+* @tparam HypergraphT the type of the hypernode incidence, or the transpose of adjoin graph
+* @param[in] h adjacency for hyperedges, or the adjacency of the adjoin graph
+* @param[in] ht adjacency for hypernodes, or the dual of the adjoin graph
+* @param[in] degrees the degrees of hyperedges
+* @param[in] frontier the worklist of all the hyperedges to check
+* @param[in] s the number of overlapping vertices between each hyperedge pair
+* @param[in] num_threads the number of threads
+* @param[in] num_bins the number of bins to divide the workload
+*
+*/
+template <directedness edge_directedness = undirected, class Hypergraph,
+          class HypergraphT>
+auto to_two_graph_map_frontier_cyclic(Hypergraph& h, HypergraphT& ht,
+                                      std::vector<index_t>& degrees,
+                                      std::vector<vertex_id_t>& frontier,
+                                      size_t s, int num_threads,
+                                      int num_bins = 32) {
+  using linegraph_t =
+      std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>;
+  linegraph_t two_graphs(num_threads);
+  auto M = frontier.size();
   if (1 < s) {
-    nw::util::life_timer _(__func__);
-    tbb::parallel_for(
-        nw::graph::cyclic(frontier, num_bins),
-        [&](auto& i) {
-          int worker_index = tbb::this_task_arena::current_thread_index();
-          for (auto&& j = i.begin(); j != i.end(); ++j) {
-            auto hyperE = frontier[*j];
-            if (degrees[hyperE] < s) continue;
-            std::map<size_t, size_t> K;
-            for (auto&& [hyperN] : h[hyperE]) {
-              for (auto&& [anotherhyperE] : ht[hyperN]) {
-                if (degrees[anotherhyperE] < s) continue;
-                if (hyperE < anotherhyperE) ++K[anotherhyperE];
-              }
-            }
-            for (auto&& [anotherhyperE, val] : K) {
-              if (val >= s)
-                two_graphs[worker_index].push_back(
-                    std::make_tuple<vertex_id_t, vertex_id_t>(
-                        std::forward<vertex_id_t>(hyperE),
-                        std::forward<vertex_id_t>(anotherhyperE)));
-            }
-          }
-        },
-        tbb::auto_partitioner());
+    using container_t = std::map<size_t, size_t>;
+    frontier::to_two_graph_frontier_hashmap_cyclic<container_t>(
+        std::forward<linegraph_t>(two_graphs), h, ht, degrees, frontier, s,
+        num_bins);
+    return create_edgelist_with_squeeze<edge_directedness>(two_graphs);
   } else {
-    {
-      nw::util::life_timer _(__func__);
-      tbb::parallel_for(
-          nw::graph::cyclic(frontier, num_bins),
-          [&](auto& i) {
-            int worker_index = tbb::this_task_arena::current_thread_index();
-            for (auto&& j = i.begin(); j != i.end(); ++j) {
-              auto hyperE = frontier[*j];
-              std::set<size_t> overlaps;
-              /*
-              std::vector<size_t> overlaps(N, 0);
-              nsoverlaps
-              set, insertion is log(nsoverlap)
-              total insertion is nsoverlap*log(nsoverlap),
-              traverse over set is nsoverlap*log(nsoverlap)
-              total is 2*nsoverlap*log(nsoverlap),
-
-              vector, insertion is 1
-              total insertion is nsoverlap
-              traverse over vector is N
-              nsoverlap*2log(nsoverlap) vs nsoverlap + N
-              
-              as s increase, nsoverlap drops.
-              when s is large, nsoverlap  << N
-              when s = 1, nsoverlap is the average degree < N
-
-              hyperE nsoverlap << nsoverlap + N
-              */
-              for (auto&& [hyperN] : h[hyperE]) {
-                for (auto&& [anotherhyperE] : ht[hyperN]) {
-                  if (hyperE < anotherhyperE) overlaps.insert(anotherhyperE);
-                }
-              }
-              for (auto& anotherhyperE : overlaps)
-                two_graphs[worker_index].push_back(
-                    std::make_tuple<vertex_id_t, vertex_id_t>(
-                        std::forward<vertex_id_t>(hyperE),
-                        std::forward<vertex_id_t>(anotherhyperE)));
-            }
-          },
-          tbb::auto_partitioner());
-    }
-    return create_edgelist_without_squeeze(two_graphs);
+    using container_t = std::set<size_t>;
+    frontier::to_two_graph_frontier_set_cyclic<container_t>(
+        std::forward<linegraph_t>(two_graphs), h, ht, frontier, num_bins);
+    return create_edgelist_without_squeeze<edge_directedness>(two_graphs);
   }
-  return create_edgelist_with_squeeze(two_graphs);
 }
 
 /*
@@ -358,158 +296,91 @@ auto to_two_graph_efficient_frontier_cyclic(Hypergraph& h,
   }//else
 }
 
-/*
- * This to_two_graph operates on hypergraph based frontier. Use an unordered_map instead of map.
- * The hypergraph can be relabeled by degree.
- * */
-template <directedness edge_directedness = undirected,
-          class Hypergraph, class HypergraphT>
-auto to_two_graph_hashmap_frontier_blocked(Hypergraph& h,
-                               HypergraphT& ht, std::vector<index_t>& degrees,
-                               std::vector<vertex_id_t>& frontier, size_t s,
-                               int num_threads, int num_bins = 32) {
-  std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(
-      num_threads);
+/**
+* Computation of an s-line graph of a hypergraph. 
+* It uses a frontier to contain the workload.
+* It uses blocked range as workload distribution strategy.
+* Using a hashmap to store overlapping counts for s > 1,
+* and a hashset to avoid duplicate edges for s = 1.
+*
+* @tparam edge_directedness the type of the edge directedness
+* @tparam Hypergraph the type of the hyperedge incidence, or the adjoin graph
+* @tparam HypergraphT the type of the hypernode incidence, or the transpose of adjoin graph
+* @param[in] h adjacency for hyperedges, or the adjacency of the adjoin graph
+* @param[in] ht adjacency for hypernodes, or the dual of the adjoin graph
+* @param[in] degrees the degrees of hyperedges
+* @param[in] frontier the worklist of all the hyperedges to check
+* @param[in] s the number of overlapping vertices between each hyperedge pair
+* @param[in] num_threads the number of threads
+* @param[in] num_bins the number of bins to divide the workload
+*
+*/
+template <directedness edge_directedness = undirected, class Hypergraph,
+          class HypergraphT>
+auto to_two_graph_hashmap_frontier_blocked(Hypergraph& h, HypergraphT& ht,
+                                           std::vector<index_t>& degrees,
+                                           std::vector<vertex_id_t>& frontier,
+                                           size_t s, int num_threads,
+                                           int num_bins = 32) {
+  using linegraph_t =
+      std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>;
+  linegraph_t two_graphs(num_threads);
   auto M = frontier.size();
   if (1 < s) {
-    nw::util::life_timer _(__func__);
-    tbb::parallel_for(
-        tbb::blocked_range(0ul, M, M / num_bins),
-        [&](auto& i) {
-          int worker_index = tbb::this_task_arena::current_thread_index();
-          for (auto j = i.begin(); j != i.end(); ++j) {
-            auto hyperE = frontier[j];
-            if (degrees[hyperE] < s) continue;
-            std::unordered_map<size_t, size_t> K;
-            for (auto&& [hyperN] : h[hyperE]) {
-              for (auto&& [anotherhyperE] : ht[hyperN]) {
-                if (degrees[anotherhyperE] < s) continue;
-                if (hyperE < anotherhyperE) ++K[anotherhyperE];
-              }
-            }
-            for (auto&& [anotherhyperE, val] : K) {
-              if (val >= s)
-                two_graphs[worker_index].push_back(
-                    std::make_tuple<vertex_id_t, vertex_id_t>(
-                        std::forward<vertex_id_t>(hyperE),
-                        std::forward<vertex_id_t>(anotherhyperE)));
-            }
-          }
-        },
-        tbb::auto_partitioner());
+    using container_t = std::unordered_map<size_t, size_t>;
+    frontier::to_two_graph_frontier_hashmap_blocked<container_t>(
+        std::forward<linegraph_t>(two_graphs), h, ht, degrees, frontier, s,
+        num_bins);
+    return create_edgelist_with_squeeze<edge_directedness>(two_graphs);
   } else {
-    {
-      nw::util::life_timer _(__func__);
-      tbb::parallel_for(
-          tbb::blocked_range(0ul, M, M / num_bins),
-          [&](auto& i) {
-            int worker_index = tbb::this_task_arena::current_thread_index();
-            for (auto j = i.begin(); j != i.end(); ++j) {
-              auto hyperE = frontier[j];
-              std::unordered_set<size_t> overlaps;
-              for (auto&& [hyperN] : h[hyperE]) {
-                for (auto&& [anotherhyperE] : ht[hyperN]) {
-                  if (hyperE < anotherhyperE) overlaps.insert(anotherhyperE);
-                }
-              }
-              for (auto& anotherhyperE : overlaps)
-                two_graphs[worker_index].push_back(
-                    std::make_tuple<vertex_id_t, vertex_id_t>(
-                        std::forward<vertex_id_t>(hyperE),
-                        std::forward<vertex_id_t>(anotherhyperE)));
-            }
-          },
-          tbb::auto_partitioner());
-    }
-    return create_edgelist_without_squeeze(two_graphs);
+    using container_t = std::unordered_set<size_t>;
+    frontier::to_two_graph_frontier_set_blocked<container_t>(
+        std::forward<linegraph_t>(two_graphs), h, ht, frontier, num_bins);
+    return create_edgelist_without_squeeze<edge_directedness>(two_graphs);
   }
-  return create_edgelist_with_squeeze(two_graphs);
 }
 
-/*
- * This to_two_graph operates on hypergraph based frontier. Use an unordered_map instead of map.
- * The hypergraph can be relabeled by degree.
- * */
+/**
+* Computation of an s-line graph of a hypergraph. 
+* It uses a frontier to contain the workload.
+* It uses cyclic range as workload distribution strategy.
+* Using a hashmap to store overlapping counts for s > 1,
+* and a hashset to avoid duplicate edges for s = 1.
+*
+* @tparam edge_directedness the type of the edge directedness
+* @tparam Hypergraph the type of the hyperedge incidence, or the adjoin graph
+* @tparam HypergraphT the type of the hypernode incidence, or the transpose of adjoin graph
+* @param[in] h adjacency for hyperedges, or the adjacency of the adjoin graph
+* @param[in] ht adjacency for hypernodes, or the dual of the adjoin graph
+* @param[in] degrees the degrees of hyperedges
+* @param[in] frontier the worklist of all the hyperedges to check
+* @param[in] s the number of overlapping vertices between each hyperedge pair
+* @param[in] num_threads the number of threads
+* @param[in] num_bins the number of bins to divide the workload
+*
+*/
 template <directedness edge_directedness = undirected,
           class Hypergraph, class HypergraphT>
 auto to_two_graph_hashmap_frontier_cyclic(Hypergraph& h,
                                HypergraphT& ht, std::vector<index_t>& degrees,
                                std::vector<vertex_id_t>& frontier, size_t s,
                                int num_threads, int num_bins = 32) {
-  std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(
-      num_threads);
+    using linegraph_t =
+      std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>;
+  linegraph_t two_graphs(num_threads);
+  auto M = frontier.size();
   if (1 < s) {
-    nw::util::life_timer _(__func__);
-    tbb::parallel_for(
-        nw::graph::cyclic(frontier, num_bins),
-        [&](auto& i) {
-          int worker_index = tbb::this_task_arena::current_thread_index();
-          for (auto&& j = i.begin(); j != i.end(); ++j) {
-              auto hyperE = frontier[*j];
-            if (degrees[hyperE] < s) continue;
-            std::unordered_map<size_t, size_t> K;
-            for (auto&& [hyperN] : h[hyperE]) {
-              for (auto&& [anotherhyperE] : ht[hyperN]) {
-                if (degrees[anotherhyperE] < s) continue;
-                if (hyperE < anotherhyperE) ++K[anotherhyperE];
-              }
-            }
-            for (auto&& [anotherhyperE, val] : K) {
-              if (val >= s)
-                two_graphs[worker_index].push_back(
-                    std::make_tuple<vertex_id_t, vertex_id_t>(
-                        std::forward<vertex_id_t>(hyperE),
-                        std::forward<vertex_id_t>(anotherhyperE)));
-            }
-          }
-        },
-        tbb::auto_partitioner());
+    using container_t = std::unordered_map<size_t, size_t>;
+    frontier::to_two_graph_frontier_hashmap_cyclic<container_t>(
+        std::forward<linegraph_t>(two_graphs), h, ht, degrees, frontier, s,
+        num_bins);
+    return create_edgelist_with_squeeze<edge_directedness>(two_graphs);
   } else {
-    {
-      nw::util::life_timer _(__func__);
-      tbb::parallel_for(
-          nw::graph::cyclic(frontier, num_bins),
-          [&](auto& i) {
-            int worker_index = tbb::this_task_arena::current_thread_index();
-            for (auto&& j = i.begin(); j != i.end(); ++j) {
-              auto hyperE = frontier[*j];
-              std::unordered_set<size_t> overlaps;
-              /*
-              std::vector<size_t> overlaps(N, 0);
-              nsoverlaps
-              set, insertion is log(nsoverlap)
-              total insertion is nsoverlap*log(nsoverlap),
-              traverse over set is nsoverlap*log(nsoverlap)
-              total is 2*nsoverlap*log(nsoverlap),
-
-              vector, insertion is 1
-              total insertion is nsoverlap
-              traverse over vector is N
-              nsoverlap*2log(nsoverlap) vs nsoverlap + N
-              
-              as s increase, nsoverlap drops.
-              when s is large, nsoverlap  << N
-              when s = 1, nsoverlap is the average degree < N
-
-              hyperE nsoverlap << nsoverlap + N
-              */
-              for (auto&& [hyperN] : h[hyperE]) {
-                for (auto&& [anotherhyperE] : ht[hyperN]) {
-                  if (hyperE < anotherhyperE) overlaps.insert(anotherhyperE);
-                }
-              }
-              for (auto& anotherhyperE : overlaps)
-                two_graphs[worker_index].push_back(
-                    std::make_tuple<vertex_id_t, vertex_id_t>(
-                        std::forward<vertex_id_t>(hyperE),
-                        std::forward<vertex_id_t>(anotherhyperE)));
-            }
-          },
-          tbb::auto_partitioner());
-    }
-    return create_edgelist_without_squeeze(two_graphs);
+    using container_t = std::unordered_set<size_t>;
+    frontier::to_two_graph_frontier_set_cyclic<container_t>(
+        std::forward<linegraph_t>(two_graphs), h, ht, frontier, num_bins);
+    return create_edgelist_without_squeeze<edge_directedness>(two_graphs);
   }
-  return create_edgelist_with_squeeze(two_graphs);
 }
 
 /**
@@ -587,8 +458,8 @@ auto build_frontier(ExecutionPolicy& ep, std::vector<vertex_id_t>& iperm,
   return frontier;
 }
 
-/*
-* Portal for frontier based map soverlap computation algorithms.
+/**
+* Portal for frontier-based map soverlap computation algorithms using cyclic range.
 * It can handle:
 * 1) original hypergraph
 * 2) original hypergraph with relabeling by degree on either hyperedges/hypernodes
@@ -597,7 +468,22 @@ auto build_frontier(ExecutionPolicy& ep, std::vector<vertex_id_t>& iperm,
 * Portal will build frontier using the ids in the Hypergraph 'h'.
 * These ids could be different from the origial ids of the hyperedges.
 * For adjoin hypergraph, the new ids in h is incremented by the nrealedges/nrealnodes (whichever is larger).
-* For orignal
+* For orignal hypergraph, the ids are the ids of the hyperedges.
+*
+* @tparam ExecutionPolicy the type of the execution policy
+* @tparam edge_directedness the type of the edge directedness
+* @tparam Hypergraph the type of the hyperedge incidence, or the adjoin graph
+* @tparam HypergraphT the type of the hypernode incidence, or the transpose of adjoin graph
+* @param[in] ep execution policy
+* @param[in] h adjacency for hyperedges, or the adjacency of the adjoin graph
+* @param[in] ht adjacency for hypernodes, or the dual of the adjoin graph
+* @param[in] degrees the degrees of hyperedges
+* @param[in] iperm permutation array of the original hypergraph
+* @param[in] nrealedges the number of real (hyper)edges in the adjoin graph
+* @param[in] nrealnodes the number of real nodes in the adjoin graph
+* @param[in] s the number of overlapping vertices between each hyperedge pair
+* @param[in] num_threads the number of threads
+* @param[in] num_bins the number of bins to divide the workload
 */
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class Hypergraph, class HypergraphT>
 auto to_two_graph_map_frontier_cyclic_portal(ExecutionPolicy&& ep, Hypergraph& h, HypergraphT& ht,
@@ -608,6 +494,33 @@ size_t s, int num_threads, int num_bins = 32) {
   return to_two_graph_map_frontier_cyclic(h, ht, degrees, frontier, s, num_threads, num_bins);
 }
 
+/**
+* Portal for frontier-based map soverlap computation algorithms using blocked range.
+* It can handle:
+* 1) original hypergraph
+* 2) original hypergraph with relabeling by degree on either hyperedges/hypernodes
+* 3) adjoin hypergraph 
+* 4) adjoin hypergraph with relabeling by degree on both hyperedges/hypernodes
+* Portal will build frontier using the ids in the Hypergraph 'h'.
+* These ids could be different from the origial ids of the hyperedges.
+* For adjoin hypergraph, the new ids in h is incremented by the nrealedges/nrealnodes (whichever is larger).
+* For orignal hypergraph, the ids are the ids of the hyperedges.
+*
+* @tparam ExecutionPolicy the type of the execution policy
+* @tparam edge_directedness the type of the edge directedness
+* @tparam Hypergraph the type of the hyperedge incidence, or the adjoin graph
+* @tparam HypergraphT the type of the hypernode incidence, or the transpose of adjoin graph
+* @param[in] ep execution policy
+* @param[in] h adjacency for hyperedges, or the adjacency of the adjoin graph
+* @param[in] ht adjacency for hypernodes, or the dual of the adjoin graph
+* @param[in] degrees the degrees of hyperedges
+* @param[in] iperm permutation array of the original hypergraph
+* @param[in] nrealedges the number of real (hyper)edges in the adjoin graph
+* @param[in] nrealnodes the number of real nodes in the adjoin graph
+* @param[in] s the number of overlapping vertices between each hyperedge pair
+* @param[in] num_threads the number of threads
+* @param[in] num_bins the number of bins to divide the workload
+*/
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class Hypergraph, class HypergraphT>
 auto to_two_graph_map_frontier_blocked_portal(ExecutionPolicy&& ep, Hypergraph& h, HypergraphT& ht,
 std::vector<index_t>& degrees, std::vector<vertex_id_t>& iperm,
@@ -647,9 +560,8 @@ size_t s, int num_threads, int num_bins = 32) {
   return to_two_graph_efficient_frontier_blocked(h, ht, degrees, frontier, s, num_threads, num_bins);
 }
 
-/*
-* Portal for frontier based hashmap soverlap computation algorithms.
-* It replace a map with an unordered_map.
+/**
+* Portal for frontier-based hashmap soverlap computation algorithms using blocked range.
 * It can handle:
 * 1) original hypergraph
 * 2) original hypergraph with relabeling by degree on either hyperedges/hypernodes
@@ -658,7 +570,22 @@ size_t s, int num_threads, int num_bins = 32) {
 * Portal will build frontier using the ids in the Hypergraph 'h'.
 * These ids could be different from the origial ids of the hyperedges.
 * For adjoin hypergraph, the new ids in h is incremented by the nrealedges/nrealnodes (whichever is larger).
-* For orignal
+* For orignal hypergraph, the ids are the ids of the hyperedges.
+*
+* @tparam ExecutionPolicy the type of the execution policy
+* @tparam edge_directedness the type of the edge directedness
+* @tparam Hypergraph the type of the hyperedge incidence, or the adjoin graph
+* @tparam HypergraphT the type of the hypernode incidence, or the transpose of adjoin graph
+* @param[in] ep execution policy
+* @param[in] h adjacency for hyperedges, or the adjacency of the adjoin graph
+* @param[in] ht adjacency for hypernodes, or the dual of the adjoin graph
+* @param[in] degrees the degrees of hyperedges
+* @param[in] iperm permutation array of the original hypergraph
+* @param[in] nrealedges the number of real (hyper)edges in the adjoin graph
+* @param[in] nrealnodes the number of real nodes in the adjoin graph
+* @param[in] s the number of overlapping vertices between each hyperedge pair
+* @param[in] num_threads the number of threads
+* @param[in] num_bins the number of bins to divide the workload
 */
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class Hypergraph, class HypergraphT>
 auto to_two_graph_hashmap_frontier_blocked_portal(ExecutionPolicy&& ep, Hypergraph& h, HypergraphT& ht,
@@ -669,9 +596,8 @@ size_t s, int num_threads, int num_bins = 32) {
   return to_two_graph_hashmap_frontier_blocked(h, ht, degrees, frontier, s, num_threads, num_bins);
 }
 
-/*
-* Portal for frontier based hashmap soverlap computation algorithms.
-* It replace a map with an unordered_map.
+/**
+* Portal for frontier-based hashmap soverlap computation algorithms using cyclic range.
 * It can handle:
 * 1) original hypergraph
 * 2) original hypergraph with relabeling by degree on either hyperedges/hypernodes
@@ -680,7 +606,22 @@ size_t s, int num_threads, int num_bins = 32) {
 * Portal will build frontier using the ids in the Hypergraph 'h'.
 * These ids could be different from the origial ids of the hyperedges.
 * For adjoin hypergraph, the new ids in h is incremented by the nrealedges/nrealnodes (whichever is larger).
-* For orignal
+* For orignal hypergraph, the ids are the ids of the hyperedges.
+*
+* @tparam ExecutionPolicy the type of the execution policy
+* @tparam edge_directedness the type of the edge directedness
+* @tparam Hypergraph the type of the hyperedge incidence, or the adjoin graph
+* @tparam HypergraphT the type of the hypernode incidence, or the transpose of adjoin graph
+* @param[in] ep execution policy
+* @param[in] h adjacency for hyperedges, or the adjacency of the adjoin graph
+* @param[in] ht adjacency for hypernodes, or the dual of the adjoin graph
+* @param[in] degrees the degrees of hyperedges
+* @param[in] iperm permutation array of the original hypergraph
+* @param[in] nrealedges the number of real (hyper)edges in the adjoin graph
+* @param[in] nrealnodes the number of real nodes in the adjoin graph
+* @param[in] s the number of overlapping vertices between each hyperedge pair
+* @param[in] num_threads the number of threads
+* @param[in] num_bins the number of bins to divide the workload
 */
 template<directedness edge_directedness = undirected, class ExecutionPolicy, class Hypergraph, class HypergraphT>
 auto to_two_graph_hashmap_frontier_cyclic_portal(ExecutionPolicy&& ep, Hypergraph& h, HypergraphT& ht,

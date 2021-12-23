@@ -9,6 +9,7 @@
 //
 #pragma once
 #include <map>
+#include <unordered_map>
 #include <adaptors/cyclic_neighbor_range.hpp>
 #include <adaptors/vertex_range.hpp>
 #include "util/slinegraph_helper.hpp"
@@ -32,7 +33,7 @@ namespace map {
 * @param[in] bin_size the size of bins after dividing the workload
 *
 */
-template <class Container = std::map<size_t, size_t>, class HyperEdge,
+template <class Container = std::unordered_map<size_t, size_t>, class HyperEdge,
           class HyperNode>
 void to_two_graph_map_blocked(
     std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>&& two_graphs,
@@ -46,7 +47,7 @@ void to_two_graph_map_blocked(
         int worker_index = tbb::this_task_arena::current_thread_index();
         for (auto hyperE = r.begin(), e = r.end(); hyperE != e; ++hyperE) {
           if (hyperedgedegrees[hyperE] < s) continue;
-          std::map<size_t, size_t> K;
+          Container K;
           for (auto&& [hyperN] : edges[hyperE]) {
             for (auto&& [anotherhyperE] : nodes[hyperN]) {
               if (hyperedgedegrees[anotherhyperE] < s) continue;
@@ -81,9 +82,9 @@ void to_two_graph_map_blocked(
 * @param[in] num_bins the number of bins to divide the workload
 *
 */
-template <class Container = std::map<size_t, size_t>, class HyperEdge,
+template <class Container = std::unordered_map<size_t, size_t>, class HyperEdge,
           class HyperNode>
-auto to_two_graph_map_cyclic(
+void to_two_graph_map_cyclic(
     std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>&& two_graphs,
     HyperEdge& edges, HyperNode& nodes, std::vector<index_t>& hyperedgedegrees,
     size_t s, int num_bins = 32) {
@@ -132,7 +133,7 @@ auto to_two_graph_map_cyclic(
 *
 */
 template <class HyperEdge, class HyperNode>
-auto to_two_graph_vector_blocked(
+void to_two_graph_vector_blocked(
     std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>&& two_graphs,
     HyperEdge& edges, HyperNode& nodes, std::vector<index_t>& hyperedgedegrees,
     size_t s, int num_threads, int bin_size = 32) {
@@ -189,7 +190,7 @@ auto to_two_graph_vector_blocked(
 *
 */
 template <class HyperEdge, class HyperNode>
-auto to_two_graph_vector_cyclic(
+void to_two_graph_vector_cyclic(
     std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>&& two_graphs,
     HyperEdge& edges, HyperNode& nodes, std::vector<index_t>& hyperedgedegrees,
     size_t s, int num_threads, int num_bins = 32) {
