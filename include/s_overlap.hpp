@@ -504,9 +504,9 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
     case SPGEMM_KIJ: {
       std::cout << "graph edges = " << nodes.size() << std::endl;
       nw::graph::edge_list<undirected> &&linegraph =
-          to_two_graph_spgemm_kij_cyclic_v2<undirected>(
-              std::execution::seq, edges, nodes, edgedegrees,
-              s, num_bins);
+          to_two_graph_spgemm_kij_cyclic<undirected>(
+              std::execution::par_unseq, edges, nodes, edgedegrees,
+              s, num_threads, num_bins);
       // where when an empty edge list is passed in, an adjacency still have
       // two elements
       if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
