@@ -11,6 +11,7 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <adaptors/cyclic_neighbor_range.hpp>
+#include <adaptors/cyclic_range_adapter.hpp>
 #include "util/slinegraph_helper.hpp"
 
 namespace nw {
