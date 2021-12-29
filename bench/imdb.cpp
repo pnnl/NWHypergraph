@@ -22,7 +22,7 @@
 #include <fstream>
 #include <iostream>
 
-#include <map>
+#include <unordered_map>
 #include <string>
 #include <vector>
 
@@ -147,7 +147,7 @@ int main(int argc, char* argv[]) {
       int worker_index = tbb::this_task_arena::current_thread_index();    
       for (auto hyperE = r.begin(), e = r.end(); hyperE != e; ++hyperE) {
           if (degrees[hyperE] < s_value) continue;
-          std::map<size_t, vertex_id_t> K;
+          std::unordered_map<size_t, size_t> K;
           for (auto&& [hyperN] : H[hyperE]) {
             for (auto&& [anotherhyperE] : G[hyperN]) {
               if (degrees[anotherhyperE] < s_value) continue;
