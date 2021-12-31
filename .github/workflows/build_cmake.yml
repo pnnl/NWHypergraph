@@ -27,7 +27,6 @@ jobs:
       uses: actions/checkout@v2
       with:
         repository: NWmath/NWgr
-        token: ${{ secrets.PULL_FROM_NWMATH }}
         ref: adj_fill
         path: NWgr
         
@@ -35,7 +34,6 @@ jobs:
       uses: actions/checkout@v2
       with:
         repository: NWmath/NWut
-        token: ${{ secrets.PULL_FROM_NWMATH }}
         ref: master
         path: NWut
 
