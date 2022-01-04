@@ -117,6 +117,55 @@ void to_two_graph_map_cyclic(
 }
 
 /**
+* Computation of a weighted s-line graph of a hypergraph for s > 1. 
+* It uses blocked range as workload distribution strategy.
+* The container can either be a map or a hashmap.
+*
+* @tparam Container the type of container to store overlaping counts
+* @tparam HyperEdge the type of hyperedge incidence
+* @tparam HyperNode the type of hypernode incidence
+* @param[out] two_graphs thread local edge list of s-line graph
+* @param[in] edges adjacency for hyperedges
+* @param[in] nodes adjacency for hypernodes
+* @param[in] hyperedgedegrees the degrees of hyperedges
+* @param[in] s the number of overlapping vertices between each hyperedge pair
+* @param[in] bin_size the size of bins after dividing the workload
+*
+*/
+template <class Container = std::unordered_map<size_t, size_t>, class T, class HyperEdge,
+          class HyperNode>
+void to_weighted_two_graph_map_blocked(
+    std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t, T>>>&& two_graphs,
+    HyperEdge& edges, HyperNode& nodes, std::vector<index_t>& hyperedgedegrees,
+    size_t s, int bin_size = 32) {
+  nw::util::life_timer _(__func__);
+  size_t M = edges.size();
+  tbb::parallel_for(
+      tbb::blocked_range<vertex_id_t>(0, M, bin_size),
+      [&](tbb::blocked_range<vertex_id_t>& r) {
+        int worker_index = tbb::this_task_arena::current_thread_index();
+        for (auto hyperE = r.begin(), e = r.end(); hyperE != e; ++hyperE) {
+          if (hyperedgedegrees[hyperE] < s) continue;
+          Container K;
+          for (auto&& [hyperN] : edges[hyperE]) {
+            for (auto&& [anotherhyperE] : nodes[hyperN]) {
+              if (hyperedgedegrees[anotherhyperE] < s) continue;
+              if (hyperE < anotherhyperE) ++K[anotherhyperE];
+            }
+          }
+          for (auto&& [anotherhyperE, val] : K) {
+            if (val >= s)
+              two_graphs[worker_index].push_back(
+                  std::make_tuple<vertex_id_t, vertex_id_t>(
+                      std::forward<vertex_id_t>(hyperE),
+                      std::forward<vertex_id_t>(anotherhyperE), val));
+          }
+        }
+      },
+      tbb::auto_partitioner());
+}
+
+/**
 * Computation of a s-line graph of a hypergraph for s > 1. 
 * It uses blocked range as workload distribution strategy.
 * The container to store overlapping counts is a pre-allocated vector.

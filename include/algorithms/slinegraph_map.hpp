@@ -129,6 +129,45 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int bin_size 
 
 /**
 * Computation of a s-line graph of a hypergraph. 
+* It uses blocked range as workload distribution strategy.
+* Using a hashmap to store overlapping counts.
+*
+* @tparam edge_directedness the type of the edge directedness
+* @tparam HyperEdge the type of hyperedge incidence
+* @tparam HyperNode the type of hypernode incidence
+* @param[in] edges adjacency for hyperedges
+* @param[in] nodes adjacency for hypernodes
+* @param[in] hyperedgedegrees the degrees of hyperedges
+* @param[in] s the number of overlapping vertices between each hyperedge pair
+* @param[in] num_threads the number of bins to divide the workload
+* @param[in] bin_size the size of bins after dividing the workload
+*
+*/
+template <directedness edge_directedness = undirected, class T, class HyperEdge,
+          class HyperNode>
+auto to_weighted_two_graph_hashmap_blocked(
+    HyperEdge& edges, HyperNode& nodes, std::vector<index_t>& hyperedgedegrees,
+    size_t s, int num_threads, int bin_size = 32) {
+  size_t M = edges.size();
+  using linegraph_t =
+      std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t, T>>>;
+  linegraph_t two_graphs(num_threads);
+  using container_t = std::unordered_map<size_t, size_t>;
+  if (1 < s) {
+    map::to_weighted_two_graph_map_blocked<container_t>(
+        std::forward<linegraph_t>(two_graphs), edges, nodes, hyperedgedegrees,
+        s, bin_size);
+    return create_edgelist_with_squeeze<edge_directedness>(two_graphs);
+  } else {
+    efficient::to_weighted_two_graph_blocked(
+        std::forward<linegraph_t>(two_graphs), edges, nodes, M / bin_size, 0,
+        M);
+    return create_edgelist_without_squeeze<edge_directedness>(two_graphs);
+  }
+}
+
+/**
+* Computation of a s-line graph of a hypergraph. 
 * It uses cyclic range as workload distribution strategy.
 * Using a hashmap to store overlapping counts.
 *
