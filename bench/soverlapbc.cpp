@@ -12,26 +12,36 @@ static constexpr const char USAGE[] =
  R"(sbc.exe : NWhy soverlap betweenness centrality benchmark driver.
   Usage:
       sbc.exe (-h | --help)
-      sbc.exe [-f FILE...] [-r NODE | --sources FILE ] [-i NUM] [-n NUM] [-B NUM] [-s NUM] [--relabel NUM] [--loader-version ID] [--seed NUM] [--version ID...] [--log FILE] [--log-header] [-dvV] [THREADS]...
+      sbc.exe [-f FILE...] [-r NODE | --sources FILE ] [-i NUM] [-n NUM] [-B NUM] [-s NUM] [--relabel NUM] [--direction DIR] [--adjoin] [--loader-version ID] [--seed NUM] [--version ID...] [--log FILE] [--log-header] [-dvV] [THREADS]...
 
   Options:
-      -h, --help              show this screen
-      -f FILE                 input file paths (can have multiples and different file format)
-      -i NUM                  number of iteration [default: 1]
-      -n NUM                  number of trials [default: 1]
-      -r NODE                 start from node r (default is random)
-      -B NUM                  number of bins [default: 32]
-      -s NUM                  s value of soverlap [default: 1]
-      --relabel NUM           relabel the graph - 0(hyperedge)/1(hypernode) [default: -1]
-      --sources FILE          sources file
-      --seed NUM              random seed [default: 27491095]
-      --version ID            algorithm version to run [default: 0]
-      --loader-version ID     soverlap computation loader kernal version [default: 0]
-      --log FILE              log times to a file
-      --log-header            add a header to the log file
-      -d, --debug             run in debug mode
-      -v, --verify            verify results
-      -V, --verbose           run in verbose mode
+      -h, --help            show this screen
+      -f FILE               input file paths (can have multiples and different file format)
+      -i NUM                number of iteration [default: 1]
+      -n NUM                number of trials [default: 1]
+      -r NODE               start from node r (default is random)
+      -B NUM                number of bins [default: 32]
+      -s NUM                s value of soverlap [default: 1]
+      --relabel NUM         relabel the graph - 0(hyperedge)/1(hypernode) [default: -1]
+      --direction DIR       hypergraph relabeling direction - ascending/descending [default: ascending]
+      --adjoin              adjoin the id spaces of the hyperedges and hypernodes (smaller one comes after the larger one) 
+      --sources FILE        sources file
+      --seed NUM            random seed [default: 27491095]
+      --version ID          algorithm version to run [default: 0]
+      --loader-version ID   soverlap computation loader kernel version [default: 14] 
+                            0)Efficient_Blocked 1)Efficient_Cyclic 2)Naive 3)Map_Blocked 4)Map_Cyclic 
+                            5)Ensemble_Blocked 6)Ensemble_Cyclic 7)Map_Frontier_Blocked 8)Map_Frontier_Cyclic 
+                            9)HashMap_Frontier_Blocked 10)HashMap_Frontier_Cyclic 
+                            11)Efficient_Frontier_Blocked 12)Efficient_Frontier_Cyclic
+                            13)HashMap_Blocked 14)HashMap_Cyclic 15)Vector_Blocked 16)Vector_Cyclic
+                            17)Static_HashMap_Blocked 18)Static_HashMap_Cyclic
+                            19)Efficient_Blocked_Size 20)Map_Blocked_Size 21)HashMap_Blocked_Size 22)Vector_Blocked_Size
+                            23)Static_HashMap_Blocked_Size
+      --log FILE            log times to a file
+      --log-header          add a header to the log file
+      -d, --debug           run in debug mode
+      -v, --verify          verify results
+      -V, --verbose         run in verbose mode
 )";
 
 #include <unordered_set>
@@ -62,9 +72,14 @@ int main(int argc, char* argv[]) {
   bool       debug = args["--debug"].asBool();
   long      trials = args["-n"].asLong() ?: 1;
   long  iterations = args["-i"].asLong() ?: 1;
-  long num_bins= args["-B"].asLong() ?: 32;
-  size_t s     = args["-s"].asLong() ?: 1;
-  long loader_version = args["--loader-version"].asLong() ?: 0;
+  long idx         = args["--relabel"].asLong();
+  bool adjoin      = args["--adjoin"].asBool();
+  std::string direction 
+                   = args["--direction"].asString();
+  long num_bins    = args["-B"].asLong() ?: 32;
+  size_t s         = args["-s"].asLong() ?: 1;
+  long loader_version 
+                   = args["--loader-version"].asLong() ?: 0;
  
   std::vector     ids = parse_ids(args["--version"].asStringList());
   std::vector threads = parse_n_threads(args["THREADS"].asStringList());
@@ -77,35 +92,8 @@ int main(int argc, char* argv[]) {
   Times times;
 
   for (auto&& file : files) {
-    auto reader = [&](std::string file) {
-      auto aos_a = load_graph<directed>(file);
-      auto idx = args["--relabel"].asLong();
-      if (0 == aos_a.size()) {
-        auto&& [hyperedges, hypernodes] = load_adjacency<>(file);
-        // Run relabeling. This operates directly on the incoming edglist.
-        if (-1 != idx) {
-          nw::hypergraph::relabel_by_degree(hyperedges, hypernodes, idx, args["--direction"].asString());
-        }
-        std::cout << "num_hyperedges = " << hyperedges.size() << " num_hypernodes = " << hypernodes.size() << std::endl;
-        return std::tuple(hyperedges, hypernodes);
-      }
-      else {
-        // Run relabeling. This operates directly on the incoming edglist.
-        if (-1 != idx) {
-          std::cout << "relabeling edge_list by degree..." << std::endl;
-          if (1 == idx)
-            nw::hypergraph::relabel_by_degree<1>(aos_a, args["--direction"].asString());
-          else
-            nw::hypergraph::relabel_by_degree<0>(aos_a, args["--direction"].asString());
-        }
-        adjacency<0> hyperedges(aos_a);
-        adjacency<1> hypernodes(aos_a); 
-      
-        std::cout << "num_hyperedges = " << hyperedges.size() << " num_hypernodes = " << hypernodes.size() << std::endl;
-        return std::tuple(hyperedges, hypernodes);
-      }
-    };
-    auto&&[ hyperedges, hypernodes] = reader(file);
+    size_t nrealedges = 0, nrealnodes = 0;
+    auto&& [hyperedges, hypernodes, iperm] = graph_reader<directed>(file, idx, direction, adjoin, nrealedges, nrealnodes);
     auto&& hyperedge_degrees = hyperedges.degrees(std::execution::par_unseq);
 
     if (verbose) {
@@ -113,46 +101,27 @@ int main(int argc, char* argv[]) {
       hyperedges.stream_stats();
     }
 
-    auto twograph_reader = [&](adjacency<0>& edges, adjacency<1>& nodes, std::vector<nw::graph::index_t>& edgedegrees, 
-    size_t s = 1, int num_bins = 32) {
-      switch (loader_version) {
-      case 0:
-      {
-          nw::graph::edge_list<undirected> &&linegraph = to_two_graph_efficient_blocked<undirected>(hyperedges, hypernodes, hyperedge_degrees, s, num_bins);
-          //where when an empty edge list is passed in, an adjacency still have two elements
-          if (0 == linegraph.size()) return nw::graph::adjacency<1>(0);
-          nw::graph::adjacency<1> s_adj(linegraph);
-          std::cout << "line:" << linegraph.size() << " adjacency: " << s_adj.size() << std::endl;
-          return s_adj;
-      }
-      default:
-      {
-          std::cerr << "unknown soverlap computation loader" << std::endl;
-          return nw::graph::adjacency<1>(0);
-      }
-      }
-    };
-    auto&& graph = twograph_reader(hyperedges, hypernodes, hyperedge_degrees, s, num_bins);
-
-    if (debug) {
-      hypernodes.stream_indices();
-      hyperedges.stream_indices();
-    }
-
-    //Source should be selected/generated based on line graph
-    std::vector<vertex_id_t> sources;
-    if (args["--sources"]) {
-      sources = load_sources_from_file(hyperedges, args["--sources"].asString());
-      trials  = sources.size();
-    } else if (args["-r"]) {
-      sources.resize(trials);
-      std::fill(sources.begin(), sources.end(), args["-r"].asLong());
-    } else {
-      sources = build_random_sources(graph, trials, args["--seed"].asLong()); // TODO: set source based on line graph vertex max ID
-    }
-
     for (auto&& thread : threads) {
       auto _ = set_n_threads(thread);
+      auto features = std::bitset<8>();
+      auto&& graph =
+          twograph_reader(loader_version, verbose, features, hyperedges,
+                          hypernodes, hyperedge_degrees, iperm, nrealedges,
+                          nrealnodes, s, thread, num_bins);
+      // Source should be selected/generated based on line graph
+      std::vector<vertex_id_t> sources;
+      if (args["--sources"]) {
+        sources =
+            load_sources_from_file(hyperedges, args["--sources"].asString());
+        trials = sources.size();
+      } else if (args["-r"]) {
+        sources.resize(trials);
+        std::fill(sources.begin(), sources.end(), args["-r"].asLong());
+      } else {
+        sources = build_random_sources(
+            graph, trials,
+            args["--seed"].asLong());      
+      }
       for (auto&& id : ids) {
         for (auto&& source : sources) {
           if (verbose) std::cout << "version " << id << std::endl;

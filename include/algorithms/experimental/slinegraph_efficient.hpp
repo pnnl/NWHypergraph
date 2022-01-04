@@ -181,7 +181,7 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins 
 template <directedness edge_directedness = undirected, class HyperEdge,
           class HyperNode>
 auto to_two_graph_efficient_blocked_optional_features_clean(
-    std::bitset<8>& features, HyperEdge& e_nbs, HyperNode& n_nbs,
+    const std::bitset<8>& features, HyperEdge& e_nbs, HyperNode& n_nbs,
     std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads,
     int bin_size = 32) {
   size_t M = e_nbs.size();
@@ -390,9 +390,12 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int bin_size 
 * @param[in] bin_size the size of each bin after dividing the workload
 * @returns the edge list of the weighted s-line graph
 */
-template<directedness edge_directedness = undirected, class HyperEdge, class HyperNode>
-auto to_two_graph_efficient_blocked_optional_features_with_counter(std::bitset<8>& features, HyperEdge& e_nbs, HyperNode& n_nbs, 
-std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int bin_size = 32) {
+template <directedness edge_directedness = undirected, class HyperEdge,
+          class HyperNode>
+auto to_two_graph_efficient_blocked_optional_features_with_counter(
+    const std::bitset<8>& features, HyperEdge& e_nbs, HyperNode& n_nbs,
+    std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads,
+    int bin_size = 32) {
   size_t M = e_nbs.size();
   size_t N = n_nbs.size();
   auto edges = e_nbs.begin();
@@ -482,7 +485,6 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int bin_size 
     return create_edgelist_with_squeeze(two_graphs);
   }//else
 }
-
 
 }//namespace hypergraph
 }//namespace nw
