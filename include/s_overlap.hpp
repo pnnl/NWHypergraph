@@ -519,14 +519,89 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
     case Unknown:
     default: {
       std::cerr << "unknown soverlap computation loader" << std::endl;
-      return nw::graph::adjacency<0>(0);
+      return nw::graph::adjacency<0>(0, 0);
     }
   }
-};
+}
 
+/**
+* This function computes the s-line graph of a hypergraph and returns its edge list.
+* This is the clean version without experimental drivers. 
+* Only unweighted hypergraph is supported for now.
+*
+* @tparam edge_directedness the type of the edge directedness
+* @param[in] version s-line graph algorithm version id
+* @param[in] edges adjacency for hyperedges
+* @param[in] nodes adjacency for hypernodes
+* @param[in] iperm permutation array of hyperedges/nodes IDs when adjoin is enabled
+* @param[in] nrealedges the number of real hyperedges when adjoin is enabled
+* @param[in] nrealnodes the number of real nodes when adjoin is enabled
+* @param[in] s the number of the overlapping vertices between hyperedge pairs
+* @param[in] num_threads the number of threads to run
+* @param[in] num_bins the number of bins to divide the workload
+* @returns the edge list of the s-line graph
+*
+*/
+template<directedness edge_directedness = undirected>
+auto twograph_reader(int version,
+                     nw::graph::adjacency<0> &edges, nw::graph::adjacency<1> &nodes,
+                     std::vector<nw::graph::index_t> &edgedegrees,
+                     std::vector<vertex_id_t>& iperm,
+                     size_t nrealedges, size_t nrealnodes, 
+                     size_t s,
+                     int num_threads, 
+                     int num_bins = 32) {
+  switch (version) {
+    case Efficient_Blocked: {
+      auto &&linegraph =
+          to_two_graph_efficient_blocked<edge_directedness>(edges, nodes, edgedegrees, s,
+                                            num_threads, num_bins);
+      // where when an empty edge list is passed in, an adjacency still have two
+      // elements
+      if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
+      return nw::graph::adjacency<0>(linegraph);
+    }
+    case Efficient_Cyclic: {
+      auto &&linegraph =
+      to_two_graph_efficient_cyclic<edge_directedness>(edges, nodes, edgedegrees, s,
+                                            num_threads, num_bins);
+      // where when an empty edge list is passed in, an adjacency still have two
+      // elements
+      if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
+      return nw::graph::adjacency<0>(linegraph);
+    }
+    case HashMap_Blocked: {
+      auto &&linegraph =
+          to_two_graph_hashmap_blocked<edge_directedness>(
+              edges, nodes, edgedegrees, s,
+              num_threads, num_bins);
+      // where when an empty edge list is passed in, an adjacency still have two
+      // elements
+      if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
+      return nw::graph::adjacency<0>(linegraph);
+    }
+    case HashMap_Cyclic: {
+      auto &&linegraph =
+          to_two_graph_hashmap_cyclic<edge_directedness>(
+              edges, nodes, edgedegrees, s,
+              num_threads, num_bins);
+      // where when an empty edge list is passed in, an adjacency still have two
+      // elements
+      if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
+      return nw::graph::adjacency<0>(linegraph);
+    }
+    case Unknown:
+    default: {
+      std::cerr << "unknown soverlap computation loader" << std::endl;
+      return nw::graph::adjacency<0>(0, 0);
+    }
+  }
+}
 /**
 * This function computes a weighted s-line graph of a hypergraph and returns its edge list. 
 *
+* @tparam edge_directedness the type of the edge directedness
+* @tparam T the type of the weight in the s-line graph
 * @param[in] version s-line graph algorithm version id
 * @param[in] edges adjacency for hyperedges
 * @param[in] nodes adjacency for hypernodes
