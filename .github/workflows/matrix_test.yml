@@ -85,5 +85,5 @@ jobs:
 
     - name: make
       run: |
-        cd NWgr/build
+        cd NWhy/build
         make -k
