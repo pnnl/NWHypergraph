@@ -33,7 +33,7 @@ namespace map {
 *
 */
 template <class Container = std::unordered_map<size_t, size_t>, class HyperEdge,
-          class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
+          class HyperNode, class vertex_id_t = nw::graph::vertex_id_t<HyperEdge>>
 void to_two_graph_map_blocked(
     std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>&& two_graphs,
     HyperEdge& edges, HyperNode& nodes, std::vector<vertex_id_t>& hyperedgedegrees,
@@ -82,7 +82,7 @@ void to_two_graph_map_blocked(
 *
 */
 template <class Container = std::unordered_map<size_t, size_t>, class HyperEdge,
-          class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
+          class HyperNode, class vertex_id_t = nw::graph::vertex_id_t<HyperEdge>>
 void to_two_graph_map_cyclic(
     std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>&& two_graphs,
     HyperEdge& edges, HyperNode& nodes, std::vector<vertex_id_t>& hyperedgedegrees,
@@ -132,7 +132,7 @@ void to_two_graph_map_cyclic(
 *
 */
 template <class Container = std::unordered_map<size_t, size_t>, class T, class HyperEdge,
-          class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
+          class HyperNode, class vertex_id_t = nw::graph::vertex_id_t<HyperEdge>>
 void to_weighted_two_graph_map_blocked(
     std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t, T>>>&& two_graphs,
     HyperEdge& edges, HyperNode& nodes, std::vector<vertex_id_t>& hyperedgedegrees,
@@ -182,7 +182,7 @@ void to_weighted_two_graph_map_blocked(
 * @param[in] bin_size the size of bins after dividing the workload
 *
 */
-template <class HyperEdge, class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
+template <class HyperEdge, class HyperNode, class vertex_id_t = nw::graph::vertex_id_t<HyperEdge>>
 void to_two_graph_vector_blocked(
     std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>&& two_graphs,
     HyperEdge& edges, HyperNode& nodes, std::vector<vertex_id_t>& hyperedgedegrees,
@@ -239,7 +239,7 @@ void to_two_graph_vector_blocked(
 * @param[in] num_bins the number of bins to divide the workload
 *
 */
-template <class HyperEdge, class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
+template <class HyperEdge, class HyperNode, class vertex_id_t = nw::graph::vertex_id_t<HyperEdge>>
 void to_two_graph_vector_cyclic(
     std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>&& two_graphs,
     HyperEdge& edges, HyperNode& nodes, std::vector<vertex_id_t>& hyperedgedegrees,

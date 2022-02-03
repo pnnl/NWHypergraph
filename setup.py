@@ -67,14 +67,14 @@ class CMakeBuild(build_ext):
 # read the contents of your README file
 from os import path
 this_directory = path.abspath(path.dirname(__file__))
-with open(path.join(this_directory, 'NWhyUserGuide.rst'), encoding='utf-8') as f:
+with open(path.join(this_directory, 'docs/NWhyUserGuide.rst'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(
     name='nwhy',
-    version='0.0.15',
+    version='0.1.0',
     author='Xu Tony Liu',
-    author_email='xu.liu2@wsu.edu',
+    author_email='x0@uw.edu',
     description='NWhy project using pybind11 and CMake',
     long_description=long_description,
     long_description_content_type='text/x-rst',

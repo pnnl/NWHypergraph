@@ -18,7 +18,7 @@ NWHy is built upon NWGraph (NWGr) library. It uses NWGr graph abstractions and c
 
 * g++ &gt;= 11 with support for OneTBB as parallel backend
 * oneTBB &gt;= 2021
-* NWGr adj_fill branch
+* NWGr master branch
 
 Note that older versions of g++ are supported along with oneTBB 2020. 
 
@@ -144,6 +144,53 @@ first line of the file should store the string
 NWHy has been used by [HyperNetX(HNX)](https://pnnl.github.io/HyperNetX/build/index.html) as the C++ backend. HNX is a hypergraph library provides classes and methods for modeling the entities and relationships found in complex networks as hypergraphs, the natural models for multi-dimensional network data. See 
 [NWHy](https://pypi.org/project/nwhy/) PyPI release page and 
 [User Guide](https://pnnl.github.io/HyperNetX/build/nwhy.html) for more information.
+
+### Requirements
+
+* Python &gt;= 3.9
+* oneTBB &gt;= 2021
+
+
+
+### Install NWHy
+
+#### To install in an Anaconda environment
+First create a conda environment.  
+```
+$ conda create -n <env name> python=3.9
+```
+Then activate the environment.
+
+```
+$ conda activate <env name> 
+```
+Next install Intel one Threading Building Blocks(TBB) in current conda environment.
+```
+$ conda install tbb
+```
+If oneTBB has been installed locally, we can specify TBBROOT
+```
+$ export TBBROOT=/opt/tbb/
+```
+Finally install NWHy using pip.
+
+For installation:
+```
+$ pip install nwhy
+```
+For upgrade:
+```
+$ pip install nwhy --upgrade
+```
+or 
+```
+$ pip install nwhy -U
+```
+For quick test whether the environment is ready:
+```
+$ python -c "import nwhy"
+```
+If there is no import error, then installation is done.
 
 ### Pytest
 

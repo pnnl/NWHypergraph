@@ -116,7 +116,7 @@ bool is_intersection_size_s(A i, B&& ie, C j, D&& je, size_t s = 1) {
 * @param[in] range_end the end of the range to split
 *
 */
-template <class HyperEdge, class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
+template <class HyperEdge, class HyperNode, class vertex_id_t = nw::graph::vertex_id_t<HyperEdge>>
 void to_two_graph_blocked(
     std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>&& two_graphs,
     HyperEdge& edges, HyperNode& nodes, int num_bins, size_t range_begin,
@@ -166,7 +166,7 @@ void to_two_graph_blocked(
 * @param[in] hyperedgedegrees the degrees of hyperedges
 * @param[in] s the number of overlapping vertices between each hyperedge pair
 */
-template <class HyperEdge, class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
+template <class HyperEdge, class HyperNode, class vertex_id_t = nw::graph::vertex_id_t<HyperEdge>>
 void to_two_graph_blocked(
     std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>&& two_graphs,
     HyperEdge& edges, HyperNode& nodes, int num_bins, size_t range_begin,
@@ -226,7 +226,7 @@ void to_two_graph_blocked(
 * @param[in] range_end the end of the range to split
 *
 */
-template <class T, class HyperEdge, class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
+template <class T, class HyperEdge, class HyperNode, class vertex_id_t = nw::graph::vertex_id_t<HyperEdge>>
 void to_weighted_two_graph_blocked(
     std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t, T>>>&& two_graphs,
     HyperEdge& edges, HyperNode& nodes, int num_bins, size_t range_begin,
@@ -281,7 +281,7 @@ void to_weighted_two_graph_blocked(
 * @param[in] hyperedgedegrees the degrees of hyperedges
 * @param[in] s the number of overlapping vertices between each hyperedge pair
 */
-template <class T, class HyperEdge, class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
+template <class T, class HyperEdge, class HyperNode, class vertex_id_t = nw::graph::vertex_id_t<HyperEdge>>
 void to_weighted_two_graph_blocked(
     std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t, T>>>&& two_graphs,
     HyperEdge& edges, HyperNode& nodes, int num_bins, size_t range_begin,
@@ -344,7 +344,7 @@ void to_weighted_two_graph_blocked(
 * @param[in] colrange_end the end of the 2D range to split
 * @param[in] col_grainsize he grain size of the 2D range
 */
-template<class HyperEdge, class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
+template<class HyperEdge, class HyperNode, class vertex_id_t = nw::graph::vertex_id_t<HyperEdge>>
 void to_two_graph_block_range2d(std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>&& two_graphs, 
 HyperEdge& edges, HyperNode& nodes, int num_bins, 
 size_t rowrange_begin, size_t rowrange_end, size_t row_grainsize,
@@ -395,7 +395,7 @@ size_t colrange_begin, size_t colrange_end, size_t col_grainsize) {
 * @param[in] hyperedgedegrees the degrees of hyperedges
 * @param[in] s the number of overlapping vertices between each hyperedge pair
 */
-template<class HyperEdge, class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
+template<class HyperEdge, class HyperNode, class vertex_id_t = nw::graph::vertex_id_t<HyperEdge>>
 void to_two_graph_block_range2d(std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>&& two_graphs, 
 HyperEdge& edges, HyperNode& nodes, int num_bins, 
 size_t rowrange_begin, size_t rowrange_end, size_t row_grainsize,
@@ -448,7 +448,7 @@ std::vector<vertex_id_t>& hyperedgedegrees, size_t s) {
 * @param[in] num_bins the number of bins to divide the workload
 *
 */
-template <class HyperEdge, class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
+template <class HyperEdge, class HyperNode, class vertex_id_t = nw::graph::vertex_id_t<HyperEdge>>
 void to_two_graph_cyclic(std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>&& two_graphs,
     HyperEdge& edges, HyperNode& nodes, int num_bins) {
   nw::util::life_timer _(__func__);
@@ -494,7 +494,7 @@ void to_two_graph_cyclic(std::vector<std::vector<std::tuple<vertex_id_t, vertex_
 * @param[in] s the number of overlapping vertices between each hyperedge pair
 *
 */
-template <class HyperEdge, class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
+template <class HyperEdge, class HyperNode, class vertex_id_t = nw::graph::vertex_id_t<HyperEdge>>
 void to_two_graph_cyclic(std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>&& two_graphs,
     HyperEdge& edges, HyperNode& nodes, int num_bins, std::vector<vertex_id_t>& hyperedgedegrees, size_t s) {
   nw::util::life_timer _(__func__);

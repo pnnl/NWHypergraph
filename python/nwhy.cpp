@@ -8,19 +8,19 @@
 // Author: Xu Tony Liu
 //
 
+#include "containers/slinegraph.hpp"
+#include "containers/nwhypergraph.hpp"
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h> //auto copy between stl containers and python data structures
 #include <pybind11/stl_bind.h>
 #include <pybind11/cast.h>
-//#include "convert_to_s_overlap.hpp"
-#include "containers/slinegraph.hpp"
-#include "containers/nwhypergraph.hpp"
 #include <pybind11/stl_bind.h>
 #include <vector>
 
 namespace py = pybind11;
 using namespace nw::hypergraph;
+using namespace nw::graph;
 
 using Index_t = int;
 /*

@@ -942,7 +942,7 @@ std::size_t s, bool weighted = false) {
       }
     }
   }
-  linegraph.close_for_push_back(false);
+  linegraph.close_for_push_back();
   return linegraph;
 }
 
