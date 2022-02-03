@@ -9,7 +9,8 @@
 //
 #pragma once
 #include <bitset>
-#include "../to_two_graph_efficient.hpp"
+#include "algorithms/to_two_graph_efficient.hpp"
+#include "util/slinegraph_helper.hpp"
 
 namespace nw {
 namespace hypergraph {
@@ -31,9 +32,9 @@ namespace hypergraph {
 * @param[in] max_bins the maximum number of bins to experiment with
 * @returns edge list of 1-line graph or an empty edge list if s > 1
 */
-template<directedness edge_directedness = undirected, class HyperEdge, class HyperNode>
+template<directedness edge_directedness = nw::graph::directedness::undirected, class HyperEdge, class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
 auto to_two_graph_efficient_blocked_vary_size (HyperEdge& edges, HyperNode& nodes, 
-std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int max_bins = 1) {
+std::vector<vertex_id_t>& hyperedgedegrees, size_t s, int num_threads, int max_bins = 1) {
   size_t M = edges.size();
   using linegraph_t = std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>;
   if (1 == s) {
@@ -72,9 +73,9 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int max_bins 
 * @param[in] num_bins the number of bins to divide the workload
 * @returns the edge list of the s-line graph
 */
-template<directedness edge_directedness = undirected, class HyperEdge, class HyperNode>
+template<directedness edge_directedness = nw::graph::directedness::undirected, class HyperEdge, class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
 auto to_two_graph_efficient_cyclic_with_counter (HyperEdge& edges, HyperNode& nodes, 
-std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
+std::vector<vertex_id_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
   size_t M = edges.size();
   size_t N = nodes.size();
 
@@ -178,11 +179,11 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins 
 * @param[in] bin_size the size of each bin after dividing the workload
 * @returns the edge list of the weighted s-line graph
 */
-template <directedness edge_directedness = undirected, class HyperEdge,
-          class HyperNode>
+template <directedness edge_directedness = nw::graph::directedness::undirected, class HyperEdge,
+          class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
 auto to_two_graph_efficient_blocked_optional_features_clean(
     const std::bitset<8>& features, HyperEdge& e_nbs, HyperNode& n_nbs,
-    std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads,
+    std::vector<vertex_id_t>& hyperedgedegrees, size_t s, int num_threads,
     int bin_size = 32) {
   size_t M = e_nbs.size();
   size_t N = n_nbs.size();
@@ -276,9 +277,9 @@ auto to_two_graph_efficient_blocked_optional_features_clean(
 * @param[in] num_bins the number of bins to divide the workload
 * @returns the edge list of the s-line graph
 */
-template<directedness edge_directedness = undirected, class HyperEdge, class HyperNode>
+template<directedness edge_directedness = nw::graph::directedness::undirected, class HyperEdge, class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
 auto to_two_graph_efficient_blocked_with_counter (HyperEdge& e_nbs, HyperNode& n_nbs, 
-std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int bin_size = 32) {
+std::vector<vertex_id_t>& hyperedgedegrees, size_t s, int num_threads, int bin_size = 32) {
   size_t M = e_nbs.size();
   size_t N = n_nbs.size();
   auto edges = e_nbs.begin();
@@ -390,11 +391,11 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int bin_size 
 * @param[in] bin_size the size of each bin after dividing the workload
 * @returns the edge list of the weighted s-line graph
 */
-template <directedness edge_directedness = undirected, class HyperEdge,
-          class HyperNode>
+template <directedness edge_directedness = nw::graph::directedness::undirected, class HyperEdge,
+          class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
 auto to_two_graph_efficient_blocked_optional_features_with_counter(
     const std::bitset<8>& features, HyperEdge& e_nbs, HyperNode& n_nbs,
-    std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads,
+    std::vector<vertex_id_t>& hyperedgedegrees, size_t s, int num_threads,
     int bin_size = 32) {
   size_t M = e_nbs.size();
   size_t N = n_nbs.size();

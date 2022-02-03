@@ -9,8 +9,8 @@
 //
 
 #pragma once
-#include <containers/edge_list.hpp>
-#include <io/mmio.hpp>
+#include <nwgraph/edge_list.hpp>
+#include <nwgraph/io/mmio.hpp>
 
 #include "hypergraph_io.hpp"
 #include "csv_io.hpp"
@@ -24,33 +24,65 @@ namespace hypergraph {
 /*
  * This loader loads matrix market, adjacency graph/hypergraph or csv format into edge list.
  **/
-template <directedness Directedness, class... Attributes>
-nw::graph::edge_list<Directedness, Attributes...> load_graph(std::string file) {
+template <class... Attributes>
+nw::graph::bi_edge_list<nw::graph::directedness::directed, Attributes...> load_graph(std::string file) {
   std::ifstream in(file);
   std::string type;
   in >> type;
 
   if (type == "BGL17") {
     nw::util::life_timer _("deserialize");
-    nw::graph::edge_list<Directedness, Attributes...> aos_a(0);
+    nw::graph::bi_edge_list<nw::graph::directedness::directed, Attributes...> aos_a(0, 0);
     aos_a.deserialize(file);
     return aos_a;
   }
   else if (type == "%%MatrixMarket") {
     std::cout << "Reading matrix market input " << file << " (slow)" << std::endl;
+    //using el_t = nw::graph::bi_edge_list<Directedness, Attributes...>;
     nw::util::life_timer _("read mm");
-    return nw::graph::read_mm<Directedness, Attributes...>(file);
+    return nw::hypergraph::read_mm<nw::graph::directedness::directed, Attributes...>(file);
   }
-  else if (type == AdjHypergraphHeader.c_str() || type == WghAdjHypergraphHeader.c_str()) {
-    //return nw::graph::edge_list<Directedness, Attributes...>(0);
+  else if (type == AdjHypergraphHeader.c_str()) {
     std::cout << "Reading adjacency input " << file << " (slow)" << std::endl;
     nw::util::life_timer _("read adjacency");
-    return read_adjacency<Directedness, Attributes...>(file);
+    return read_adjacency<nw::graph::directedness::directed, Attributes...>(file);
   }
   else {
     std::cout << "Reading CSV input " << file << " (slow)" << std::endl;
     nw::util::life_timer _("read csv");
-    return read_csv<Directedness, Attributes...>(file);
+    return read_csv<nw::graph::directedness::directed, Attributes...>(file);
+  }
+}
+
+/*
+ * This loader loads weighted matrix market and adjacency graph/hypergraph into edge list.
+ **/
+template <class... Attributes>
+nw::graph::bi_edge_list<nw::graph::directedness::directed, Attributes...> load_weighted_graph(std::string file) {
+  std::ifstream in(file);
+  std::string type;
+  in >> type;
+
+  if (type == "BGL17") {
+    nw::util::life_timer _("deserialize");
+    nw::graph::bi_edge_list<nw::graph::directedness::directed, Attributes...> aos_a(0, 0);
+    aos_a.deserialize(file);
+    return aos_a;
+  }
+  else if (type == "%%MatrixMarket") {
+    std::cout << "Reading matrix market input " << file << " (slow)" << std::endl;
+    //using el_t = nw::graph::bi_edge_list<Directedness, Attributes...>;
+    nw::util::life_timer _("read mm");
+    return nw::hypergraph::read_mm<nw::graph::directedness::directed, Attributes...>(file);
+  }
+  else if (type == WghAdjHypergraphHeader.c_str()) {
+    std::cout << "Reading adjacency input " << file << " (slow)" << std::endl;
+    nw::util::life_timer _("read adjacency");
+    return read_weighted_adjacency<nw::graph::directedness::directed, Attributes...>(file);
+  }
+  else {
+    std::cout << "Unknown input format: " << file << std::endl;
+    return nw::graph::bi_edge_list<nw::graph::directedness::directed, Attributes...>(0, 0);
   }
 }
 
@@ -58,7 +90,7 @@ nw::graph::edge_list<Directedness, Attributes...> load_graph(std::string file) {
  * This loader loads matrix market, adjacency graph/hypergraph or csv format into adjoin 
  * graph (in the format of edge list).
  **/
-template <directedness Directedness = undirected, class... Attributes>
+template <directedness Directedness = nw::graph::directedness::directed, class... Attributes>
 nw::graph::edge_list<Directedness, Attributes...> load_adjoin_graph(std::string file, size_t& numRealEdges, size_t& numRealNodes) {
   std::ifstream in(file);
   std::string type;
@@ -85,28 +117,28 @@ nw::graph::edge_list<Directedness, Attributes...> load_adjoin_graph(std::string 
 /*
  * This loader loads adjacency graph/hypergraph format into bi-adjacency.
  **/
-template<class... Attributes>
-std::tuple<nw::graph::adjacency<0, Attributes...>, nw::graph::adjacency<1, Attributes...>> 
+template<std::unsigned_integral vertex_id_t, class... Attributes>
+std::tuple<nw::graph::biadjacency<0, Attributes...>, nw::graph::biadjacency<1, Attributes...>> 
 load_adjacency(std::string file) {
   nw::util::life_timer _("read adjacency");
   std::ifstream in(file);
   std::string type;
   in >> type;
-  if (type == "AdjacencyHypergraph") {
+  if (type == AdjHypergraphHeader.c_str()) {
     std::cout << "Reading adjacency input " << file << " (slow)" << std::endl;
-    return nw::hypergraph::read_adj_hypergraph<Attributes...>(file);
+    return read_adj_hypergraph<vertex_id_t>(file);
   }
   else {
     std::cerr << "Did not recognize graph input file " << file << std::endl;;
-    exit(1);
+    return std::make_tuple(nw::graph::biadjacency<0, Attributes...>(), nw::graph::biadjacency<1, Attributes...>());
   }
 }
 
 /*
  * This loader loads adjacency graph/hypergraph format into bi-adjacency.
  **/
-template<class... Attributes>
-std::tuple<nw::graph::adjacency<0, vertex_id_t>, nw::graph::adjacency<1, vertex_id_t>> 
+template<std::unsigned_integral vertex_id_t, class... Attributes>
+std::tuple<nw::graph::biadjacency<0, Attributes...>, nw::graph::biadjacency<1, Attributes...>> 
 load_weighted_adjacency(std::string file) {
   nw::util::life_timer _("read adjacency");
   std::ifstream in(file);
@@ -114,11 +146,11 @@ load_weighted_adjacency(std::string file) {
   in >> type;
   if (type == "WeightedAdjacencyHypergraph") {
     std::cout << "Reading weighted adjacency input " << file << " (slow)" << std::endl;
-    return nw::hypergraph::read_weighted_adj_hypergraph<vertex_id_t>(file);
+    return read_weighted_adj_hypergraph<vertex_id_t, Attributes...>(file);
   }
   else {
     std::cerr << "Did not recognize graph input file " << file << std::endl;;
-    exit(1);
+    return std::make_tuple(nw::graph::biadjacency<0, Attributes...>(), nw::graph::biadjacency<1, Attributes...>());
   }
 }
 

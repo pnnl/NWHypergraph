@@ -123,9 +123,10 @@ void print_soverlap_version() {
 * @returns the edge list of the s-line graph
 *
 */
+template<class HyperEdge, class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
 auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
-                     nw::graph::adjacency<0> &edges, nw::graph::adjacency<1> &nodes,
-                     std::vector<nw::graph::index_t> &edgedegrees,
+                     HyperEdge &edges, HyperNode &nodes,
+                     std::vector<vertex_id_t> &edgedegrees,
                      std::vector<vertex_id_t>& iperm,
                      size_t nrealedges, size_t nrealnodes, 
                      size_t s,
@@ -133,8 +134,8 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
                      int num_bins = 32) {
   switch (version) {
     case Efficient_Blocked: {
-      nw::graph::edge_list<undirected> &&linegraph =
-          to_two_graph_efficient_blocked_portal<undirected>(
+      nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
+          to_two_graph_efficient_blocked_portal<nw::graph::directedness::undirected>(
               verbose, features, edges, nodes,
               edgedegrees, s, num_threads, num_bins);
       // where when an empty edge list is passed in, an adjacency still have two
@@ -147,8 +148,8 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
       return s_adj;
     }
     case Efficient_Cyclic: {
-      nw::graph::edge_list<undirected> &&linegraph =
-          to_two_graph_efficient_cyclic_portal<undirected>(
+      nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
+          to_two_graph_efficient_cyclic_portal<nw::graph::directedness::undirected>(
               verbose, edges, nodes, edgedegrees, s,
               num_threads, num_bins);
       // where when an empty edge list is passed in, an adjacency still have two
@@ -161,8 +162,8 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
       return s_adj;
     }
     case Naive: {
-      nw::graph::edge_list<undirected> &&linegraph =
-          to_two_graph_naive_parallel_portal<undirected>(
+      nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
+          to_two_graph_naive_parallel_portal<nw::graph::directedness::undirected>(
               verbose, edges, nodes, s, num_threads, num_bins);
       // where when an empty edge list is passed in, an adjacency still have two
       // elements
@@ -174,8 +175,8 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
       return s_adj;
     }
     case Map_Blocked: {
-      nw::graph::edge_list<undirected> &&linegraph =
-          to_two_graph_map_blocked_portal<undirected>(
+      nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
+          to_two_graph_map_blocked_portal<nw::graph::directedness::undirected>(
               verbose, edges, nodes, edgedegrees, s,
               num_threads, num_bins);
       // where when an empty edge list is passed in, an adjacency still have two
@@ -188,8 +189,8 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
       return s_adj;
     }
     case Map_Cyclic: {
-      nw::graph::edge_list<undirected> &&linegraph =
-          to_two_graph_map_cyclic_portal<undirected>(
+      nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
+          to_two_graph_map_cyclic_portal<nw::graph::directedness::undirected>(
               verbose, edges, nodes, edgedegrees, s,
               num_threads, num_bins);
       // where when an empty edge list is passed in, an adjacency still have two
@@ -204,8 +205,8 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
     case Ensemble_Blocked: {
       std::vector<std::unordered_map<size_t, size_t>>&& neighbor_count =
           to_two_graph_count_neighbors_blocked(edges, nodes);
-      nw::graph::edge_list<undirected> &&linegraph =
-          populate_linegraph_from_neighbor_map<undirected>(neighbor_count, s);
+      nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
+          populate_linegraph_from_neighbor_map<nw::graph::directedness::undirected>(neighbor_count, s);
       // where when an empty edge list is passed in, an adjacency still have two
       // elements
       if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
@@ -218,8 +219,8 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
     case Ensemble_Cyclic: {
       std::vector<std::unordered_map<size_t, size_t>>&& neighbor_count =
           to_two_graph_count_neighbors_cyclic(edges, nodes);
-      nw::graph::edge_list<undirected> &&linegraph =
-          populate_linegraph_from_neighbor_map<undirected>(neighbor_count, s);
+      nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
+          populate_linegraph_from_neighbor_map<nw::graph::directedness::undirected>(neighbor_count, s);
       // where when an empty edge list is passed in, an adjacency still have two
       // elements
       if (0 == linegraph.size()) return nw::graph::adjacency<0>(0, 0);
@@ -230,8 +231,8 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
       return s_adj;
     }
     case Map_Frontier_Blocked: {
-      nw::graph::edge_list<undirected>&& linegraph =
-          to_two_graph_map_frontier_blocked_portal<undirected>(
+      nw::graph::edge_list<nw::graph::directedness::undirected>&& linegraph =
+          to_two_graph_map_frontier_blocked_portal<nw::graph::directedness::undirected>(
               std::execution::par_unseq, edges, nodes, edgedegrees,
               iperm,
               nrealedges, nrealnodes, s, num_threads, num_bins);
@@ -245,8 +246,8 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
       return s_adj;
     }
     case Map_Frontier_Cyclic: {
-      nw::graph::edge_list<undirected> &&linegraph =
-          to_two_graph_map_frontier_cyclic_portal<undirected>(
+      nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
+          to_two_graph_map_frontier_cyclic_portal<nw::graph::directedness::undirected>(
               std::execution::par_unseq, edges, nodes, edgedegrees,
               iperm,
               nrealedges, nrealnodes, s, num_threads, num_bins);
@@ -260,8 +261,8 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
       return s_adj;
     }
     case HashMap_Frontier_Blocked: {
-      nw::graph::edge_list<undirected> &&linegraph =
-          to_two_graph_hashmap_frontier_blocked_portal<undirected>(
+      nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
+          to_two_graph_hashmap_frontier_blocked_portal<nw::graph::directedness::undirected>(
               std::execution::par_unseq, edges, nodes, edgedegrees,
               iperm,
               nrealedges, nrealnodes, s, num_threads, num_bins);
@@ -275,8 +276,8 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
       return s_adj;
     }
     case HashMap_Frontier_Cyclic: {
-      nw::graph::edge_list<undirected> &&linegraph =
-          to_two_graph_hashmap_frontier_cyclic_portal<undirected>(
+      nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
+          to_two_graph_hashmap_frontier_cyclic_portal<nw::graph::directedness::undirected>(
               std::execution::par_unseq, edges, nodes, edgedegrees,
               iperm,
               nrealedges, nrealnodes, s, num_threads, num_bins);
@@ -290,8 +291,8 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
       return s_adj;
     }
     case Efficient_Frontier_Blocked: {
-      nw::graph::edge_list<undirected> &&linegraph =
-          to_two_graph_efficient_frontier_blocked_portal<undirected>(
+      nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
+          to_two_graph_efficient_frontier_blocked_portal<nw::graph::directedness::undirected>(
               std::execution::par_unseq, edges, nodes, edgedegrees,
               iperm,
               nrealedges, nrealnodes, s, num_threads, num_bins);
@@ -305,8 +306,8 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
       return s_adj;
     }
     case Efficient_Frontier_Cyclic: {
-      nw::graph::edge_list<undirected> &&linegraph =
-          to_two_graph_efficient_frontier_cyclic_portal<undirected>(
+      nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
+          to_two_graph_efficient_frontier_cyclic_portal<nw::graph::directedness::undirected>(
               std::execution::par_unseq, edges, nodes, edgedegrees,
               iperm,
               nrealedges, nrealnodes, s, num_threads, num_bins);
@@ -320,8 +321,8 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
       return s_adj;
     }
     case HashMap_Blocked: {
-      nw::graph::edge_list<undirected> &&linegraph =
-          to_two_graph_hashmap_blocked_portal<undirected>(
+      nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
+          to_two_graph_hashmap_blocked_portal<nw::graph::directedness::undirected>(
               verbose, edges, nodes, edgedegrees, s,
               num_threads, num_bins);
       // where when an empty edge list is passed in, an adjacency still have two
@@ -334,8 +335,8 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
       return s_adj;
     }
     case HashMap_Cyclic: {
-      nw::graph::edge_list<undirected> &&linegraph =
-          to_two_graph_hashmap_cyclic_portal<undirected>(
+      nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
+          to_two_graph_hashmap_cyclic_portal<nw::graph::directedness::undirected>(
               verbose, edges, nodes, edgedegrees, s,
               num_threads, num_bins);
       // where when an empty edge list is passed in, an adjacency still have two
@@ -348,8 +349,8 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
       return s_adj;
     }
     case Vector_Blocked: {
-      nw::graph::edge_list<undirected> &&linegraph =
-          to_two_graph_vector_blocked_portal<undirected>(
+      nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
+          to_two_graph_vector_blocked_portal<nw::graph::directedness::undirected>(
               verbose, edges, nodes, edgedegrees, s,
               num_threads, num_bins);
       // where when an empty edge list is passed in, an adjacency still have two
@@ -362,8 +363,8 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
       return s_adj;
     }
     case Vector_Cyclic: {
-      nw::graph::edge_list<undirected> &&linegraph =
-          to_two_graph_vector_cyclic_portal<undirected>(
+      nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
+          to_two_graph_vector_cyclic_portal<nw::graph::directedness::undirected>(
               verbose, edges, nodes, edgedegrees, s,
               num_threads, num_bins);
       // where when an empty edge list is passed in, an adjacency still have two
@@ -376,8 +377,8 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
       return s_adj;
     }
     case Static_HashMap_Blocked: {
-      nw::graph::edge_list<undirected> &&linegraph =
-          to_two_graph_static_hashmap_blocked_portal<undirected>(
+      nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
+          to_two_graph_static_hashmap_blocked_portal<nw::graph::directedness::undirected>(
               verbose, std::execution::par_unseq, edges, nodes, edgedegrees, s,
               num_threads, num_bins);
       // where when an empty edge list is passed in, an adjacency still have two
@@ -390,8 +391,8 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
       return s_adj;
     }
     case Static_HashMap_Cyclic: {
-      nw::graph::edge_list<undirected> &&linegraph =
-          to_two_graph_static_hashmap_cyclic_portal<undirected>(
+      nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
+          to_two_graph_static_hashmap_cyclic_portal<nw::graph::directedness::undirected>(
               verbose, std::execution::par_unseq, edges, nodes, edgedegrees, s,
               num_threads, num_bins);
       // where when an empty edge list is passed in, an adjacency still have two
@@ -404,8 +405,8 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
       return s_adj;
     }
     case Efficient_Blocked_Size: {
-      nw::graph::edge_list<undirected> &&linegraph =
-          to_two_graph_efficient_blocked_vary_size<undirected>(
+      nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
+          to_two_graph_efficient_blocked_vary_size<nw::graph::directedness::undirected>(
               edges, nodes,
               edgedegrees, s, num_threads, num_bins);
       // where when an empty edge list is passed in, an adjacency still have two
@@ -418,8 +419,8 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
       return s_adj;
     }
     case Map_Blocked_Size: {
-      nw::graph::edge_list<undirected> &&linegraph =
-          to_two_graph_map_blocked_vary_size<undirected>(
+      nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
+          to_two_graph_map_blocked_vary_size<nw::graph::directedness::undirected>(
               std::execution::par_unseq, edges, nodes,
               edgedegrees, s, num_threads, num_bins);
       // where when an empty edge list is passed in, an adjacency still have two
@@ -432,8 +433,8 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
       return s_adj;
     }
     case HashMap_Blocked_Size: {
-      nw::graph::edge_list<undirected> &&linegraph =
-          to_two_graph_hashmap_blocked_vary_size<undirected>(
+      nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
+          to_two_graph_hashmap_blocked_vary_size<nw::graph::directedness::undirected>(
               std::execution::par_unseq, edges, nodes,
               edgedegrees, s, num_threads, num_bins);
       // where when an empty edge list is passed in, an adjacency still have two
@@ -446,8 +447,8 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
       return s_adj;
     }  
     case Vector_Blocked_Size: {
-      nw::graph::edge_list<undirected> &&linegraph =
-          to_two_graph_vector_blocked_vary_size<undirected>(
+      nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
+          to_two_graph_vector_blocked_vary_size<nw::graph::directedness::undirected>(
               std::execution::par_unseq, edges, nodes,
               edgedegrees, s, num_threads, num_bins);
       // where when an empty edge list is passed in, an adjacency still have two
@@ -460,8 +461,8 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
       return s_adj;
     } 
     case Static_HashMap_Blocked_Size: {
-      nw::graph::edge_list<undirected> &&linegraph =
-          to_two_graph_static_hashmap_blocked_vary_size<undirected>(
+      nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
+          to_two_graph_static_hashmap_blocked_vary_size<nw::graph::directedness::undirected>(
               std::execution::par_unseq, edges, nodes,
               edgedegrees, s, num_threads, num_bins);
       // where when an empty edge list is passed in, an adjacency still have two
@@ -474,8 +475,8 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
       return s_adj;
     } 
     case Frontier_Blocked: {
-      nw::graph::edge_list<undirected> &&linegraph =
-          to_two_graph_frontier_blocked<undirected>(
+      nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
+          to_two_graph_frontier_blocked<nw::graph::directedness::undirected>(
               edges, nodes, edgedegrees,
               s, num_threads, num_bins);
       // where when an empty edge list is passed in, an adjacency still have
@@ -488,8 +489,8 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
       return s_adj;
     }
     case Frontier_Cyclic: {
-      nw::graph::edge_list<undirected> &&linegraph =
-          to_two_graph_frontier_cyclic<undirected>(
+      nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
+          to_two_graph_frontier_cyclic<nw::graph::directedness::undirected>(
               edges, nodes, edgedegrees,
               s, num_threads, num_bins);
       // where when an empty edge list is passed in, an adjacency still have
@@ -503,8 +504,8 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
     }
     case SPGEMM_KIJ: {
       std::cout << "graph edges = " << nodes.size() << std::endl;
-      nw::graph::edge_list<undirected> &&linegraph =
-          to_two_graph_spgemm_kij_cyclic<undirected>(
+      nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
+          to_two_graph_spgemm_kij_cyclic<nw::graph::directedness::undirected>(
               std::execution::par_unseq, edges, nodes, edgedegrees,
               s, num_threads, num_bins);
       // where when an empty edge list is passed in, an adjacency still have
@@ -542,10 +543,11 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
 * @returns the edge list of the s-line graph
 *
 */
-template<directedness edge_directedness = undirected>
+template<directedness edge_directedness = nw::graph::directedness::undirected,
+class HyperEdge, class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
 auto twograph_reader(int version,
-                     nw::graph::adjacency<0> &edges, nw::graph::adjacency<1> &nodes,
-                     std::vector<nw::graph::index_t> &edgedegrees,
+                     HyperEdge &edges, HyperNode &nodes,
+                     std::vector<vertex_id_t> &edgedegrees,
                      std::vector<vertex_id_t>& iperm,
                      size_t nrealedges, size_t nrealnodes, 
                      size_t s,
@@ -614,16 +616,16 @@ auto twograph_reader(int version,
 * @returns the edge list of the weighted s-line graph
 *
 */
-template<directedness edge_directedness = undirected, class T>
-auto weighted_twograph_reader(int version, nw::graph::adjacency<0> &edges,
-                              nw::graph::adjacency<1> &nodes,
-                              std::vector<nw::graph::index_t> &edgedegrees,
-                              size_t s,
+template <directedness edge_directedness = nw::graph::directedness::undirected,
+          class T, class HyperEdge, class HyperNode,
+          class vertex_id_t = vertex_id_t<HyperEdge>>
+auto weighted_twograph_reader(int version, HyperEdge &edges, HyperNode &nodes,
+                              std::vector<vertex_id_t> &edgedegrees, size_t s,
                               int num_threads, int num_bins = 32) {
   switch (version) {
     case 0: {
       nw::graph::edge_list<edge_directedness, T> &&linegraph =
-          to_weighted_two_graph_efficient_blocked<undirected, T>(
+          to_weighted_two_graph_efficient_blocked<nw::graph::directedness::undirected, T>(
               edges, nodes, edgedegrees, s, num_threads, num_bins);
       // where when an empty edge list is passed in, an adjacency still have two
       // elements
@@ -636,7 +638,7 @@ auto weighted_twograph_reader(int version, nw::graph::adjacency<0> &edges,
     }
     case 1 : {
       nw::graph::edge_list<edge_directedness, T> &&linegraph =
-          to_weighted_two_graph_hashmap_blocked<undirected, T>(
+          to_weighted_two_graph_hashmap_blocked<nw::graph::directedness::undirected, T>(
               edges, nodes, edgedegrees, s, num_threads, num_bins);
       // where when an empty edge list is passed in, an adjacency still have two
       // elements

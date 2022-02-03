@@ -10,7 +10,8 @@
 
 #pragma once
 
-#include <algorithms/connected_components.hpp>
+#include <nwgraph/algorithms/connected_components.hpp>
+#include <nwgraph/experimental/algorithms/connected_components.hpp>
 
 namespace nw {
 namespace hypergraph {
@@ -43,7 +44,7 @@ template<class ExecutionPolicy, class HyperNode, class SGraph>
 auto linegraph_Afforest(ExecutionPolicy&& ep, HyperNode& hypernodes, SGraph& s_adj) {
   nw::util::life_timer _(__func__);
   nw::graph::adjacency<1> s_adj_trans(0);
-  auto E = Afforest(ep, s_adj, s_adj_trans);
+  auto E = Afforest(s_adj, s_adj_trans);
   return E;
   /*
   //if no component found, then return an empty pair
@@ -86,9 +87,9 @@ auto linegraph_lpcc(ExecutionPolicy&& ep, SGraph& s_adj) {
 template<class ExecutionPolicy, class HyperGraph>
 auto to_relabel_graph(ExecutionPolicy&& ep, HyperGraph& aos_a) {
   nw::util::life_timer _(__func__);
-  auto n_nbs = aos_a.max()[1] + 1;
-  auto e_nbs = aos_a.max()[0] + 1;
-  edge_list<undirected> relabel_graph(0);
+  auto n_nbs = num_vertices(aos_a, 1);
+  auto e_nbs = num_vertices(aos_a, 0);
+  edge_list<nw::graph::directedness::undirected> relabel_graph(0);
   relabel_graph.open_for_push_back();
   //we relabel the smaller set (either hypernode or hyperedge)
   if (n_nbs < e_nbs) {
@@ -110,7 +111,7 @@ auto to_relabel_graph(ExecutionPolicy&& ep, HyperGraph& aos_a) {
   return relabel_graph;
 }
 
-template<class ExecutionPolicy, class HyperGraph>
+template<class ExecutionPolicy, class HyperGraph, class vertex_id_t = vertex_id_t<HyperGraph>>
 auto relabelHyperCC(ExecutionPolicy&& ep, HyperGraph& aos_a) {
   nw::util::life_timer _(__func__);
   auto relabel_g = to_relabel_graph(ep, aos_a);    // 1) find 2-graph corresponding to s-overlapped hyper edges
@@ -127,8 +128,8 @@ auto relabelHyperCC(ExecutionPolicy&& ep, HyperGraph& aos_a) {
   auto labeling   = //Afforest(s_adj, s_trans_adj); 
   ccv1(s_adj);//
 
-  auto n_nbs = aos_a.max()[1] + 1;
-  auto e_nbs = aos_a.max()[0] + 1;
+  auto n_nbs = num_vertices(aos_a, 1);
+  auto e_nbs = num_vertices(aos_a, 0);
   std::vector<vertex_id_t> N, E;
   if (n_nbs < e_nbs) {
     E.assign(labeling.begin(), labeling.begin() + e_nbs);

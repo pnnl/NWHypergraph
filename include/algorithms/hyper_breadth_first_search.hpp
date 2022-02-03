@@ -10,10 +10,10 @@
 
 
 #pragma once
-#include <util/timer.hpp>
-#include <util/AtomicBitVector.hpp>
-#include <util/atomic.hpp>
-#include <adaptors/vertex_range.hpp>
+#include <nwgraph/util/timer.hpp>
+#include <nwgraph/util/AtomicBitVector.hpp>
+#include <nwgraph/util/atomic.hpp>
+#include <nwgraph/adaptors/vertex_range.hpp>
 
 namespace nw {
 namespace hypergraph {
@@ -30,7 +30,7 @@ inline bool writeMin(T& old, T& next) {
 /*
 * Topdown bfs in serial.
 */
-template<typename GraphN, typename GraphE>
+template<typename GraphN, typename GraphE, typename vertex_id_t = vertex_id_t<GraphN>>
 auto hyperBFS_topdown_serial_v0(vertex_id_t source_hyperedge, GraphN& hypernodes, GraphE& hyperedges) {
   nw::util::life_timer _(__func__);
   size_t     num_hypernodes = hypernodes.max() + 1;    // number of hypernodes
@@ -80,7 +80,7 @@ auto hyperBFS_topdown_serial_v0(vertex_id_t source_hyperedge, GraphN& hypernodes
 /*
 * Topdown bfs in serial without using bitmap
 */
-template<typename GraphN, typename GraphE>
+template<typename GraphN, typename GraphE, typename vertex_id_t = vertex_id_t<GraphN>>
 auto hyperBFS_topdown_serial_v1(vertex_id_t source_hyperedge, GraphN& hypernodes, GraphE& hyperedges) {
   nw::util::life_timer _(__func__);
   size_t     num_hypernodes = hypernodes.max() + 1;    // number of hypernodes
@@ -124,7 +124,7 @@ auto hyperBFS_topdown_serial_v1(vertex_id_t source_hyperedge, GraphN& hypernodes
   return std::tuple{parentN, parentE};
 }
 
-template<class ExecutionPolicy, typename GraphN, typename GraphE>
+template<class ExecutionPolicy, typename GraphN, typename GraphE, typename vertex_id_t = vertex_id_t<GraphN>>
 auto hyperBFS_topdown_parallel_v0(ExecutionPolicy&& ep, const vertex_id_t source_hyperedge, GraphN& hypernodes, GraphE& hyperedges, int num_bins = 32) {
   nw::util::life_timer _(__func__);
   size_t     num_hypernodes = hypernodes.max() + 1;    // number of hypernodes
@@ -206,7 +206,7 @@ auto hyperBFS_topdown_parallel_v0(ExecutionPolicy&& ep, const vertex_id_t source
 /*
 * Bottomup bfs in serial.
 */
-template<typename GraphN, typename GraphE>
+template<typename GraphN, typename GraphE, typename vertex_id_t = vertex_id_t<GraphN>>
 auto hyperBFS_bottomup_serial_v0(vertex_id_t source_hyperedge, GraphN& hypernodes, GraphE& hyperedges) {
   nw::util::life_timer _(__func__);
   size_t     num_hypernodes = hypernodes.max() + 1;    // number of hypernodes
@@ -241,7 +241,7 @@ auto hyperBFS_bottomup_serial_v0(vertex_id_t source_hyperedge, GraphN& hypernode
   return std::tuple{parentN, parentE};
 }
 
-template<class ExecutionPolicy, typename GraphN, typename GraphE>
+template<class ExecutionPolicy, typename GraphN, typename GraphE, typename vertex_id_t = vertex_id_t<GraphN>>
 auto hyperBFS_bottomup_parallel_v0(ExecutionPolicy&& ep, const vertex_id_t source_hyperedge, GraphN& hypernodes, GraphE& hyperedges, int num_bins = 32) {
   nw::util::life_timer _(__func__);
   size_t     num_hypernodes = hypernodes.max() + 1;    // number of hypernodes
@@ -290,7 +290,7 @@ auto hyperBFS_bottomup_parallel_v0(ExecutionPolicy&& ep, const vertex_id_t sourc
   return std::tuple(parentN, parentE);
 }
 
-template<typename Graph>
+template<typename Graph, typename vertex_id_t = vertex_id_t<Graph>>
 size_t BU_step(Graph& g, std::vector<vertex_id_t>& parent, 
 nw::graph::AtomicBitVector<>& front, nw::graph::AtomicBitVector<>& next) {
   nw::util::life_timer _(__func__);
@@ -315,7 +315,7 @@ nw::graph::AtomicBitVector<>& front, nw::graph::AtomicBitVector<>& next) {
   return awake_count;
 }
 
-template<typename Graph>
+template<typename Graph, typename vertex_id_t = vertex_id_t<Graph>>
 size_t TD_step(Graph& g, std::vector<vertex_id_t>& parent,
 std::vector<vertex_id_t>& front, std::vector<vertex_id_t>& next) {
   nw::util::life_timer _(__func__);
@@ -333,13 +333,14 @@ std::vector<vertex_id_t>& front, std::vector<vertex_id_t>& next) {
   });
   return scout_count;
 }
-template<class ExecutionPolicy>
-inline void queue_to_bitmap(ExecutionPolicy&& ep, std::vector<vertex_id_t>& queue, nw::graph::AtomicBitVector<>& bitmap) {
+template<class ExecutionPolicy, class Vector>
+inline void queue_to_bitmap(ExecutionPolicy&& ep, Vector& queue, nw::graph::AtomicBitVector<>& bitmap) {
   std::for_each(ep, queue.begin(), queue.end(), [&](auto&& u) { 
     bitmap.atomic_set(u); 
   });
 }
-inline void bitmap_to_queue(nw::graph::AtomicBitVector<>& bitmap, std::vector<vertex_id_t>& queue) {
+template<class Vector>
+inline void bitmap_to_queue(nw::graph::AtomicBitVector<>& bitmap, Vector& queue) {
   tbb::parallel_for(bitmap.non_zeros(nw::graph::pow2(15)), [&](auto&& range) {
     for (auto &&i = range.begin(), e = range.end(); i != e; ++i) {
       queue.push_back(*i);
@@ -354,7 +355,7 @@ inline void bitmap_to_queue(nw::graph::AtomicBitVector<>& bitmap, std::vector<ve
 * parent[x] < 0 implies x is unvisited and parent[x] = -out_degree(x)
 * parent[x] >= 0 implies x been visited
 */
-template<typename Graph>
+template<typename Graph, typename vertex_id_t = vertex_id_t<Graph>>
 std::vector<vertex_id_t> init_parent(Graph& g) {
   auto num = g.max() + 1;
   std::vector<vertex_id_t> parent(num);
@@ -366,7 +367,7 @@ std::vector<vertex_id_t> init_parent(Graph& g) {
 /*
 * Direction-optimizing bfs in serial. TODO Cannot converge
 */
-template<typename GraphN, typename GraphE>
+template<typename GraphN, typename GraphE, typename vertex_id_t = vertex_id_t<GraphN>>
 auto hyperBFS_hybrid_serial_v1(vertex_id_t source_hyperedge, GraphN& hypernodes, GraphE& hyperedges,
 size_t numpairs, int alpha = 15, int beta = 18) {
   nw::util::life_timer _(__func__);
@@ -421,7 +422,7 @@ size_t numpairs, int alpha = 15, int beta = 18) {
 /*
 * Direction-optimizing bfs in serial, verified working version
 */
-template<typename GraphN, typename GraphE>
+template<typename GraphN, typename GraphE, typename vertex_id_t = vertex_id_t<GraphN>>
 auto hyperBFS_hybrid_serial_v0(vertex_id_t source_hyperedge, GraphN& hypernodes, GraphE& hyperedges,
 size_t numpairs, int alpha = 15, int beta = 18) {
   nw::util::life_timer _(__func__);
@@ -520,7 +521,7 @@ size_t numpairs, int alpha = 15, int beta = 18) {
 }
 
 
-template<typename GraphN, typename GraphE>
+template<typename GraphN, typename GraphE, typename vertex_id_t = vertex_id_t<GraphN>>
 bool hyperBFSVerifier(GraphN& hypernodes, GraphE& hyperedges, vertex_id_t source_hyperedge, 
 std::vector<vertex_id_t>& parentE, std::vector<vertex_id_t>& parentN) {
   size_t num_hyperedges = hyperedges.max() + 1;

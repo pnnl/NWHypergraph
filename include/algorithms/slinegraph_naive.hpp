@@ -8,7 +8,7 @@
 // Author: Xu Tony Liu
 //
 #pragma once
-#include <util/intersection_size.hpp>
+#include <nwgraph/util/intersection_size.hpp>
 #include "util/slinegraph_helper.hpp"
 #include "tbb/task_arena.h"
 
@@ -30,7 +30,7 @@ namespace hypergraph {
 * @returns the edge list of the s-line graph
 *
 */
-template<directedness edge_directedness = undirected, class HyperEdge, class HyperNode>
+template<directedness edge_directedness = nw::graph::directedness::undirected, class HyperEdge, class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
 auto to_two_graph_naive_parallel(HyperEdge& e_nbs, HyperNode& n_nbs, 
 size_t s, int num_threads, int num_bins = 32) {
   size_t M = e_nbs.size();
@@ -66,7 +66,7 @@ size_t s, int num_threads, int num_bins = 32) {
 * @returns the edge list of the s-line graph
 *
 */
-template<directedness edge_directedness = undirected, class HyperEdge, class HyperNode>
+template<directedness edge_directedness = nw::graph::directedness::undirected, class HyperEdge, class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
 auto to_two_graph_naive_parallel_with_counter(HyperEdge& e_nbs, HyperNode& n_nbs, 
 size_t s, int num_threads, int num_bins = 32) {
 
@@ -120,7 +120,7 @@ size_t s, int num_threads, int num_bins = 32) {
 * @returns the edge list of the s-line graph
 *
 */
-template<directedness edge_directedness = undirected, class HyperEdge, class HyperNode>
+template<directedness edge_directedness = nw::graph::directedness::undirected, class HyperEdge, class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
 auto to_two_graph_naive_serial(HyperEdge& e_nbs, HyperNode& n_nbs, size_t s = 1) {
   nw::util::life_timer _(__func__);
   nw::graph::edge_list<edge_directedness> two_graph(0);
@@ -156,7 +156,7 @@ auto to_two_graph_naive_serial(HyperEdge& e_nbs, HyperNode& n_nbs, size_t s = 1)
 * @returns the edge list of the s-line graph
 *
 */
-template<directedness edge_directedness = undirected, class HyperEdge, class HyperNode>
+template<directedness edge_directedness = nw::graph::directedness::undirected, class HyperEdge, class HyperNode>
 auto to_two_graph_naive_parallel_portal(bool verbose, HyperEdge& e_nbs, HyperNode& n_nbs, 
 size_t s, int num_threads, int num_bins = 32) {
   if(!verbose)

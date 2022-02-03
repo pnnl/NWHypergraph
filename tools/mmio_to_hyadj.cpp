@@ -36,13 +36,13 @@ int main(int argc, char* argv[]) {
   std::string input_file = args["-i"].asString();
   std::string output_file = args["-o"].asString();
 
-  auto aos_a = load_graph<directed>(input_file);
+  auto aos_a = load_graph(input_file);
   if (0 == aos_a.size()) {
     std::cerr << input_file << " is not matrix market file, convert abort" << std::endl;
     exit(1);
   }
-  nw::graph::adjacency<0> E(aos_a);
-  nw::graph::adjacency<1> N(aos_a);
+  nw::graph::biadjacency<0> E(aos_a);
+  nw::graph::biadjacency<1> N(aos_a);
   std::cout << "num_hyperedges:" << E.size() << " num_hypernodes:" << N.size() << std::endl;
   if (false == write_adj_hypergraph(output_file, E, N)){
     std::cerr << "write failed" << std::endl;

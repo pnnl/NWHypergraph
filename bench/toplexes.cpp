@@ -9,7 +9,7 @@
 //
 
 #include <docopt.h>
-#include <containers/edge_list.hpp>
+#include <nwgraph/edge_list.hpp>
 #include "Log.hpp"
 #include "common.hpp"
 #include "containers/edge_list_hy.hpp"
@@ -67,7 +67,8 @@ int main(int argc, char* argv[]) {
   // standard). That's a little bit noisy where it happens, so I just give
   // them real symbols here rather than the local bindings.
   for (auto&& file : files) {
-    auto&&[ hyperedges, hypernodes, iperm] = graph_reader<directed>(file, args["--relabel"].asLong(), args["--direction"].asString());
+    using vertex_id_t = uint32_t;
+    auto&&[hyperedges, hypernodes, iperm] = graph_reader<vertex_id_t>(file, args["--relabel"].asLong(), args["--direction"].asString());
     auto&& hyperedge_degrees = hyperedges.degrees(std::execution::par_unseq);
 
     if (debug) {

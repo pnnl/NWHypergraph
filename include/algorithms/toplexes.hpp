@@ -9,8 +9,8 @@
 //
 
 #pragma once
-#include <util/timer.hpp>
-#include <util/intersection_size.hpp>
+#include <nwgraph/util/timer.hpp>
+#include <nwgraph/util/intersection_size.hpp>
 #include <map>
 #include <vector>
 #include <unordered_set>
@@ -22,9 +22,9 @@ namespace hypergraph {
 * TODO why not use std::set_intersection
 * or std::include
 */
-template<typename A>
+template<class T, class A>
 bool is_subset(A&& lhs, A&& rhs) {
-    std::map<vertex_id_t, size_t> frequency;
+    std::map<T, size_t> frequency;
     std::for_each(lhs.begin(), lhs.end(), [&](auto &&x) {
         auto v = std::get<0>(x);
         ++frequency[v];
@@ -42,7 +42,8 @@ bool is_subset(A&& lhs, A&& rhs) {
     });
     return res;
 }
-template<typename GraphE>
+
+template<class GraphE, class vertex_id_t = vertex_id_t<GraphE>>
 auto toplexes_serial_v0(GraphE& edges) {
     nw::util::life_timer _(__func__);
     size_t M = edges.size();
@@ -63,11 +64,11 @@ auto toplexes_serial_v0(GraphE& edges) {
             vertex_id_t top = old_tops[i];
             if (e == top)
                 continue; 
-            if (is_subset(edges[top], edges[e])) {
+            if (is_subset<vertex_id_t>(edges[top], edges[e])) {
                 //if e is a subset of top, then e is not a toplex
                 flag = false;
                 break;
-            } else if (is_subset(edges[e], edges[top]))
+            } else if (is_subset<vertex_id_t>(edges[e], edges[top]))
                 tops.erase(tops.begin() + i);
         }//for old_tops
         if (flag)
@@ -75,7 +76,7 @@ auto toplexes_serial_v0(GraphE& edges) {
     }//for each e
     return tops;
 }
-template<typename GraphE>
+template<class GraphE, class vertex_id_t = vertex_id_t<GraphE>>
 auto toplexes_serial_v1(GraphE& edges) {
     nw::util::life_timer _(__func__);
     size_t M = edges.size();
@@ -88,9 +89,9 @@ auto toplexes_serial_v1(GraphE& edges) {
             //It is necessary to differeniate e from top
             if (e == top)
                 continue;
-            if (is_subset(edges[top], edges[e]))
+            if (is_subset<vertex_id_t>(edges[top], edges[e]))
                 tops.erase(top);
-            else if (is_subset(edges[e], edges[top])) {
+            else if (is_subset<vertex_id_t>(edges[e], edges[top])) {
                 flag = false;
                 break;
             }
@@ -101,7 +102,7 @@ auto toplexes_serial_v1(GraphE& edges) {
     return tops;
 }
 
-template<typename GraphE>
+template<class GraphE, class vertex_id_t = vertex_id_t<GraphE>>
 auto toplexes_serial_v2(GraphE& edges) {
     nw::util::life_timer _(__func__);
     size_t M = edges.size();
@@ -137,7 +138,7 @@ auto toplexes_serial_v2(GraphE& edges) {
 /*
 * TODO
 */
-template<typename GraphE>
+template<class GraphE, class vertex_id_t = vertex_id_t<GraphE>>
 auto toplexes_serial_v4(GraphE& edges) {
     nw::util::life_timer _(__func__);
     size_t M = edges.size();
@@ -145,9 +146,9 @@ auto toplexes_serial_v4(GraphE& edges) {
     for (vertex_id_t e = 0; e < M; ++e) {
         bool flag = true;
         for (vertex_id_t another_e = 0; another_e < M; ++another_e) {
-            if (is_subset(edges[e], edges[another_e]))
+            if (is_subset<vertex_id_t>(edges[e], edges[another_e]))
                 ;
-            else if (is_subset(edges[another_e], edges[e])) {
+            else if (is_subset<vertex_id_t>(edges[another_e], edges[e])) {
                 flag = false;
                 break;
             }

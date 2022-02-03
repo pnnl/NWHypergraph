@@ -39,13 +39,13 @@ static constexpr const char USAGE[] =
 
 #include <unordered_set>
 #include <docopt.h>
-#include <containers/edge_list.hpp>
+#include <nwgraph/edge_list.hpp>
 #include "Log.hpp"
 #include "common.hpp"
 #include "containers/edge_list_hy.hpp"
 #include "containers/compressed_hy.hpp"
 #include "s_overlap.hpp"
-#include <algorithms/delta_stepping.hpp>
+#include <nwgraph/algorithms/delta_stepping.hpp>
 // #include "algorithms/s_shortest_paths.hpp"
 
 
@@ -83,7 +83,8 @@ int main(int argc, char* argv[]) {
   Times times;
 
   for (auto&& file : files) {
-    auto&& [hyperedges, hypernodes, iperm] = graph_reader<directed>(file, idx, direction);
+    using vertex_id_t = vertex_id_t<nw::graph::biadjacency<0>>;
+    auto&& [hyperedges, hypernodes, iperm] = weighted_graph_reader<vertex_id_t, int>(file, idx, direction);
     auto&& hyperedge_degrees = hyperedges.degrees(std::execution::par_unseq);
 
     if (verbose) {
@@ -94,7 +95,9 @@ int main(int argc, char* argv[]) {
     for (auto&& thread : threads) {
       auto _ = set_n_threads(thread);
       auto&& graph =
-          weighted_twograph_reader<undirected, int>(loader_version, hyperedges,
+          weighted_twograph_reader<nw::graph::directedness::undirected, int, nw::graph::biadjacency<0, int>,
+          nw::graph::biadjacency<1, int>, 
+          vertex_id_t>(loader_version, hyperedges,
                           hypernodes, hyperedge_degrees, s, thread, num_bins);
       // Source should be selected/generated based on line graph
       std::vector<vertex_id_t> sources;
@@ -117,10 +120,10 @@ int main(int argc, char* argv[]) {
           auto&& [time, distance] = time_op([&] {
 	      switch (id) {
 	      case 0:
-	       	return delta_stepping_v10<distance_t>(graph, source, delta); 
+	       	return delta_stepping_v12<distance_t>(graph, source, delta); 
 		// s_sssp_v0(s_adj, source, delta);
 	      default:
-		      return delta_stepping_v10<distance_t>(graph, source, delta);
+		      return delta_stepping_v12<distance_t>(graph, source, delta);
                 // std::cerr << "Unknown version " << id << "\n";
                 // return std::make_tuple(std::vector<std::atomic<long unsigned int>, std::allocator<std::atomic<long unsigned int> > >());
 		// return true;

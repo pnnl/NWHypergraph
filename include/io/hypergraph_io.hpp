@@ -12,8 +12,8 @@
 #include <iostream>
 #include <fstream>
 
-#include <containers/edge_list.hpp>
-#include <containers/compressed.hpp>
+#include <nwgraph/edge_list.hpp>
+#include <nwgraph/adjacency.hpp>
 using namespace nw::graph;
 
 namespace nw {
@@ -29,6 +29,7 @@ std::string WghAdjHypergraphHeader = "WeightedAdjacencyHypergraph";
 * fill biadjacency.
 * return adjacency<0> and adjacency<1>.
 */
+template <std::unsigned_integral vertex_id_t>
 auto adj_hypergraph_fill(std::istream& inputStream) {
   //100, 972 100 972
   size_t n0, m0, n1, m1;
@@ -63,10 +64,9 @@ auto adj_hypergraph_fill(std::istream& inputStream) {
   v1[n1] = m1;
 
   //in adj_hypergraph, <0> is hypernodes, <1> is hyperedges
-  nw::graph::adjacency<1> N(n0, m0);
+  biadjacency<1> N(n0, m0);
   N.move(std::move(v0), std::move(e0));
-  
-  nw::graph::adjacency<0> E(n1, m1);
+  biadjacency<0> E(n1, m1);
   E.move(std::move(v1), std::move(e1));
   return std::tuple(E, N);
 }
@@ -76,6 +76,7 @@ auto adj_hypergraph_fill(std::istream& inputStream) {
 * Force weights to be vertex_id_t type.
 * return adjacency<0, vertex_id_t> and adjacency<1, vertex_id_t>.
 */
+template <std::unsigned_integral vertex_id_t, typename T>
 auto weighted_adj_hypergraph_fill(std::istream& inputStream) {
   //100, 972, 100, 972
   //the number of weights are the same as the number of half edges (offsets)
@@ -97,7 +98,7 @@ auto weighted_adj_hypergraph_fill(std::istream& inputStream) {
     e0[i] = tmp;
   }
   v0[n0] = m0;
-  std::vector<vertex_id_t> w0(m0);
+  std::vector<T> w0(m0);
   for (size_t i = 0; i < m0; ++i) {
     inputStream >> tmp;
     w0[i] = tmp;
@@ -114,17 +115,16 @@ auto weighted_adj_hypergraph_fill(std::istream& inputStream) {
     e1[i] = tmp;
   }
   v1[n1] = m1;
-  std::vector<vertex_id_t> w1(m1);
+  std::vector<T> w1(m1);
   for (size_t i = 0; i < m1; ++i) {
     inputStream >> tmp;
     w1[i] = tmp;
   }
 
   //in adj_hypergraph, <0> is hypernodes, <1> is hyperedges
-  nw::graph::adjacency<1, vertex_id_t> N(n0, m0);
+  biadjacency<1, T> N(n0, m0);
   N.move(std::move(v0), std::move(e0), std::move(w0));
-  
-  nw::graph::adjacency<0, vertex_id_t> E(n1, m1);
+  biadjacency<0, T> E(n1, m1);
   E.move(std::move(v1), std::move(e1), std::move(w1));
   return std::tuple(E, N);
 }
@@ -133,6 +133,7 @@ auto weighted_adj_hypergraph_fill(std::istream& inputStream) {
 * combine biadjacency into adjacency. Return g and its transpose
 * Transform a bipartite graph into a general graph
 */
+template <std::unsigned_integral vertex_id_t>
 auto adj_hypergraph_pair_fill_and_adjoin(std::istream& inputStream,
 const size_t n0, const size_t m0, const size_t n1, const size_t m1) {
   vertex_id_t tmp;
@@ -180,6 +181,7 @@ const size_t n0, const size_t m0, const size_t n1, const size_t m1) {
 * combine biadjacency into adjacency. Return g and its transpose
 * Transform a bipartite graph into a general graph
 */
+template <std::unsigned_integral vertex_id_t>
 auto adj_hypergraph_pair_fill_and_adjoin_v1(std::istream& inputStream,
 const size_t n0, const size_t m0, const size_t n1, const size_t m1) {
   vertex_id_t tmp;
@@ -233,6 +235,7 @@ const size_t n0, const size_t m0, const size_t n1, const size_t m1) {
 * combine biadjacency into an adjacency
 * Transform a bipartite graph into a general graph
 */
+template <std::unsigned_integral vertex_id_t>
 auto adjacency_fill_adjoin(std::istream& inputStream,
 const size_t n0, const size_t m0, const size_t n1, const size_t m1) {
   vertex_id_t tmp;
@@ -310,6 +313,8 @@ const size_t n0, const size_t m0, const size_t n1, const size_t m1) {
 template<class Edgelist>
 void adjacency_fill(std::istream& inputStream, Edgelist& A,
 const size_t nnodes, const size_t m0, const size_t nedges, const size_t m1) {
+  using vertex_id_t = typename graph_traits<Edgelist>::vertex_id_type;
+
   A.open_for_push_back();
   vertex_id_t tmp;
   //skip the node-edge adjacency
@@ -355,30 +360,45 @@ const size_t nnodes, const size_t m0, const size_t nedges, const size_t m1) {
 * Convention is that column 0 stores hyperedges,
 * column 1 stores hypernodes.
 */
-template<class Edgelist>
-void adjacency_fill(std::istream& inputStream, Edgelist& A,
-const size_t nnodes, const size_t m0, const size_t nedges, const size_t m1, bool file_symmetry) {
+template<class Edgelist, class T>
+void weighted_adjacency_fill(std::istream& inputStream, Edgelist& A,
+const size_t n0, const size_t m0, const size_t n1, const size_t m1) {
+  using vertex_id_t = typename graph_traits<Edgelist>::vertex_id_type;
+
   A.open_for_push_back();
   vertex_id_t tmp;
-  //skip the node-edge adjacency
-  for (size_t i = 0; i < nnodes; ++i) {
+  //skip the node-edge adjacency indices
+  for (size_t i = 0; i < n0; ++i) {
     inputStream >> tmp;
   }
+  //skip the node-edge adjacency offsets
+  for (size_t i = 0; i < m0; ++i) {
+    inputStream >> tmp;
+  }
+  //skip the node-edge adjacency weights
   for (size_t i = 0; i < m0; ++i) {
     inputStream >> tmp;
   }
 
-  //populate the edge-node adjacency
-  std::vector<vertex_id_t> v1(nedges + 1);
-  for (size_t i = 0; i < nedges; ++i) {
+  //populate the edge-node adjacency indices
+  std::vector<vertex_id_t> v1(n1 + 1);
+  for (size_t i = 0; i < n1; ++i) {
     inputStream >> tmp;
     v1[i] = tmp;
   }
-  v1[nedges] = m1;
-  for (vertex_id_t e = 0; e < nedges; ++e) {
+  //populate the edge-node adjacency offsets
+  std::vector<vertex_id_t> e1(m1);
+  for (size_t i = 0; i < m1; ++i) {
+    inputStream >> tmp;
+    e1[i] = tmp;
+  }
+  v1[n1] = m1;
+  T weight;
+  //read the edge-node adjacency weights and insert an edge pair
+  for (vertex_id_t e = 0; e < n1; ++e) {
     for (size_t j = v1[e]; j < v1[e + 1]; ++j) {
-      inputStream >> tmp;
-      A.push_back(e, tmp);
+      inputStream >> weight;
+      A.push_back(e, e1[e], weight);
     }
   }
   A.close_for_push_back();
@@ -390,8 +410,10 @@ const size_t nnodes, const size_t m0, const size_t nedges, const size_t m1, bool
 * column 1 are hypernodes.
 */
 template<class Edgelist>
-void adjacency_fill_adjoin(std::istream& inputStream, Edgelist& A,
+void edgelist_fill_adjoin(std::istream& inputStream, Edgelist& A,
 const size_t nnodes, const size_t m0, const size_t nedges, const size_t m1) {
+  using vertex_id_t = typename graph_traits<Edgelist>::vertex_id_type;
+
   A.open_for_push_back();
   vertex_id_t tmp;
   //skip the node-edge adjacency
@@ -451,6 +473,7 @@ const size_t nnodes, const size_t m0, const size_t nedges, const size_t m1) {
   A.close_for_push_back();
 }
 
+template <std::unsigned_integral vertex_id_t>
 auto read_and_adjoin_adj_hypergraph_pair(const std::string& filename, size_t& nreal_edges, size_t& nreal_nodes) {
   std::ifstream inputStream(filename, std::ifstream::in);
   if (!inputStream.is_open()) {
@@ -472,10 +495,11 @@ auto read_and_adjoin_adj_hypergraph_pair(const std::string& filename, size_t& nr
   inputStream >> m1;
   //std::cout << nreal_nodes << " " << m0 << " " << nreal_edges << " " << m1 << std::endl;
 
-  auto&& [v0, e0] = adjacency_fill_adjoin(inputStream, nreal_nodes, m0, nreal_edges, m1);
+  auto&& [v0, e0] = adjacency_fill_adjoin<vertex_id_t>(inputStream, nreal_nodes, m0, nreal_edges, m1);
   return std::tuple(adjacency<0>(std::move(v0), std::move(e0)), adjacency<1>(std::move(v0), std::move(e0))); 
 }
 
+template <std::unsigned_integral vertex_id_t>
 auto read_and_adjoin_adj_hypergraph(const std::string& filename, size_t& nreal_edges, size_t& nreal_nodes) {
   std::ifstream inputStream(filename, std::ifstream::in);
   if (!inputStream.is_open()) {
@@ -496,14 +520,14 @@ auto read_and_adjoin_adj_hypergraph(const std::string& filename, size_t& nreal_e
   inputStream >> nreal_edges;
   inputStream >> m1;
   //std::cout << nreal_nodes << " " << m0 << " " << nreal_edges << " " << m1 << std::endl;
-  auto&& [v0, e0] = adjacency_fill_adjoin(inputStream, nreal_nodes, m0, nreal_edges, m1);
+  auto&& [v0, e0] = adjacency_fill_adjoin<vertex_id_t>(inputStream, nreal_nodes, m0, nreal_edges, m1);
   return adjacency<0>(std::move(v0), std::move(e0));
 }
 
 /*
- * Read the adjacency hypergraph as bi-adjacency
+ * Read unweighted adjacency hypergraph as bi-adjacency
  **/
-template <typename... Attributes>
+template <std::unsigned_integral vertex_id_t, typename... Attributes>
 auto read_adj_hypergraph(const std::string& filename) {
   std::ifstream file(filename, std::ifstream::in);
   if (!file.is_open()) {
@@ -517,14 +541,14 @@ auto read_adj_hypergraph(const std::string& filename) {
     std::cerr << "Unsupported format" << std::endl;
     throw;
   }
-  return adj_hypergraph_fill(file);
+  return adj_hypergraph_fill<vertex_id_t>(file);
 }
 
 /*
  * Read the adjacency graph as an edgelist.
  **/
 template<nw::graph::directedness sym, typename... Attributes>
-nw::graph::edge_list<sym, Attributes...> read_adjacency(const std::string& filename) {
+nw::graph::bi_edge_list<sym, Attributes...> read_adjacency(const std::string& filename) {
   std::ifstream file(filename, std::ifstream::in);
   if (!file.is_open()) {
     std::cerr << "Can not open file: " << filename << std::endl;
@@ -543,14 +567,42 @@ nw::graph::edge_list<sym, Attributes...> read_adjacency(const std::string& filen
   file >> nedges;
   file >> m1;
 
-  nw::graph::edge_list<sym, Attributes...> A(nedges);
+  nw::graph::bi_edge_list<sym, Attributes...> A(nedges, nnodes);
   A.reserve(m1);
-  A.set_origin(filename);
   adjacency_fill(file, A, nnodes, m0, nedges, m1);
 
   return A;
 }
 
+/*
+ * Read the adjacency graph as an edgelist.
+ **/
+template<nw::graph::directedness sym, typename... Attributes>
+nw::graph::bi_edge_list<sym, Attributes...> read_weighted_adjacency(const std::string& filename) {
+  std::ifstream file(filename, std::ifstream::in);
+  if (!file.is_open()) {
+    std::cerr << "Can not open file: " << filename << std::endl;
+    throw;
+  }
+  std::string header;
+  file >> header;
+
+  if (WghAdjHypergraphHeader.c_str() != header) {
+    std::cerr << "Unsupported adjacency format" << std::endl;
+    throw;
+  }
+  size_t nnodes, m0, nedges, m1;
+  file >> nnodes;
+  file >> m0;
+  file >> nedges;
+  file >> m1;
+
+  nw::graph::bi_edge_list<sym, Attributes...> A(nedges, nnodes);
+  A.reserve(m1);
+  (weighted_adjacency_fill<nw::graph::bi_edge_list<sym, Attributes...>, Attributes>(file, A, nnodes, m0, nedges, m1), ...);
+
+  return A;
+}
 /*
  * Read the adjacency hypergraph into adjoin graph in the format of an edgelist.
  **/
@@ -578,41 +630,13 @@ nw::graph::edge_list<sym, Attributes...> read_adjacency_adjoin(const std::string
   nw::graph::edge_list<sym, Attributes...> A(nreal_edges);
   A.reserve(m1);
   A.open_for_push_back();
-  adjacency_fill_adjoin(file, A, nreal_nodes, m0, nreal_edges, m1);
+  edgelist_fill_adjoin<nw::graph::edge_list<sym, Attributes...>>(file, A, nreal_nodes, m0, nreal_edges, m1);
   A.close_for_push_back();
 
-  A.set_origin(filename);
-  /*
-  auto&& [v0, e0] = adjacency_fill_adjoin(file, nreal_nodes, m0, nreal_edges, m1);
-  //set an empty edge list, because the max of column 0 and column 1 are unknown
-  nw::graph::edge_list<sym, Attributes...> A(nreal_nodes + nreal_edges);
-
-  vertex_id_t start, end;
-  if (nreal_edges > nreal_nodes) {
-    start = 0;
-    end  = nreal_edges;
-  }
-  else {
-    start = nreal_nodes;
-    end = nreal_edges + nreal_nodes;
-  }
-
-  A.reserve(m1);
-  A.open_for_push_back();
-  for (vertex_id_t i = start; i < end; ++i) {
-    for (size_t j = v0[i]; j < v0[i + 1]; ++j) {
-      A.push_back(i, e0[j]);
-    }
-  }
-  A.close_for_push_back();
-
-  A.set_origin(filename);
-  //adjacency_fill_adjoin(file, A, nreal_nodes, m0, nreal_edges, m1);
-  */
   return A;
 }
 
-template <typename... Attributes>
+template <std::unsigned_integral vertex_id_t, typename... Attributes>
 auto read_weighted_adj_hypergraph(const std::string& filename) {
   std::ifstream file(filename, std::ifstream::in);
   if (!file.is_open()) {
@@ -626,10 +650,11 @@ auto read_weighted_adj_hypergraph(const std::string& filename) {
     std::cerr << "Unsupported format" << std::endl;
     throw;
   }
-  return weighted_adj_hypergraph_fill(file);
+  return (weighted_adj_hypergraph_fill<vertex_id_t, Attributes>(file), ...);
 }
 
-auto write_adj_hypergraph(const std::string& filename, adjacency<0>& E, adjacency<1>& N) {
+auto write_adj_hypergraph(const std::string& filename, biadjacency<0>& E, biadjacency<1>& N) {
+  using vertex_id_t = typename graph_traits<decltype(E)>::vertex_id_type; 
   nw::util::life_timer _(__func__);
   std::ofstream file(filename, std::ios::out | std::ios::binary);
   if (!file.is_open()) {

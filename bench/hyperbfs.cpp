@@ -14,9 +14,9 @@
 #include "s_overlap.hpp"
 #include "algorithms/hyper_breadth_first_search.hpp"
 #include "algorithms/s_breadth_first_search.hpp"
-#include <containers/edge_list.hpp>
-#include <util/AtomicBitVector.hpp>
-#include <util/intersection_size.hpp>
+#include <nwgraph/edge_list.hpp>
+#include <nwgraph/util/AtomicBitVector.hpp>
+#include <nwgraph/util/intersection_size.hpp>
 #include <docopt.h>
 #include <execution>
 
@@ -82,31 +82,30 @@ int main(int argc, char* argv[]) {
   // standard). That's a little bit noisy where it happens, so I just give
   // them real symbols here rather than the local bindings.
   for (auto&& file : files) {
-    size_t size;
+    using vertex_id_t = vertex_id_t<nw::graph::bi_edge_list<directedness::directed>>;
     auto reader = [&](std::string file, bool verbose) {
-      nw::graph::edge_list<nw::graph::directed> aos_a = load_graph<nw::graph::directed>(file);
+      auto&& aos_a = load_graph(file);
       if (0 == aos_a.size()) {
-        auto&& [hyperedges, hypernodes] = load_adjacency<>(file);
+        auto&& [hyperedges, hypernodes] = load_adjacency<vertex_id_t>(file);
         std::cout << "num_hyperedges = " << hyperedges.size() << " num_hypernodes = " << hypernodes.size() << std::endl;
         return std::tuple(hyperedges, hypernodes);
       }
-      size = aos_a.size();
       // Clean up the edgelist to deal with the normal issues related to
       // undirectedness.
       if (args["--clean"].asBool()) {
-        aos_a.swap_to_triangular<0>(args["--succession"].asString());
-        aos_a.lexical_sort_by<0>();
-        aos_a.uniq();
-        aos_a.remove_self_loops();
+        nw::graph::swap_to_triangular<0>(aos_a, args["--succession"].asString());
+        nw::graph::lexical_sort_by<0>(aos_a);
+        nw::graph::uniq(aos_a);
+        nw::graph::remove_self_loops(aos_a);
       }
 
-      nw::graph::adjacency<0> hyperedges(aos_a);
-      nw::graph::adjacency<1> hypernodes(aos_a);
+      nw::graph::biadjacency<0> hyperedges(aos_a);
+      nw::graph::biadjacency<1> hypernodes(aos_a);
       if (verbose) {
         hypernodes.stream_stats();
         hyperedges.stream_stats();
       }
-      std::cout << "num_hyperedges = " << aos_a.max()[0] + 1 << " num_hypernodes = " << aos_a.max()[1] + 1 << std::endl;
+      std::cout << "num_hyperedges = " << num_vertices(aos_a, 0) << " num_hypernodes = " << num_vertices(aos_a, 1) << std::endl;
       return std::tuple(hyperedges, hypernodes);
     };
 

@@ -9,7 +9,7 @@
 //
 
 #pragma once
-#include <adaptors/vertex_range.hpp>
+#include <nwgraph/adaptors/vertex_range.hpp>
 
 #include "util/slinegraph_helper.hpp"
 #include <tbb/task_arena.h> //for tbb::this_task_arena::current_thread_index()
@@ -37,11 +37,11 @@ namespace hypergraph {
 * @param[in] num_bins the number of bins to divide the workload
 * @returns edge list of the s-line graph
 */
-template <directedness edge_directedness = undirected, class ExecutionPolicy,
-          class HyperEdge, class HyperNode>
+template <directedness edge_directedness = nw::graph::directedness::undirected, class ExecutionPolicy,
+          class HyperEdge, class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
 auto to_two_graph_spgemm_kij_cyclic(ExecutionPolicy&& ep, HyperEdge& edges,
                                     HyperNode& nodes,
-                                    std::vector<index_t>& hyperedgedegrees,
+                                    std::vector<vertex_id_t>& hyperedgedegrees,
                                     size_t s, int num_threads, int num_bins = 32) {
   size_t M = edges.size();
   size_t N = nodes.size();

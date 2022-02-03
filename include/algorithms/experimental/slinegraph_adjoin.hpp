@@ -8,7 +8,7 @@
 // Author: Xu Tony Liu
 //
 #pragma once
-#include <adaptors/cyclic_range_adapter.hpp>
+#include <nwgraph/adaptors/cyclic_range_adapter.hpp>
 #include <tbb/task_arena.h>
 #include "algorithms/to_two_graph_efficient.hpp"
 #include "util/slinegraph_helper.hpp"
@@ -36,10 +36,10 @@ namespace hypergraph {
 * @returns edge list of the s-line graph
 *
 */
-template <directedness edge_directedness = undirected,
-          class Hypergraph, class HypergraphT>
+template <directedness edge_directedness = nw::graph::directedness::undirected,
+          class Hypergraph, class HypergraphT, class vertex_id_t = vertex_id_t<Hypergraph>>
 auto to_two_graph_efficient_frontier_blocked(Hypergraph& h,
-                               HypergraphT& ht, std::vector<index_t>& degrees,
+                               HypergraphT& ht, std::vector<vertex_id_t>& degrees,
                                std::vector<vertex_id_t>& frontier, size_t s,
                                int num_threads, int num_bins = 32) {
   size_t M = frontier.size();
@@ -128,10 +128,10 @@ auto to_two_graph_efficient_frontier_blocked(Hypergraph& h,
 * clean without counter. All heuristics on. 
 * Operates on Adjoin hypergraph.
 */
-template <directedness edge_directedness = undirected,
-          class Hypergraph, class HypergraphT>
+template <directedness edge_directedness = nw::graph::directedness::undirected,
+          class Hypergraph, class HypergraphT, class vertex_id_t = vertex_id_t<Hypergraph>>
 auto to_two_graph_efficient_frontier_cyclic(Hypergraph& h,
-                               HypergraphT& ht, std::vector<index_t>& degrees,
+                               HypergraphT& ht, std::vector<vertex_id_t>& degrees,
                                std::vector<vertex_id_t>& frontier, size_t s,
                                int num_threads, int num_bins = 32) {
   size_t M = frontier.size();

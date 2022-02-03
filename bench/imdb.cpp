@@ -9,7 +9,7 @@
 //
 
 #include <docopt.h>
-#include <containers/edge_list.hpp>
+#include <nwgraph/edge_list.hpp>
 #include "Log.hpp"
 #include "common.hpp"
 #include "s_overlap.hpp"
@@ -17,7 +17,7 @@
 #include "containers/edge_list_hy.hpp"
 #include "containers/compressed_hy.hpp"
 #include "algorithms/s_connected_components.hpp"
-#include <algorithms/betweenness_centrality.hpp>
+#include <nwgraph/algorithms/betweenness_centrality.hpp>
 
 #include <fstream>
 #include <iostream>
@@ -60,7 +60,9 @@ int main(int argc, char* argv[]) {
 
   std::vector threads = parse_n_threads(args["THREADS"].asStringList());
   auto _ = set_n_threads(threads[0]);
-  index_t s_value= args["-s"].asLong();
+  size_t s_value= args["-s"].asLong();
+  nw::graph::edge_list<nw::graph::directedness::directed> edges(0);
+  using vertex_id_t = vertex_id_t<decltype(edges)>;
 
   std::string title_basics_tsv = args["--title"].asString();
   std::string name_basics_tsv = args["--name"].asString();
@@ -105,7 +107,7 @@ int main(int argc, char* argv[]) {
   std::cout << t2 << std::endl;
 
   nw::util::timer t3("build hypergraph");
-  nw::graph::edge_list<nw::graph::directedness::directed> edges(0);
+  //nw::graph::edge_list<nw::graph::directedness::directed> edges(0);
   edges.open_for_push_back();
   //skip the header by starting from i=1
   for (vertex_id_t i = 1; i < shp[0]; ++i) {
@@ -125,7 +127,7 @@ int main(int argc, char* argv[]) {
       edges.push_back(it_title->second, it_name->second);
     }
   }
-  edges.close_for_push_back(false);
+  edges.close_for_push_back();
   t3.stop();
   std::cout << t3 << std::endl;
   edges.stream_stats();

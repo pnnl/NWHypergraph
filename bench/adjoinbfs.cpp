@@ -10,10 +10,11 @@
 
 #include "Log.hpp"
 #include "common.hpp"
-#include <containers/edge_list.hpp>
-#include <adaptors/vertex_range.hpp>
-#include <algorithms/bfs.hpp>
-#include <util/AtomicBitVector.hpp>
+#include <nwgraph/edge_list.hpp>
+#include <nwgraph/adaptors/vertex_range.hpp>
+#include <nwgraph/algorithms/bfs.hpp>
+#include <nwgraph/experimental/algorithms/bfs.hpp>
+#include <nwgraph/util/AtomicBitVector.hpp>
 #include <docopt.h>
 #include "algorithms/adjoin_x.hpp"
 
@@ -51,7 +52,7 @@ static constexpr const char USAGE[] =
 
 
 
-template<typename Graph>
+template<typename Graph, typename vertex_id_t = typename graph_traits<Graph>::vertex_id_type>
 size_t BU_step(Graph& g, std::vector<vertex_id_t>& parent, 
 nw::graph::AtomicBitVector<>& front, nw::graph::AtomicBitVector<>& next) {
   nw::util::life_timer _(__func__);
@@ -76,7 +77,7 @@ nw::graph::AtomicBitVector<>& front, nw::graph::AtomicBitVector<>& next) {
   return awake_count;
 }
 
-template<typename Graph>
+template<typename Graph, typename vertex_id_t = typename graph_traits<Graph>::vertex_id_type>
 size_t TD_step(Graph& g, std::vector<vertex_id_t>& parent,
 std::vector<vertex_id_t>& front, std::vector<vertex_id_t>& next) {
   nw::util::life_timer _(__func__);
@@ -94,12 +95,14 @@ std::vector<vertex_id_t>& front, std::vector<vertex_id_t>& next) {
   });
   return scout_count;
 }
-inline void queue_to_bitmap(std::vector<vertex_id_t>& queue, nw::graph::AtomicBitVector<>& bitmap) {
+template<typename Vector>
+inline void queue_to_bitmap(Vector& queue, nw::graph::AtomicBitVector<>& bitmap) {
   std::for_each(std::execution::par_unseq, queue.begin(), queue.end(), [&](auto&& u) { 
     bitmap.atomic_set(u); 
   });
 }
-inline void bitmap_to_queue(nw::graph::AtomicBitVector<>& bitmap, std::vector<vertex_id_t>& queue) {
+template<typename Vector>
+inline void bitmap_to_queue(nw::graph::AtomicBitVector<>& bitmap, Vector& queue) {
   tbb::parallel_for(bitmap.non_zeros(nw::graph::pow2(15)), [&](auto&& range) {
     for (auto &&i = range.begin(), e = range.end(); i != e; ++i) {
       queue.push_back(*i);
@@ -107,7 +110,7 @@ inline void bitmap_to_queue(nw::graph::AtomicBitVector<>& bitmap, std::vector<ve
   });
 }
 
-template<class ExecutionPolicy, class Graph, class Transpose>
+template<class ExecutionPolicy, class Graph, class Transpose, typename vertex_id_t = typename graph_traits<Graph>::vertex_id_type>
 auto relabelhyperBFS_hybrid(ExecutionPolicy&& exec, vertex_id_t source_hyperedge, 
 Graph& g, Transpose& g_t, const size_t num_realedges, const size_t num_realnodes,
 size_t numpairs, int alpha = 15, int beta = 18) {
@@ -163,7 +166,7 @@ size_t numpairs, int alpha = 15, int beta = 18) {
   return std::tuple{N, E};
 }
 
-template<typename GraphN, typename GraphE>
+template<typename GraphN, typename GraphE, typename vertex_id_t = typename graph_traits<GraphN>::vertex_id_type>
 bool hyperBFSVerifier(GraphN& hypernodes, GraphE& hyperedges, vertex_id_t source_hyperedge, 
 std::vector<vertex_id_t>& parentE, std::vector<vertex_id_t>& parentN) {
   size_t num_hyperedges = hyperedges.max() + 1;
@@ -293,7 +296,8 @@ int main(int argc, char* argv[]) {
   // them real symbols here rather than the local bindings.
   for (auto&& file : files) {
     size_t num_realedges = 0, num_realnodes = 0;
-    auto&& [g, g_t, iperm]    = graph_reader_adjoin(file, num_realedges, num_realnodes);
+    using vertex_id_t = uint32_t;
+    auto&& [g, g_t, iperm]    = graph_reader_adjoin<directedness::undirected, vertex_id_t>(file, num_realedges, num_realnodes);
 
     std::cout << "size of the merged adjacency = " << g.size() << std::endl;
     std::cout << "num_hyperedges = " << num_realedges << " num_hypernodes = " << num_realnodes << std::endl;

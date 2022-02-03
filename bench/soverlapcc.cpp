@@ -10,7 +10,7 @@
 
 #include <unordered_set>
 #include <docopt.h>
-#include <containers/edge_list.hpp>
+#include <nwgraph/edge_list.hpp>
 #include "Log.hpp"
 #include "common.hpp"
 #include "s_overlap.hpp"
@@ -83,99 +83,142 @@ int main(int argc, char* argv[]) {
 
   for (auto&& file : files) {
     size_t nrealedges = 0, nrealnodes = 0;
-    auto&& [hyperedges, hypernodes, iperm] = graph_reader<directed>(file, idx, direction, adjoin, nrealedges, nrealnodes);
-    auto&& hyperedge_degrees = hyperedges.degrees(std::execution::par_unseq);
-    if (debug) {
-      hyperedges.stream_indices();
-      hypernodes.stream_indices();
-      
-    
-      std::cout << hyperedge_degrees.size() << ": ";
-      for (auto d : hyperedge_degrees)
-        std::cout << d << " ";
-      std::cout << std::endl;
-      if (-1 != idx) assert(!iperm.empty());
-
-      if (adjoin) {
-        std::cout << "size of the adjoin graph = " << hyperedges.size()
-                  << std::endl;
-        assert(0 != nrealedges);
-        assert(0 != nrealnodes);
-      }
-    }
-
-    if (verbose) {
-      hypernodes.stream_stats();
-      hyperedges.stream_stats();
-    }
-
-    for (auto&& num_thread : threads) {
-      auto _ = set_n_threads(num_thread);
-      for (auto&& s : s_values) {
-        auto&& s_adj =
-          twograph_reader(loader_version, verbose, features, hyperedges,
-                          hypernodes, hyperedge_degrees, iperm, nrealedges, nrealnodes, 
-                          s, num_thread, num_bins);
-        for (auto&& id : ids) {
-          auto verifier = [&](auto&& E) {
-            // only verify #cc in the result
-            std::unordered_map<vertex_id_t, size_t> m;
-            for (auto& c : E)
-              ++m[c];
-            size_t numc = 0;
-            if (!debug) {
-              for (auto& [k, v] : m) {
-                if (1 < v) {
-                  ++numc;
-                }
-              }
-            } else {
-              std::cout << "Non-singletons: ";
-              for (auto& [k, v] : m) {
-                if (1 < v) {
-                  std::cout << k << " ";
-                  ++numc;
-                }
-              }
-              std::cout << std::endl;
-            }
-            std::unordered_set<vertex_id_t> uni_comps(E.begin(), E.end());
-            std::cout << m.size() << " components found" << std::endl;
-            std::cout << numc << " non-singleton components found" << std::endl;
-          };
-
-          auto record = [&](auto&& op) {
-            times.record(file, id, num_thread, s, std::forward<decltype(op)>(op),
-                         verifier, true);
-          };
-          for (int j = 0, e = trials; j < e; ++j) {
-            switch (id) {
-              case 0:
-                record([&] {
-                  return linegraph_ccv1(std::execution::par_unseq, hypernodes,
-                                        s_adj);
-                });
-                break;
-              case 1:
-                record([&] {
-                  return linegraph_Afforest(std::execution::par_unseq,
-                                            hypernodes, s_adj);
-                });
-                break;
-              case 2:
-                record([&] {
-                  return linegraph_lpcc(std::execution::par_unseq,
-                                        s_adj);
-                });
-                break;
-              default:
-                std::cout << "Unknown algorithm version " << id << "\n";
-            }
+    nw::graph::edge_list<directedness::directed> e;
+    using vertex_id_t = vertex_id_t<decltype(e)>;
+    auto verifier = [&](auto&& E) {
+      // only verify #cc in the result
+      std::unordered_map<vertex_id_t, size_t> m;
+      for (auto& c : E) ++m[c];
+      size_t numc = 0;
+      if (!debug) {
+        for (auto& [k, v] : m) {
+          if (1 < v) {
+            ++numc;
           }
         }
-      }  // for s
-    }    // for num_thread
-  }      // for file
+      } else {
+        std::cout << "Non-singletons: ";
+        for (auto& [k, v] : m) {
+          if (1 < v) {
+            std::cout << k << " ";
+            ++numc;
+          }
+        }
+        std::cout << std::endl;
+      }
+      std::unordered_set<vertex_id_t> uni_comps(E.begin(), E.end());
+      std::cout << m.size() << " components found" << std::endl;
+      std::cout << numc << " non-singleton components found" << std::endl;
+    };
+
+    if (adjoin) {
+      auto&& [h, ht, iperm] = adjoin_graph_reader<vertex_id_t>(file, idx, direction, nrealedges, nrealnodes);
+      auto&& degrees = h.degrees(std::execution::par_unseq);
+      for (auto&& num_thread : threads) {
+        auto _ = set_n_threads(num_thread);
+        for (auto&& s : s_values) {
+          auto&& s_adj =
+              twograph_reader(loader_version, verbose, features, h,
+                              ht, degrees, iperm, nrealedges,
+                              nrealnodes, s, num_thread, num_bins);
+          for (auto&& id : ids) {
+            auto record = [&](auto&& op) {
+              times.record(file, id, num_thread, s,
+                           std::forward<decltype(op)>(op), verifier, true);
+            };
+            for (int j = 0, e = trials; j < e; ++j) {
+              switch (id) {
+                case 0:
+                  record([&] {
+                    return linegraph_ccv1(std::execution::par_unseq, ht,
+                                          s_adj);
+                  });
+                  break;
+                case 1:
+                  record([&] {
+                    return linegraph_Afforest(std::execution::par_unseq,
+                                              ht, s_adj);
+                  });
+                  break;
+                case 2:
+                  record([&] {
+                    return linegraph_lpcc(std::execution::par_unseq, s_adj);
+                  });
+                  break;
+                default:
+                  std::cout << "Unknown algorithm version " << id << "\n";
+              }
+            }
+          }
+        }  // for s
+      }    // for num_thread
+    }
+    else {
+      auto&& [hyperedges, hypernodes, iperm] = graph_reader<vertex_id_t>(file, idx, direction);
+      auto&& hyperedge_degrees = hyperedges.degrees(std::execution::par_unseq);
+      if (debug) {
+        hyperedges.stream_indices();
+        hypernodes.stream_indices();
+
+        std::cout << hyperedge_degrees.size() << ": ";
+        for (auto d : hyperedge_degrees) std::cout << d << " ";
+        std::cout << std::endl;
+        if (-1 != idx) assert(!iperm.empty());
+
+        if (adjoin) {
+          std::cout << "size of the adjoin graph = " << hyperedges.size()
+                    << std::endl;
+          assert(0 != nrealedges);
+          assert(0 != nrealnodes);
+        }
+      }
+
+      if (verbose) {
+        hypernodes.stream_stats();
+        hyperedges.stream_stats();
+      }
+      for (auto&& num_thread : threads) {
+        auto _ = set_n_threads(num_thread);
+        for (auto&& s : s_values) {
+          auto&& s_adj =
+              twograph_reader(loader_version, verbose, features, hyperedges,
+                              hypernodes, hyperedge_degrees, iperm, nrealedges,
+                              nrealnodes, s, num_thread, num_bins);
+          for (auto&& id : ids) {
+            auto record = [&](auto&& op) {
+              times.record(file, id, num_thread, s,
+                           std::forward<decltype(op)>(op), verifier, true);
+            };
+            for (int j = 0, e = trials; j < e; ++j) {
+              switch (id) {
+                case 0:
+                  record([&] {
+                    return linegraph_ccv1(std::execution::par_unseq, hypernodes,
+                                          s_adj);
+                  });
+                  break;
+                case 1:
+                  record([&] {
+                    return linegraph_Afforest(std::execution::par_unseq,
+                                              hypernodes, s_adj);
+                  });
+                  break;
+                case 2:
+                  record([&] {
+                    return linegraph_lpcc(std::execution::par_unseq, s_adj);
+                  });
+                  break;
+                default:
+                  std::cout << "Unknown algorithm version " << id << "\n";
+              }
+            }
+          }
+        }  // for s
+      }    // for num_thread
+
+    } //else 
+    
+}      // for file
 
   times.print(std::cout);
 

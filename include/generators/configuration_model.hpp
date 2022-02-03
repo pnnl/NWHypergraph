@@ -9,7 +9,7 @@
 //
 
 #pragma once
-#include <containers/edge_list.hpp>
+#include <nwgraph/edge_list.hpp>
 #include <execution>
 #include <vector>
 #include <random>
@@ -31,10 +31,10 @@ namespace hypergraph {
 * 
 */
 template<class T>
-nw::graph::edge_list<nw::graph::directed> 
+nw::graph::bi_edge_list<nw::graph::directedness::directed> 
 configuration_model(std::vector<T>& deg_seqa, std::vector<T>& deg_seqb, bool contiguous_id_space = false) {
     //validate degree sequences such that their summation are equivalent
-    nw::graph::edge_list<nw::graph::directed> el;
+    nw::graph::bi_edge_list<nw::graph::directedness::directed> el;
     T suma = std::reduce(std::execution::par_unseq, deg_seqa.cbegin(), deg_seqa.cend());
     T sumb = std::reduce(std::execution::par_unseq, deg_seqb.cbegin(), deg_seqb.cend());
     if (suma != sumb) {

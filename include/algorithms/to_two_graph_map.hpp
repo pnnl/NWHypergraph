@@ -10,9 +10,8 @@
 #pragma once
 #include <map>
 #include <unordered_map>
-#include <adaptors/cyclic_neighbor_range.hpp>
-#include <adaptors/vertex_range.hpp>
-#include "util/slinegraph_helper.hpp"
+#include <nwgraph/adaptors/cyclic_neighbor_range.hpp>
+#include <nwgraph/adaptors/vertex_range.hpp>
 
 namespace nw {
 namespace hypergraph {
@@ -34,10 +33,10 @@ namespace map {
 *
 */
 template <class Container = std::unordered_map<size_t, size_t>, class HyperEdge,
-          class HyperNode>
+          class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
 void to_two_graph_map_blocked(
     std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>&& two_graphs,
-    HyperEdge& edges, HyperNode& nodes, std::vector<index_t>& hyperedgedegrees,
+    HyperEdge& edges, HyperNode& nodes, std::vector<vertex_id_t>& hyperedgedegrees,
     size_t s, int bin_size = 32) {
   nw::util::life_timer _(__func__);
   size_t M = edges.size();
@@ -83,10 +82,10 @@ void to_two_graph_map_blocked(
 *
 */
 template <class Container = std::unordered_map<size_t, size_t>, class HyperEdge,
-          class HyperNode>
+          class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
 void to_two_graph_map_cyclic(
     std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>&& two_graphs,
-    HyperEdge& edges, HyperNode& nodes, std::vector<index_t>& hyperedgedegrees,
+    HyperEdge& edges, HyperNode& nodes, std::vector<vertex_id_t>& hyperedgedegrees,
     size_t s, int num_bins = 32) {
   nw::util::life_timer _(__func__);
   size_t M = edges.size();
@@ -133,10 +132,10 @@ void to_two_graph_map_cyclic(
 *
 */
 template <class Container = std::unordered_map<size_t, size_t>, class T, class HyperEdge,
-          class HyperNode>
+          class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
 void to_weighted_two_graph_map_blocked(
     std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t, T>>>&& two_graphs,
-    HyperEdge& edges, HyperNode& nodes, std::vector<index_t>& hyperedgedegrees,
+    HyperEdge& edges, HyperNode& nodes, std::vector<vertex_id_t>& hyperedgedegrees,
     size_t s, int bin_size = 32) {
   nw::util::life_timer _(__func__);
   size_t M = edges.size();
@@ -147,8 +146,10 @@ void to_weighted_two_graph_map_blocked(
         for (auto hyperE = r.begin(), e = r.end(); hyperE != e; ++hyperE) {
           if (hyperedgedegrees[hyperE] < s) continue;
           Container K;
-          for (auto&& [hyperN] : edges[hyperE]) {
-            for (auto&& [anotherhyperE] : nodes[hyperN]) {
+          for (auto&& e : edges[hyperE]) {
+            auto hyperN = target(edges, e);
+            for (auto&& n : nodes[hyperN]) {
+              auto anotherhyperE = target(nodes, n);
               if (hyperedgedegrees[anotherhyperE] < s) continue;
               if (hyperE < anotherhyperE) ++K[anotherhyperE];
             }
@@ -181,10 +182,10 @@ void to_weighted_two_graph_map_blocked(
 * @param[in] bin_size the size of bins after dividing the workload
 *
 */
-template <class HyperEdge, class HyperNode>
+template <class HyperEdge, class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
 void to_two_graph_vector_blocked(
     std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>&& two_graphs,
-    HyperEdge& edges, HyperNode& nodes, std::vector<index_t>& hyperedgedegrees,
+    HyperEdge& edges, HyperNode& nodes, std::vector<vertex_id_t>& hyperedgedegrees,
     size_t s, int num_threads, int bin_size = 32) {
   nw::util::life_timer _(__func__);
   size_t M = edges.size();
@@ -238,10 +239,10 @@ void to_two_graph_vector_blocked(
 * @param[in] num_bins the number of bins to divide the workload
 *
 */
-template <class HyperEdge, class HyperNode>
+template <class HyperEdge, class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
 void to_two_graph_vector_cyclic(
     std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>&& two_graphs,
-    HyperEdge& edges, HyperNode& nodes, std::vector<index_t>& hyperedgedegrees,
+    HyperEdge& edges, HyperNode& nodes, std::vector<vertex_id_t>& hyperedgedegrees,
     size_t s, int num_threads, int num_bins = 32) {
   nw::util::life_timer _(__func__);
   size_t M = edges.size();

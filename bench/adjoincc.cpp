@@ -10,8 +10,9 @@
 
 #include <execution>
 #include <unordered_set>
-#include <containers/edge_list.hpp>
-#include <algorithms/connected_components.hpp>
+#include <nwgraph/edge_list.hpp>
+#include <nwgraph/algorithms/connected_components.hpp>
+#include <nwgraph/experimental/algorithms/connected_components.hpp>
 #include <docopt.h>
 #include "Log.hpp"
 #include "common.hpp"
@@ -72,7 +73,8 @@ int main(int argc, char* argv[]) {
   // them real symbols here rather than the local bindings.
   for (auto&& file : files) {
     size_t num_realedges = 0, num_realnodes = 0;
-    auto&& [g, g_t, iperm]    = graph_reader_adjoin(file, num_realedges, num_realnodes);
+    using vertex_id_t = uint32_t;
+    auto&& [g, g_t, iperm]    = graph_reader_adjoin<directedness::undirected, vertex_id_t>(file, num_realedges, num_realnodes);
     std::cout << "num_hyperedges = " << num_realedges << " num_hypernodes = " << num_realnodes << std::endl;
     std::cout << "size of the merged adjacency = " << g.size() << std::endl;
 
@@ -101,15 +103,15 @@ int main(int argc, char* argv[]) {
           switch (id) {
             case 0:
               record([&] { 
-                auto l = nw::graph::Afforest<ExecutionPolicy, Graph, Transpose>(std::execution::par_unseq, g, g_t, 2);
+                auto l = nw::graph::Afforest<Graph, Transpose>(g, g_t, 2);
                 return splitLabeling<ExecutionPolicy, vertex_id_t>(std::execution::par_unseq, l, num_realedges, num_realnodes);
               });
               break;
             case 1:
               record([&] { 
-                auto af = nw::graph::Afforest<ExecutionPolicy, Graph, Transpose>;
+                auto af = nw::graph::Afforest<Graph, Transpose>;
                 using AfforestF = decltype(af);
-                return nw::hypergraph::relabel_x_parallel<ExecutionPolicy, AfforestF, vertex_id_t>(std::execution::par_unseq, num_realedges, num_realnodes, af, std::execution::par_unseq,  g, g_t, 2); });
+                return nw::hypergraph::relabel_x_parallel<ExecutionPolicy, AfforestF, vertex_id_t>(std::execution::par_unseq, num_realedges, num_realnodes, af, g, g_t, 2); });
               break;
             case 2:
               record([&] { 
@@ -125,15 +127,15 @@ int main(int argc, char* argv[]) {
               break;
             case 4:
               record([&] { 
-                auto lpf = nw::graph::ccv1<Graph>;
+                auto lpf = nw::graph::ccv1<Graph, vertex_id_t>;
                 using LabelPropagationF = decltype(lpf);
                 return nw::hypergraph::relabel_x< LabelPropagationF, vertex_id_t>(num_realedges, num_realnodes, lpf, g); });
               break;
             case 5:
               record([&] { 
-                auto af = nw::graph::Afforest<ExecutionPolicy, Graph, Transpose>;
+                auto af = nw::graph::Afforest<Graph, Transpose>;
                 using AfforestF = decltype(af);
-                return nw::hypergraph::relabel_x<AfforestF, vertex_id_t>(num_realedges, num_realnodes, af, std::execution::par_unseq, g, g_t, 2); });
+                return nw::hypergraph::relabel_x<AfforestF, vertex_id_t>(num_realedges, num_realnodes, af, g, g_t, 2); });
               break;
             case 6:
               record([&] { 

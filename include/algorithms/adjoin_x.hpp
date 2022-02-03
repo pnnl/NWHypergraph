@@ -10,10 +10,10 @@
 
 #pragma once
 
-#include <util/timer.hpp>
+#include <nwgraph/util/timer.hpp>
 #include <tuple>
 #include <vector>
-#include <adaptors/vertex_range.hpp>
+#include <nwgraph/adaptors/vertex_range.hpp>
 
 namespace nw {
 namespace hypergraph {

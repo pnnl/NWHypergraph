@@ -11,6 +11,7 @@
 #include <bitset>
 #include "to_two_graph_efficient.hpp"
 #include "experimental/slinegraph_efficient.hpp"
+#include "util/slinegraph_helper.hpp"
 
 namespace nw {
 namespace hypergraph {
@@ -31,9 +32,9 @@ namespace hypergraph {
 * @param[in] bin_size the size of bin after dividing the workload
 * @returns the edge list of the s-line graph
 */
-template<directedness edge_directedness = undirected, class HyperEdge, class HyperNode>
+template<directedness edge_directedness = nw::graph::directedness::undirected, class HyperEdge, class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
 auto to_two_graph_efficient_blocked (HyperEdge& edges, HyperNode& nodes, 
-std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int bin_size = 32) {
+std::vector<vertex_id_t>& hyperedgedegrees, size_t s, int num_threads, int bin_size = 32) {
   size_t M = edges.size();
   using linegraph_t = std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>;
   linegraph_t two_graphs(num_threads);
@@ -65,9 +66,9 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int bin_size 
 * @param[in] num_bins the number of bins to divide the workload
 * @returns the edge list of the s-line graph
 */
-template<directedness edge_directedness = undirected, class HyperEdge, class HyperNode>
+template<directedness edge_directedness = nw::graph::directedness::undirected, class HyperEdge, class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
 auto to_two_graph_efficient_parallel_2d (HyperEdge& edges, HyperNode& nodes, 
-std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
+std::vector<vertex_id_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
   size_t M = edges.size();
   size_t N = nodes.size();
 
@@ -114,9 +115,9 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins 
 * @param[in] num_bins the number of bins to divide the workload
 * @returns the edge list of the s-line graph
 */
-template<directedness edge_directedness = undirected, class HyperEdge, class HyperNode>
+template<directedness edge_directedness = nw::graph::directedness::undirected, class HyperEdge, class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
 auto to_two_graph_efficient_cyclic (HyperEdge& edges, HyperNode& nodes, 
-std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
+std::vector<vertex_id_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
   using linegraph_t = std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>;
   linegraph_t two_graphs(num_threads);
   if (1 == s) {
@@ -152,10 +153,10 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins 
 * @param[in] bin_size the size of each bin after dividing the workload
 * @returns the edge list of the weighted s-line graph
 */
-template <directedness edge_directedness = undirected, class T, class HyperEdge,
-          class HyperNode>
+template <directedness edge_directedness = nw::graph::directedness::undirected, class T, class HyperEdge,
+          class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
 auto to_weighted_two_graph_efficient_blocked(
-    HyperEdge& edges, HyperNode& nodes, std::vector<index_t>& hyperedgedegrees,
+    HyperEdge& edges, HyperNode& nodes, std::vector<vertex_id_t>& hyperedgedegrees,
     size_t s, int num_threads, int bin_size = 32) {
   size_t M = edges.size();
   size_t N = nodes.size();
@@ -167,13 +168,13 @@ auto to_weighted_two_graph_efficient_blocked(
     efficient::to_weighted_two_graph_blocked(
         std::forward<linegraph_t>(two_graphs), edges, nodes, M / bin_size, 0,
         M);
-    return create_edgelist_without_squeeze<undirected, T>(two_graphs);
+    return create_edgelist_without_squeeze<nw::graph::directedness::undirected, vertex_id_t, T>(two_graphs);
   } else {
     // when s > 1
     efficient::to_weighted_two_graph_blocked(
         std::forward<linegraph_t>(two_graphs), edges, nodes, M / bin_size, 0, M,
         hyperedgedegrees, s);
-    return create_edgelist_with_squeeze<undirected, T>(two_graphs);
+    return create_edgelist_with_squeeze<nw::graph::directedness::undirected, vertex_id_t, T>(two_graphs);
   }  // else
 }
 
@@ -194,11 +195,11 @@ auto to_weighted_two_graph_efficient_blocked(
 * @param[in] bin_size the size of bin after dividing the workload
 * @returns the edge list of the s-line graph
 */
-template<directedness edge_directedness = nw::graph::undirected, class HyperEdge, class HyperNode>
+template<directedness edge_directedness = nw::graph::directedness::undirected, class HyperEdge, class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
 auto to_two_graph_efficient_blocked_without_sequeeze(
   HyperEdge& edges, 
   HyperNode& nodes, 
-  std::vector<index_t>& hyperedgedegrees, 
+  std::vector<vertex_id_t>& hyperedgedegrees, 
   size_t s,
   int num_threads, 
   int bin_size = 32) {
@@ -235,11 +236,11 @@ auto to_two_graph_efficient_blocked_without_sequeeze(
 * @param[in] bin_size the size of bin after dividing the workload
 * @returns the edge list of the weighted s-line graph
 */
-template<directedness edge_directedness = nw::graph::undirected, class T, class HyperEdge, class HyperNode>
+template<directedness edge_directedness = nw::graph::directedness::undirected, class T, class HyperEdge, class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
 auto to_weighted_two_graph_efficient_blocked_without_squeeze(
   HyperEdge& edges, 
   HyperNode& nodes, 
-  std::vector<index_t>& hyperedgedegrees, 
+  std::vector<vertex_id_t>& hyperedgedegrees, 
   size_t s,
   int num_threads, 
   int bin_size = 32) {
@@ -275,11 +276,11 @@ auto to_weighted_two_graph_efficient_blocked_without_squeeze(
 * @param[in] num_bins the number of bins to divide the workload
 * @returns the edge list of the s-line graph
 */
-template <directedness edge_directedness = undirected, class HyperEdge,
-          class HyperNode>
+template <directedness edge_directedness = nw::graph::directedness::undirected, class HyperEdge,
+          class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
 auto to_two_graph_efficient_cyclic_portal(
     bool verbose, HyperEdge& e_nbs, HyperNode& n_nbs,
-    std::vector<index_t>& hyperedgedegrees, size_t s, int numb_threads,
+    std::vector<vertex_id_t>& hyperedgedegrees, size_t s, int numb_threads,
     int num_bins = 32) {
   if (!verbose)
     return to_two_graph_efficient_cyclic(
@@ -306,11 +307,11 @@ auto to_two_graph_efficient_cyclic_portal(
 * @param[in] bin_size the size of bin after dividing the workload
 * @returns the edge list of the s-line graph
 */
-template <directedness edge_directedness = undirected, class HyperEdge,
-          class HyperNode>
+template <directedness edge_directedness = nw::graph::directedness::undirected, class HyperEdge,
+          class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
 auto to_two_graph_efficient_blocked_portal(
     bool verbose, std::bitset<8>& features, HyperEdge& e_nbs, HyperNode& n_nbs,
-    std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads,
+    std::vector<vertex_id_t>& hyperedgedegrees, size_t s, int num_threads,
     int bin_size = 32) {
   // if none feature selected, then default to turn all on
   if (features.none()) features[heuristics::ALL] = true;

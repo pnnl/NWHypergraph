@@ -9,8 +9,8 @@
 //
 
 #pragma once
-#include <containers/compressed.hpp>
-#include <util/timer.hpp>
+#include <nwgraph/containers/compressed.hpp>
+#include <nwgraph/util/timer.hpp>
 namespace nw {
 namespace hypergraph {
 /*
@@ -19,8 +19,8 @@ namespace hypergraph {
 * 2. we get the permutation of step 1 and relabel the neighbor list of the other part of the bi-adjacency
 * 3. sort the neighbor list of the relabeled neighbor list in step 2
 **/
-template<class... Attributes>
-auto relabel_by_degree(nw::graph::adjacency<0, Attributes...>& edges, nw::graph::adjacency<1, Attributes...>& nodes, 
+template<class HyperEdge, class HyperNode>
+auto relabel_by_degree(HyperEdge& edges, HyperNode& nodes, 
 int idx, std::string direction) {
   nw::util::life_timer _("relabel_by_degree");
   if (0 == idx) {

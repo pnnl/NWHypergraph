@@ -15,9 +15,9 @@
 #include "s_overlap.hpp"
 #include "algorithms/hyper_breadth_first_search.hpp"
 #include "algorithms/s_breadth_first_search.hpp"
-#include <containers/edge_list.hpp>
-#include <util/AtomicBitVector.hpp>
-#include <util/intersection_size.hpp>
+#include <nwgraph/edge_list.hpp>
+#include <nwgraph/util/AtomicBitVector.hpp>
+#include <nwgraph/util/intersection_size.hpp>
 #include <docopt.h>
 #include <execution>
 
@@ -99,13 +99,79 @@ int main(int argc, char* argv[]) {
   // them real symbols here rather than the local bindings.
   for (auto&& file : files) {
     size_t nrealedges = 0, nrealnodes = 0;
-    auto&& [hyperedges, hypernodes, iperm] = graph_reader<directed>(file, idx, direction, adjoin, nrealedges, nrealnodes);
-    auto&& hyperedge_degrees = hyperedges.degrees(std::execution::par_unseq);
-    if (verbose) {
-      hypernodes.stream_stats();
-      hyperedges.stream_stats();
-    }
+    nw::graph::edge_list<directedness::directed> e;
+    using vertex_id_t = vertex_id_t<decltype(e)>;
+        if (adjoin) {
+      auto&& [h, ht, iperm] = adjoin_graph_reader<vertex_id_t>(file, idx, direction, nrealedges, nrealnodes);
+      auto&& degrees = h.degrees(std::execution::par_unseq);
+    for (auto&& thread : threads) {
+      auto _ = set_n_threads(thread);
+      auto features = std::bitset<8>();
+      auto&& graph =
+          twograph_reader(loader_version, verbose, features, h,
+                          ht, degrees, iperm, nrealedges,
+                          nrealnodes, s, thread, num_bins);
+      // Source should be selected/generated based on line graph
+      std::vector<vertex_id_t> sources;
+      if (args["--sources"]) {
+        sources =
+            load_sources_from_file(h, args["--sources"].asString());
+        trials = sources.size();
+      } else if (args["-r"]) {
+        sources.resize(trials);
+        std::fill(sources.begin(), sources.end(), args["-r"].asLong());
+      } else {
+        sources = build_random_sources(
+            graph, trials,
+            args["--seed"].asLong());      
+      }
+      for (auto&& id : ids) {
+        for (auto&& source : sources) {
+          if (verbose) std::cout << "version " << id << std::endl;
 
+          auto&& [time, parents] = time_op([&] {
+            switch (id) {
+              case 0:
+                return bfs_v0(graph, source);
+              default:
+                std::cerr << "Unknown version " << id << "\n";
+                return std::vector<vertex_id_t>();
+            }
+          });
+
+          if (verify) {
+            BFSVerifier(graph, graph, source, parents);
+          }
+
+          times.append(file, id, thread, time, source);
+        }//source
+      }//id
+    }//thread
+    }
+    else {
+      auto&& [hyperedges, hypernodes, iperm] = graph_reader<vertex_id_t>(file, idx, direction);
+      auto&& hyperedge_degrees = hyperedges.degrees(std::execution::par_unseq);
+      if (debug) {
+        hyperedges.stream_indices();
+        hypernodes.stream_indices();
+
+        std::cout << hyperedge_degrees.size() << ": ";
+        for (auto d : hyperedge_degrees) std::cout << d << " ";
+        std::cout << std::endl;
+        if (-1 != idx) assert(!iperm.empty());
+
+        if (adjoin) {
+          std::cout << "size of the adjoin graph = " << hyperedges.size()
+                    << std::endl;
+          assert(0 != nrealedges);
+          assert(0 != nrealnodes);
+        }
+      }
+
+      if (verbose) {
+        hypernodes.stream_stats();
+        hyperedges.stream_stats();
+      }
     for (auto&& thread : threads) {
       auto _ = set_n_threads(thread);
       auto features = std::bitset<8>();
@@ -142,13 +208,15 @@ int main(int argc, char* argv[]) {
           });
 
           if (verify) {
-            //TODO
+            BFSVerifier(graph, graph, source, parents);
           }
 
           times.append(file, id, thread, time, source);
-        }
-      }
-    }
+        }//source
+      }//id
+    }//thread
+
+    } //else 
   }
   times.print(std::cout);
 

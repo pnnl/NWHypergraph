@@ -31,11 +31,6 @@ static constexpr const char USAGE[] =
       --degs-nodes FILE     degree sequence of nodes in FILE
 )";
 
-template <int Adj, directedness Directedness, class... Attributes>
-nw::graph::adjacency<Adj, Attributes...> build_adjacency(nw::graph::edge_list<Directedness, Attributes...>& graph) {
-  nw::util::life_timer _("build adjacency");
-  return { graph };
-}
 
 int main(int argc, char* argv[]) {
     std::vector<std::string> strings(argv + 1, argv + argc);
@@ -46,23 +41,24 @@ int main(int argc, char* argv[]) {
     std::string output = args["--output"].asString();
     std::string deg_seqa = args["--degs-edges"].asString();
     std::string deg_seqb = args["--degs-nodes"].asString();
-
+    using vertex_id_t = vertex_id_t<nw::graph::bi_edge_list<nw::graph::directedness::directed>>;
     auto reader = [&](std::string file) {
-      auto aos_a = load_graph<nw::graph::directed>(file);
+      auto aos_a = load_graph(file);
+       std::vector<vertex_id_t> hyperedge_degrees, hypernode_degrees;
       if (0 == aos_a.size()) {
-        auto&& [hyperedges, hypernodes] = load_adjacency<>(file);
-        auto hyperedge_degrees = hyperedges.degrees();
-        auto hypernode_degrees = hypernodes.degrees();
+        auto&& [hyperedges, hypernodes] = load_adjacency<vertex_id_t>(file);
+        hyperedge_degrees = hyperedges.degrees();
+        hypernode_degrees = hypernodes.degrees();
         return std::tuple(hyperedge_degrees, hypernode_degrees);
       }
       else {
-        std::vector<index_t> hyperedge_degrees =  aos_a.degrees<0>();
-        std::vector<index_t> hypernode_degrees =  aos_a.degrees<1>();
+        hyperedge_degrees = degrees<0>(aos_a);
+        hypernode_degrees = degrees<1>(aos_a);
         return std::tuple(hyperedge_degrees, hypernode_degrees);
       }
     };
 
-    nw::graph::edge_list<nw::graph::directed> edges;
+    nw::graph::bi_edge_list<nw::graph::directedness::directed> edges;
     if ("" != input) {
         auto&&[hyperedge_degrees, hypernode_degrees] = reader(input);
         edges = configuration_model(hyperedge_degrees, hypernode_degrees, false);
@@ -70,9 +66,9 @@ int main(int argc, char* argv[]) {
 
     if ("" != output) {
       std::cout << "Writing mtx file" << std::endl;
-      auto hyperedges = build_adjacency<0>(edges);
-      auto hypernodes = build_adjacency<1>(edges);
-      write_mm_hy(output, hyperedges, hyperedges.size(), hypernodes.size());
+      size_t num_hyperedges = num_vertices(edges, 0), num_hypernodes = num_vertices(edges, 1);
+      nw::graph::biadjacency<0> hyperedges(edges);
+      write_mm_hy(output, hyperedges, num_hyperedges, num_hypernodes);
     }
 
   return 0;
