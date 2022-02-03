@@ -9,8 +9,8 @@
 //
 
 #pragma once
-#include <util/timer.hpp>
-#include <io/mmio.hpp>
+#include <nwgraph/util/timer.hpp>
+#include <nwgraph/io/mmio.hpp>
 
 namespace nw {
 namespace hypergraph {
@@ -130,6 +130,50 @@ size_t nNonzeros, bool file_symmetry, bool pattern) {
   A.close_for_push_back();
 }
 
+template <directedness sym, typename... Attributes>
+nw::graph::bi_edge_list<sym, Attributes...> read_mm(const std::string& filename) {
+  std::ifstream            inputStream(filename);
+  std::string              string_input;
+  bool                     file_symmetry = false;
+  std::vector<std::string> header(5);
+
+  // %%MatrixMarket matrix coordinate integer symmetric
+  std::getline(inputStream, string_input);
+  std::stringstream h(string_input);
+  for (auto& s : header)
+    h >> s;
+
+  if (header[0] != "%%MatrixMarket") {
+    std::cerr << "Unsupported format" << std::endl;
+    throw;
+  }
+  if (header[4] == "symmetric") {
+    file_symmetry = true;
+  } else if (header[4] == "general") {
+    file_symmetry = false;
+  } else {
+    std::cerr << "Bad format (symmetry): " << header[4] << std::endl;
+    throw;
+  }
+
+  while (std::getline(inputStream, string_input)) {
+    if (string_input[0] != '%') break;
+  }
+  size_t n0, n1, nNonzeros;
+  std::stringstream(string_input) >> n0 >> n1 >> nNonzeros;
+
+  // bipartite edge list
+  if (file_symmetry) {
+    std::cerr << "Can not populate bipartite graph with symmetric matrix"
+              << std::endl;
+    throw;
+  }
+  nw::graph::bi_edge_list<sym, Attributes...> A(n0, n1);
+  mm_fill(inputStream, A, nNonzeros, file_symmetry, (header[3] == "pattern"));
+
+  return A;
+}
+
 //loader for mmio_adjoin
 template<nw::graph::directedness sym, typename... Attributes>
 nw::graph::edge_list<sym, Attributes...> read_mm_adjoin(const std::string& filename, size_t& numRealEdges, size_t& numRealNodes) {
@@ -165,13 +209,12 @@ nw::graph::edge_list<sym, Attributes...> read_mm_adjoin(const std::string& filen
 
   nw::graph::edge_list<sym, Attributes...> A(numRealEdges + numRealNodes);
   mm_fill_adjoin<nw::graph::edge_list<sym, Attributes...>, Attributes...>(inputStream, A, numRealEdges, numRealNodes, nNonzeros, file_symmetry, (header[3] == "pattern"));
-  A.set_origin(filename);
   
   return A;
 }
 
 template <size_t w_idx, int idx, typename... Attributes>
-void hy_adjacency_stream(std::ofstream& outputStream, nw::graph::adjacency<idx, Attributes...>& A, 
+void hy_adjacency_stream(std::ofstream& outputStream, nw::graph::biadjacency<idx, Attributes...>& A, 
 size_t size_col0, size_t size_col1,
 const std::string& file_symmetry, std::string& w_type) {
   outputStream << "%%MatrixMarket matrix coordinate " << w_type << " " << file_symmetry << "\n%%\n";
@@ -190,7 +233,7 @@ const std::string& file_symmetry, std::string& w_type) {
 }
 
 template <size_t w_idx = 0, typename idxtype = void, int idx, typename... Attributes>
-void write_mm_hy(const std::string& filename, nw::graph::adjacency<idx, Attributes...>& A, size_t size_col0, size_t size_col1,
+void write_mm_hy(const std::string& filename, nw::graph::biadjacency<idx, Attributes...>& A, size_t size_col0, size_t size_col1,
 const std::string& file_symmetry = "general") {
   /*if (file_symmetry == "symmetric" && sym == directedness::directed) {
     std::cerr << "cannot save directed matrix as symmetric matrix market" << std::endl;

@@ -16,17 +16,18 @@
 #include <vector>
 #include <tuple>
 #include <map>
-#include <containers/edge_list.hpp>
-#include <util/intersection_size.hpp>
+#include <nwgraph/graph_base.hpp>
+#include <nwgraph/edge_list.hpp>
+#include <nwgraph/util/intersection_size.hpp>
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 #include <pybind11/pytypes.h>
 #include "algorithms/slinegraph_map.hpp"
 #include "algorithms/slinegraph_efficient.hpp"
 #include "algorithms/toplexes.hpp"
-#include <algorithms/connected_components.hpp>
-#include <algorithms/delta_stepping.hpp>
-#include <algorithms/betweenness_centrality.hpp>
+#include <nwgraph/algorithms/connected_components.hpp>
+#include <nwgraph/algorithms/delta_stepping.hpp>
+#include <nwgraph/algorithms/betweenness_centrality.hpp>
 
 using namespace nw::graph;
 namespace py = pybind11;

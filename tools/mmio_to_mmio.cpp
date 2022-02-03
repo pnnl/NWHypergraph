@@ -9,8 +9,8 @@
 //
 
 #include <docopt.h>
-#include "io/loader.hpp"
-
+#include <nwgraph/edge_list.hpp>
+#include <nwgraph/io/mmio.hpp>
 
 static constexpr const char USAGE[] =
     R"(mm2mm.exe: transpose matrix market file driver.
@@ -27,8 +27,6 @@ static constexpr const char USAGE[] =
       -V, --verbose         run in verbose mode
 )";
 
-using namespace nw::hypergraph;
-
 int main(int argc, char* argv[]) {
   std::vector<std::string> strings(argv + 1, argv + argc);
   auto args = docopt::docopt(USAGE, strings, true);
@@ -39,31 +37,31 @@ int main(int argc, char* argv[]) {
   std::string output_file = args["-o"].asString();
   bool transpose = args["--transpose"].asBool();
 
-  if (!is_mm(input_file)) {
+  if (!nw::graph::is_mm(input_file)) {
     std::cerr << "not matrix market file, convert abort" << std::endl;
     exit(1);
   }
 
-  directedness direction = get_mm_symmetry(input_file);
+  nw::graph::directedness direction = nw::graph::get_mm_symmetry(input_file);
 
-  if (directed == direction) {
-    auto aos_a = read_mm<directed>(input_file);
+  if (nw::graph::directedness::directed == direction) {
+    auto&& aos_a = nw::graph::read_mm<nw::graph::directedness::directed>(input_file);
     std::cout << "general matrix" << std::endl;
     aos_a.stream_stats();
 
     if (!transpose)
-      write_mm<0>(output_file, aos_a, "general");
+      nw::graph::write_mm<0>(output_file, aos_a, "general");
     else
-      write_mm<1>(output_file, aos_a, "general");
+      nw::graph::write_mm<1>(output_file, aos_a, "general");
   } else {
-    auto aos_a = read_mm<undirected>(input_file);
+    auto aos_a = nw::graph::read_mm<nw::graph::directedness::undirected>(input_file);
     std::cout << "symmetric matrix" << std::endl;
     aos_a.stream_stats();
 
     if (!transpose)
-      write_mm<0>(output_file, aos_a, "symmetric");
+      nw::graph::write_mm<0>(output_file, aos_a, "symmetric");
     else
-      write_mm<1>(output_file, aos_a, "symmetric");
+      nw::graph::write_mm<1>(output_file, aos_a, "symmetric");
   }
   return 0;
 }

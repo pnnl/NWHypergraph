@@ -38,12 +38,27 @@ project(
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
 # -----------------------------------------------------------------------------
+# Select a C++ standard
+# -----------------------------------------------------------------------------
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# -----------------------------------------------------------------------------
 # Build types and default flags
 # -----------------------------------------------------------------------------
-set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -fno-elide-constructors" CACHE STRING "" FORCE)
-set(CMAKE_CXX_FLAGS_RELEASE "-Ofast -march=native -DNDEBUG" CACHE STRING "" FORCE)
-set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-Ofast -g -march=native" CACHE STRING "" FORCE)
-set(CMAKE_CXX_FLAGS_MINSIZEREL "-Os -march=native -DNDEBUG" CACHE STRING "" FORCE)
+message("Architecture is ${CMAKE_HOST_SYSTEM_PROCESSOR}")
+
+if (CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL arm64)
+  set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -fno-elide-constructors -fconcepts-diagnostics-depth=3 " CACHE STRING "" FORCE)
+  set(CMAKE_CXX_FLAGS_RELEASE "-Ofast -DNDEBUG " CACHE STRING "" FORCE)
+  set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-Ofast -g -DNDEBUG" CACHE STRING "" FORCE)
+  set(CMAKE_CXX_FLAGS_MINSIZEREL "-Os -DNDEBUG " CACHE STRING "" FORCE)
+else()
+  set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -fno-elide-constructors -fconcepts-diagnostics-depth=3 " CACHE STRING "" FORCE)
+  set(CMAKE_CXX_FLAGS_RELEASE "-Ofast -march=native -DNDEBUG " CACHE STRING "" FORCE)
+  set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-Ofast -g -march=native -DNDEBUG" CACHE STRING "" FORCE)
+  set(CMAKE_CXX_FLAGS_MINSIZEREL "-Os -march=native -DNDEBUG " CACHE STRING "" FORCE)
+endif()
 
 # Default to Release build
 if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -53,13 +68,6 @@ endif()
 
 # Control compiler-specific flags.
 include(CompilerFlags)
-
-# -----------------------------------------------------------------------------
-# Select a C++ standard
-# -----------------------------------------------------------------------------
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
 
 # -----------------------------------------------------------------------------
 # Options
@@ -78,7 +86,6 @@ option(NW_HYPERGRAPH_BUILD_TOOLS "Determines whether to build tools." OFF)
 
 add_subdirectory(include)
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../NWut/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../NWgr/include)
 
 
@@ -95,9 +102,7 @@ endif()
 
 if (NW_HYPERGRAPH_BUILD_TOOLS)
   add_subdirectory(tools)
-  include(Date)
   include(Docopt)
-  include(RangeV3)
 endif()
 
 if (NW_HYPERGRAPH_BUILD_TEST)

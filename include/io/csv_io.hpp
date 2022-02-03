@@ -11,9 +11,9 @@
 #include <iostream>
 #include <fstream>
 
-#include <containers/edge_list.hpp>
-#include <containers/compressed.hpp>
-#include <util/timer.hpp>
+#include <nwgraph/edge_list.hpp>
+#include <nwgraph/adjacency.hpp>
+#include <nwgraph/util/timer.hpp>
 using namespace nw::graph;
 
 namespace nw {
@@ -24,8 +24,10 @@ namespace hypergraph {
 **/
 template <class EdgeList>
 void csv_fill(std::istream& inputStream, EdgeList& A) {
+  using vertex_id_t = typename graph_traits<EdgeList>::vertex_id_type;
   std::string line, word, temp;
   vertex_id_t e = 0;
+  A.open_for_push_back();
   while (std::getline(inputStream, line)) {
     // read an entire row and
     // store it in a string variable 'line'
@@ -55,8 +57,11 @@ void csv_fill(std::istream& inputStream, EdgeList& A) {
   A.close_for_push_back();
 }
 
-template <class EdgeList>
-void populate_adjoin_edge_list(EdgeList& A, EdgeList& B,
+/*
+* Convert (adjoin) a biparite edge list into a unipartite edge list
+**/
+template <class BiEdgeList, class EdgeList>
+void populate_adjoin_edge_list(BiEdgeList& A, EdgeList& B,
                                const size_t nedges, const size_t nnodes) {
   B.open_for_push_back();
   if (nedges > nnodes) {
@@ -76,19 +81,19 @@ void populate_adjoin_edge_list(EdgeList& A, EdgeList& B,
 * Assuming csv file is index-1 based.
 **/
 template <directedness sym, typename... Attributes>
-auto read_csv(const std::string& filename) {
-    std::ifstream file(filename, std::ifstream::in);
-    // test file open
-    if (!file.is_open()) {
-      std::cerr << "Can not open file: " << filename << std::endl;
-      throw;
-    }
-    nw::graph::edge_list<sym, Attributes...> A;
-    // Read the data from the file as edge_list
-    csv_fill(file, A);
-    file.close();
-    A.set_origin(filename);
-    return A;
+nw::graph::bi_edge_list<sym, Attributes...> read_csv(
+    const std::string& filename) {
+  std::ifstream file(filename, std::ifstream::in);
+  // test file open
+  if (!file.is_open()) {
+    std::cerr << "Can not open file: " << filename << std::endl;
+    throw;
+  }
+  nw::graph::bi_edge_list<sym, Attributes...> A(0, 0);
+  // Read the data from the file as edge_list
+  csv_fill(file, A);
+  file.close();
+  return A;
 }
 
 /*
@@ -96,21 +101,20 @@ auto read_csv(const std::string& filename) {
 * Assuming csv file is index-1 based.
 **/
 template <directedness sym, typename... Attributes>
-auto read_csv_adjoin(const std::string& filename, size_t& numRealEdges, size_t& numRealNodes) {
+nw::graph::edge_list<sym, Attributes...> read_csv_adjoin(const std::string& filename, size_t& numRealEdges, size_t& numRealNodes) {
     std::ifstream file(filename, std::ifstream::in);
     // test file open
     if (!file.is_open()) {
       std::cerr << "Can not open file: " << filename << std::endl;
       throw;
     }
-    nw::graph::edge_list<sym, Attributes...> A;
+    nw::graph::bi_edge_list<sym, Attributes...> A;
     // Read the data from the file as edge_list
     csv_fill(file, A);
     file.close();
-    A.set_origin(filename);
     //adjoin the edge list
-    numRealEdges = A.max()[0];
-    numRealNodes = A.max()[1];
+    numRealEdges = A.num_vertices()[0];
+    numRealNodes = A.num_vertices()[1];
     nw::graph::edge_list<sym, Attributes...> B(numRealEdges + numRealNodes);
     B.reserve(A.size());
     populate_adjoin_edge_list(A, B, numRealEdges, numRealNodes);

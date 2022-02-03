@@ -11,11 +11,11 @@
 #pragma once
 #include <vector>
 #include <unordered_map>
+#include <nwgraph/graph_base.hpp>
+#include <nwgraph/edge_list.hpp>
+#include <nwgraph/adaptors/vertex_range.hpp>
+#include <nwgraph/util/timer.hpp>
 
-#include <util/types.hpp>
-#include <adaptors/vertex_range.hpp>
-
-using namespace nw::graph;
 namespace nw {
 namespace hypergraph {
 
@@ -28,11 +28,11 @@ namespace hypergraph {
 * @returns the edge list of the s-line graph
 *
 */
-template<directedness edge_directedness = nw::graph::undirected, class... T>
+template<directedness edge_directedness = nw::graph::directedness::undirected, class vertex_id_t, class... T>
 auto create_edgelist_without_squeeze(std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t, T...>>> &two_graphs) {
     nw::util::life_timer _(__func__);
     nw::graph::edge_list<edge_directedness, T...> result(0);
-    //result.open_for_push_back();
+    result.open_for_push_back();
     //do this in serial
     int num_bins = two_graphs.size();
     std::for_each(nw::graph::counting_iterator<int>(0), nw::graph::counting_iterator<int>(num_bins), [&](auto i) {
@@ -40,7 +40,7 @@ auto create_edgelist_without_squeeze(std::vector<std::vector<std::tuple<vertex_i
         result.push_back(e);
       });
     });
-    result.close_for_push_back(false);
+    result.close_for_push_back();
 
     return result;
 }
@@ -54,11 +54,11 @@ auto create_edgelist_without_squeeze(std::vector<std::vector<std::tuple<vertex_i
 * @returns the edge list of the s-line graph
 *
 */
-template<directedness edge_directedness = nw::graph::undirected, class... T>
+template<directedness edge_directedness = nw::graph::directedness::undirected, class vertex_id_t, class... T>
 auto create_edgelist_with_squeeze(std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t, T...>>> &two_graphs) {
     nw::util::life_timer _(__func__);
     nw::graph::edge_list<edge_directedness, T...> result(0);
-    //result.open_for_push_back();
+    result.open_for_push_back();
     //do this in serial
     vertex_id_t index = 0;
     std::unordered_map<vertex_id_t, vertex_id_t> relabel_map;
@@ -82,7 +82,7 @@ auto create_edgelist_with_squeeze(std::vector<std::vector<std::tuple<vertex_id_t
         }, elt);
       });
     });
-    result.close_for_push_back(false);
+    result.close_for_push_back();
 
     return result;
 }
@@ -97,7 +97,7 @@ auto create_edgelist_with_squeeze(std::vector<std::vector<std::tuple<vertex_id_t
 * @returns the edge list of the s-line graph
 *
 */
-template<directedness edge_directedness = nw::graph::undirected, class... T>
+template<directedness edge_directedness = nw::graph::directedness::undirected, class vertex_id_t, class... T>
 auto create_edgelist_with_squeeze(std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t, T...>>> &two_graphs,
 std::unordered_map<vertex_id_t, vertex_id_t>& relabel_map) {
     nw::util::life_timer _(__func__);
@@ -125,7 +125,7 @@ std::unordered_map<vertex_id_t, vertex_id_t>& relabel_map) {
         }, elt);
       });
     });
-    result.close_for_push_back(false);
+    result.close_for_push_back();
 
     return result;
 }

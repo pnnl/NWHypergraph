@@ -46,14 +46,14 @@ static constexpr const char USAGE[] =
 
 #include <unordered_set>
 #include <docopt.h>
-#include <containers/edge_list.hpp>
+#include <nwgraph/edge_list.hpp>
 #include "Log.hpp"
 #include "common.hpp"
 #include "containers/edge_list_hy.hpp"
 #include "containers/compressed_hy.hpp"
 #include "s_overlap.hpp"
-#include "algorithms/betweenness_centrality.hpp"
-
+#include <nwgraph/algorithms/betweenness_centrality.hpp>
+#include <nwgraph/experimental/algorithms/betweenness_centrality.hpp>
 
 using namespace nw::hypergraph::bench;
 using namespace nw::hypergraph;
@@ -93,60 +93,155 @@ int main(int argc, char* argv[]) {
 
   for (auto&& file : files) {
     size_t nrealedges = 0, nrealnodes = 0;
-    auto&& [hyperedges, hypernodes, iperm] = graph_reader<directed>(file, idx, direction, adjoin, nrealedges, nrealnodes);
-    auto&& hyperedge_degrees = hyperedges.degrees(std::execution::par_unseq);
+    nw::graph::edge_list<directedness::directed> e;
+    using vertex_id_t = vertex_id_t<decltype(e)>;
+    if (adjoin) {
+      auto&& [h, ht, iperm] = adjoin_graph_reader<vertex_id_t>(
+          file, idx, direction, nrealedges, nrealnodes);
+      auto&& degrees = h.degrees(std::execution::par_unseq);
+      for (auto&& thread : threads) {
+        auto _ = set_n_threads(thread);
+        auto features = std::bitset<8>();
+        auto graph =
+            twograph_reader(loader_version, verbose, features, h, ht, degrees,
+                            iperm, nrealedges, nrealnodes, s, thread, num_bins);
+        // Source should be selected/generated based on line graph
+        std::vector<vertex_id_t> sources;
+        if (args["--sources"]) {
+          sources =
+              load_sources_from_file(h, args["--sources"].asString());
+          trials = sources.size();
+        } else if (args["-r"]) {
+          sources.resize(trials);
+          std::fill(sources.begin(), sources.end(), args["-r"].asLong());
+        } else {
+          sources =
+              build_random_sources(graph, trials, args["--seed"].asLong());
+        }
+        for (auto&& id : ids) {
+          for (auto&& source : sources) {
+            if (verbose) std::cout << "version " << id << std::endl;
+            for (int i = 0; i < trials; ++i) {
+              std::vector<vertex_id_t> trial_sources(
+                  &sources[iterations * i], &sources[iterations * (i + 1)]);
+              auto&& [centrality] =
+                  times.record(file, id, thread, [&]() -> std::vector<score_t> {
+                    switch (id) {
+                      case 0:
+                        return bc2_v0<decltype(graph), score_t, accum_t>(
+                            graph, trial_sources);
+                      case 1:
+                        return bc2_v1<decltype(graph), score_t, accum_t>(
+                            graph, trial_sources);
+                      case 2:
+                        return bc2_v2<decltype(graph), score_t, accum_t>(
+                            graph, trial_sources);
+                      case 3:
+                        return bc2_v3<decltype(graph), score_t, accum_t>(
+                            graph, trial_sources);
+                      case 4:
+                        return bc2_v4<score_t, accum_t>(graph, trial_sources,
+                                                        thread);
+                      case 5:
+                        return bc2_v5<score_t, accum_t>(graph, trial_sources,
+                                                        thread);
+                      default:
+                        std::cerr << "Invalid BC version " << id << "\n";
+                        return {};
+                    }
+                  });
+              if (verify)
+                BCVerifier<score_t, accum_t>(graph, trial_sources, centrality);
+            }  // trial
+          }    // source
+        }      // id
+      }        // for num_thread
+    } else {
+      auto&& [hyperedges, hypernodes, iperm] =
+          graph_reader<vertex_id_t>(file, idx, direction);
+      auto&& hyperedge_degrees = hyperedges.degrees(std::execution::par_unseq);
+      if (debug) {
+        hyperedges.stream_indices();
+        hypernodes.stream_indices();
 
-    if (verbose) {
-      hypernodes.stream_stats();
-      hyperedges.stream_stats();
-    }
+        std::cout << hyperedge_degrees.size() << ": ";
+        for (auto d : hyperedge_degrees) std::cout << d << " ";
+        std::cout << std::endl;
+        if (-1 != idx) assert(!iperm.empty());
 
-    for (auto&& thread : threads) {
-      auto _ = set_n_threads(thread);
-      auto features = std::bitset<8>();
-      auto&& graph =
-          twograph_reader(loader_version, verbose, features, hyperedges,
-                          hypernodes, hyperedge_degrees, iperm, nrealedges,
-                          nrealnodes, s, thread, num_bins);
-      // Source should be selected/generated based on line graph
-      std::vector<vertex_id_t> sources;
-      if (args["--sources"]) {
-        sources =
-            load_sources_from_file(hyperedges, args["--sources"].asString());
-        trials = sources.size();
-      } else if (args["-r"]) {
-        sources.resize(trials);
-        std::fill(sources.begin(), sources.end(), args["-r"].asLong());
-      } else {
-        sources = build_random_sources(
-            graph, trials,
-            args["--seed"].asLong());      
+        if (adjoin) {
+          std::cout << "size of the adjoin graph = " << hyperedges.size()
+                    << std::endl;
+          assert(0 != nrealedges);
+          assert(0 != nrealnodes);
+        }
       }
-      for (auto&& id : ids) {
-        for (auto&& source : sources) {
-          if (verbose) std::cout << "version " << id << std::endl;
-          for (int i = 0; i < trials; ++i) {
-            std::vector<vertex_id_t> trial_sources(&sources[iterations * i], &sources[iterations * (i + 1)]);
-            auto&& [centrality] = times.record(file, id, thread, [&]() -> std::vector<score_t> {
-            switch (id)
-            {
-             case 0: return bc2_v0<decltype(graph), score_t, accum_t>(graph, trial_sources);
-             case 1: return bc2_v1<decltype(graph), score_t, accum_t>(graph, trial_sources);
-             case 2: return bc2_v2<decltype(graph), score_t, accum_t>(graph, trial_sources);
-             case 3: return bc2_v3<decltype(graph), score_t, accum_t>(graph, trial_sources);
-             case 4: return bc2_v4<score_t, accum_t>(graph, trial_sources, thread);
-             case 5: return bc2_v5<score_t, accum_t>(graph, trial_sources, thread);
-             default:
-              std::cerr << "Invalid BC version " << id << "\n";
-              return {};
-            }
-            });
-            if (verify) BCVerifier<score_t, accum_t>(graph, trial_sources, centrality);
-          } // trial
-        } //source
-      } //id
-    }//thread
-  }//file
+
+      if (verbose) {
+        hypernodes.stream_stats();
+        hyperedges.stream_stats();
+      }
+      for (auto&& thread : threads) {
+        auto _ = set_n_threads(thread);
+        auto features = std::bitset<8>();
+        auto graph =
+            twograph_reader(loader_version, verbose, features, hyperedges,
+                            hypernodes, hyperedge_degrees, iperm, nrealedges,
+                            nrealnodes, s, thread, num_bins);
+        // Source should be selected/generated based on line graph
+        std::vector<vertex_id_t> sources;
+        if (args["--sources"]) {
+          sources =
+              load_sources_from_file(hyperedges, args["--sources"].asString());
+          trials = sources.size();
+        } else if (args["-r"]) {
+          sources.resize(trials);
+          std::fill(sources.begin(), sources.end(), args["-r"].asLong());
+        } else {
+          sources =
+              build_random_sources(graph, trials, args["--seed"].asLong());
+        }
+        for (auto&& id : ids) {
+          for (auto&& source : sources) {
+            if (verbose) std::cout << "version " << id << std::endl;
+            for (int i = 0; i < trials; ++i) {
+              std::vector<vertex_id_t> trial_sources(
+                  &sources[iterations * i], &sources[iterations * (i + 1)]);
+              auto&& [centrality] =
+                  times.record(file, id, thread, [&]() -> std::vector<score_t> {
+                    switch (id) {
+                      case 0:
+                        return bc2_v0<decltype(graph), score_t, accum_t>(
+                            graph, trial_sources);
+                      case 1:
+                        return bc2_v1<decltype(graph), score_t, accum_t>(
+                            graph, trial_sources);
+                      case 2:
+                        return bc2_v2<decltype(graph), score_t, accum_t>(
+                            graph, trial_sources);
+                      case 3:
+                        return bc2_v3<decltype(graph), score_t, accum_t>(
+                            graph, trial_sources);
+                      case 4:
+                        return bc2_v4<score_t, accum_t>(graph, trial_sources,
+                                                        thread);
+                      case 5:
+                        return bc2_v5<score_t, accum_t>(graph, trial_sources,
+                                                        thread);
+                      default:
+                        std::cerr << "Invalid BC version " << id << "\n";
+                        return {};
+                    }
+                  });
+              if (verify)
+                BCVerifier<score_t, accum_t>(graph, trial_sources, centrality);
+            }  // trial
+          }    // source
+        }      // id
+      }        // for num_thread
+
+    }  // else
+  }    // file
   times.print(std::cout);
 
   if (args["--log"]) {

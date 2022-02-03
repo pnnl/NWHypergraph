@@ -42,7 +42,8 @@ int main(int argc, char* argv[]) {
   std::string output_file = args["-o"].asString();
   bool transpose = args["--transpose"].asBool();
 
-  auto&& [hyperedges, hypernodes] = load_adjacency<>(input_file);
+
+  auto&& [hyperedges, hypernodes] = load_adjacency<vertex_id_t<nw::graph::biadjacency<0>>>(input_file);
   if (!transpose)
     write_mm<0>(output_file, hyperedges, "general");
   else

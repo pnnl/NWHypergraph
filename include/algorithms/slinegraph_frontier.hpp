@@ -8,7 +8,7 @@
 // Author: Xu Tony Liu
 //
 #pragma once
-#include "adaptors/cyclic_neighbor_range.hpp"
+#include "nwgraph/adaptors/cyclic_neighbor_range.hpp"
 
 #include "util/slinegraph_helper.hpp"
 #include "to_two_graph_efficient.hpp"
@@ -35,10 +35,10 @@ namespace frontier {
 * @param[in] bin_size the size of bins after dividing the workload
 *
 */
-template <class HyperEdge, class HyperNode>
+template <class HyperEdge, class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
 void to_two_graph_frontier_blocked(
     std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>&& two_graphs,
-    HyperEdge& edges, HyperNode& nodes, std::vector<index_t>& hyperedgedegrees,
+    HyperEdge& edges, HyperNode& nodes, std::vector<vertex_id_t>& hyperedgedegrees,
     size_t s, int num_threads, int bin_size = 32) {
   nw::util::life_timer _(__func__);
   auto M = edges.size();
@@ -133,10 +133,10 @@ void to_two_graph_frontier_blocked(
 * @param[in] num_bins the number of bins to divide the workload
 *
 */
-template <class HyperEdge, class HyperNode>
+template <class HyperEdge, class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
 void to_two_graph_frontier_cyclic(
     std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>&& two_graphs,
-    HyperEdge& edges, HyperNode& nodes, std::vector<index_t>& hyperedgedegrees,
+    HyperEdge& edges, HyperNode& nodes, std::vector<vertex_id_t>& hyperedgedegrees,
     size_t s, int num_threads, int num_bins = 32) {
   nw::util::life_timer _(__func__);
   auto M = edges.size();
@@ -235,9 +235,9 @@ void to_two_graph_frontier_cyclic(
 * @param[in] bin_size the size of bins after dividing the workload
 * @returns the edge list of the s-line graph
 */
-template<directedness edge_directedness = undirected, class HyperEdge, class HyperNode>
+template<directedness edge_directedness = nw::graph::directedness::undirected, class HyperEdge, class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
 auto to_two_graph_frontier_blocked(HyperEdge& edges, HyperNode& nodes, 
-std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int bin_size = 32) {
+std::vector<vertex_id_t>& hyperedgedegrees, size_t s, int num_threads, int bin_size = 32) {
   size_t M = edges.size();
   using linegraph_t = std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>;
   linegraph_t two_graphs(num_threads);
@@ -270,9 +270,9 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int bin_size 
 * @param[in] num_bins the number of bins to divide the workload
 * @returns the edge list of the s-line graph
 */
-template<directedness edge_directedness = undirected, class HyperEdge, class HyperNode>
+template<directedness edge_directedness = nw::graph::directedness::undirected, class HyperEdge, class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
 auto to_two_graph_frontier_cyclic(HyperEdge& edges, HyperNode& nodes, 
-std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
+std::vector<vertex_id_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
   size_t M = edges.size();
   using linegraph_t = std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>;
   linegraph_t two_graphs(num_threads);

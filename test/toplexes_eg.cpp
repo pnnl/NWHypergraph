@@ -7,16 +7,18 @@
 //
 // Author: Xu Tony Liu
 //
-#include <adaptors/neighbor_range.hpp>
+#include <nwgraph/adaptors/neighbor_range.hpp>
 #include <algorithm>
-#include <containers/edge_list.hpp>
+#include <nwgraph/edge_list.hpp>
+#include <nwgraph/adjacency.hpp>
+
 using namespace nw::graph;
 
 
 int main(int argc, char* argv[]) {
   size_t n_vtx = 5;
 
-  edge_list<directedness::directed, int> A_list(n_vtx);
+  bi_edge_list<directedness::directed, int> A_list(n_vtx);
   A_list.open_for_push_back();
   A_list.push_back(0, 1, 1);
   A_list.push_back(1, 2, 2);
@@ -25,10 +27,10 @@ int main(int argc, char* argv[]) {
   A_list.close_for_push_back();
 
   {
-    adjacency<0, int> A(A_list);
-    adjacency<1, int> AT(A_list);
+    biadjacency<0, int> A(A_list);
+    biadjacency<1, int> AT(A_list);
 
-    vertex_id_t col0_max = 0;
+    std::size_t col0_max = 0;
     for (auto&& [u, neighborhood] : neighbor_range(A)) {
       col0_max = col0_max < u ? u : col0_max;
       for (auto&& [v, w] : neighborhood)
@@ -37,7 +39,7 @@ int main(int argc, char* argv[]) {
     }
     std::cout << std::endl;
 
-    vertex_id_t col1_max = 0;
+    std::size_t col1_max = 0;
     for (auto&& [u, neighborhood] : neighbor_range(AT)) {
       col1_max = col1_max < u ? u : col0_max;
       for (auto&& [v, w] : neighborhood)
@@ -48,10 +50,10 @@ int main(int argc, char* argv[]) {
   }
 
   {
-    adjacency<0, int> B(A_list.max()[0] + 1, A_list);
-    adjacency<1, int> BT(A_list.max()[1] + 1, A_list);
+    biadjacency<0, int> B(A_list);
+    biadjacency<1, int> BT(A_list);
 
-    vertex_id_t col0_max = 0;
+    std::size_t col0_max = 0;
     for (auto&& [u, neighborhood] : neighbor_range(B)) {
       col0_max = col0_max < u ? u : col0_max;
       for (auto&& [v, w] : neighborhood)
@@ -60,7 +62,7 @@ int main(int argc, char* argv[]) {
     }
     std::cout << std::endl;
 
-    vertex_id_t col1_max = 0;
+    std::size_t col1_max = 0;
     for (auto&& [u, neighborhood] : neighbor_range(BT)) {
       col1_max = col1_max < u ? u : col0_max;
       for (auto&& [v, w] : neighborhood)

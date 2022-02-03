@@ -9,11 +9,11 @@
 //
 
 #pragma once
-#include <util/timer.hpp>
-#include <util/AtomicBitVector.hpp>
-#include <util/atomic.hpp>
+#include <nwgraph/util/timer.hpp>
+#include <nwgraph/util/AtomicBitVector.hpp>
+#include <nwgraph/util/atomic.hpp>
 #include <tbb/concurrent_vector.h>
-#include <adaptors/vertex_range.hpp>
+#include <nwgraph/adaptors/vertex_range.hpp>
 
 namespace nw {
 namespace hypergraph {
@@ -36,12 +36,12 @@ inline bool compare_and_swap(T& x, T old_val, T new_val) {
 /*
 * baseline has been verified with the Python version
 */
-template<class eputionPolicy, typename Graph>
-auto baseline(eputionPolicy&& ep, Graph& aos_a) {
+template<class ExcutionPolicy, typename Graph, typename vertex_id_t = vertex_id_t<Graph>>
+auto baseline(ExcutionPolicy&& ep, Graph& aos_a) {
   nw::util::life_timer _(__func__);
 
-  size_t num_hyperedges = aos_a.max()[0] + 1;    // number of hyperedges
-  size_t num_hypernodes = aos_a.max()[1] + 1;    // number of hypernodes
+  size_t num_hyperedges = num_vertices(aos_a, 0);    // number of hyperedges
+  size_t num_hypernodes = num_vertices(aos_a, 1);    // number of hypernodes
 
   std::vector<vertex_id_t> N(num_hypernodes, std::numeric_limits<vertex_id_t>::max());
   std::vector<vertex_id_t> E(num_hyperedges, std::numeric_limits<vertex_id_t>::max());
@@ -66,7 +66,7 @@ auto baseline(eputionPolicy&& ep, Graph& aos_a) {
   return std::tuple(N, E);
 }
 
-template<typename GraphN, typename GraphE>
+template<typename GraphN, typename GraphE, typename vertex_id_t = vertex_id_t<GraphN>>
 auto lpCC(GraphN& hypernodes, GraphE& hyperedges) {
   nw::util::life_timer _(__func__);
   size_t     num_hypernodes = hypernodes.max() + 1;    // number of hypernodes
@@ -124,7 +124,7 @@ auto lpCC(GraphN& hypernodes, GraphE& hyperedges) {
   return std::tuple(N, E);
 }
 
-template<typename GraphN, typename GraphE>
+template<typename GraphN, typename GraphE, typename vertex_id_t = vertex_id_t<GraphN>>
 auto lpCCv2(GraphN& hypernodes, GraphE& hyperedges) {
   nw::util::life_timer _(__func__);
   size_t     num_hypernodes = hypernodes.max() + 1;    // number of hypernodes
@@ -183,8 +183,9 @@ auto lpCCv2(GraphN& hypernodes, GraphE& hyperedges) {
   return std::tuple(N, E);
 }
 
-inline bool updateAtomic(std::vector<vertex_id_t>& dest, std::vector<vertex_id_t>& source, std::vector<vertex_id_t>& prevDest,
-                         vertex_id_t d, vertex_id_t s) {    //atomic Update
+template<std::unsigned_integral T>
+inline bool updateAtomic(std::vector<T>& dest, std::vector<T>& source, std::vector<T>& prevDest,
+                         const T d, const T s) {    //atomic Update
   auto origID = dest[d];
   return (writeMin(dest[d], source[s]) && origID == prevDest[d]);
 }
@@ -217,7 +218,7 @@ bool hook(T u, T v, std::vector<T>& compu, std::vector<T>& compv) {
   return success;
 }
 
-template<class ExecutionPolicy, typename GraphN, typename GraphE>
+template<class ExecutionPolicy, typename GraphN, typename GraphE, typename vertex_id_t = vertex_id_t<GraphN>>
 auto lpCC_parallelv1(ExecutionPolicy&& ep, GraphN& hypernodes, GraphE& hyperedges) {
   nw::util::life_timer _(__func__);
   size_t     num_hypernodes = hypernodes.max() + 1;    // number of hypernodes
@@ -278,7 +279,7 @@ auto lpCC_parallelv1(ExecutionPolicy&& ep, GraphN& hypernodes, GraphE& hyperedge
 }
 
 
-template<class ExecutionPolicy, typename GraphN, typename GraphE>
+template<class ExecutionPolicy, typename GraphN, typename GraphE, typename vertex_id_t = vertex_id_t<GraphN>>
 auto lpCC_parallelv2(ExecutionPolicy&& ep, GraphN& hypernodes, GraphE& hyperedges, int num_bins = 32) {
   nw::util::life_timer _(__func__);
   size_t     num_hypernodes = hypernodes.max() + 1;    // number of hypernodes
@@ -359,7 +360,7 @@ auto lpCC_parallelv2(ExecutionPolicy&& ep, GraphN& hypernodes, GraphE& hyperedge
 }
 
 
-template<class ExecutionPolicy, typename GraphN, typename GraphE>
+template<class ExecutionPolicy, typename GraphN, typename GraphE, typename vertex_id_t = vertex_id_t<GraphN>>
 auto lpaNoFrontierCC(ExecutionPolicy&& ep, GraphN& hypernodes, GraphE& hyperedges) {
   nw::util::life_timer _(__func__);
   size_t     num_hypernodes = hypernodes.max() + 1;    // number of hypernodes

@@ -1,9 +1,9 @@
 # -----------------------------------------------------------------------------
 # The date library from MIT provides C++20 std date functionality in C++17
 # -----------------------------------------------------------------------------
-find_package(Filesystem REQUIRED Final Experimental)
-message(STATUS ${CXX_FILESYSTEM_IS_EXPERIMENTAL})
-add_definitions(-Wno-deprecated -Wno-deprecated-declarations)
+#find_package(Filesystem REQUIRED Final Experimental)
+#message(STATUS ${CXX_FILESYSTEM_IS_EXPERIMENTAL})
+#add_definitions(-Wno-deprecated -Wno-deprecated-declarations)
 
 # -----------------------------------------------------------------------------
 # Generate the configuration files used for logging, and -I its built path.
@@ -57,7 +57,7 @@ target_sources(bench INTERFACE
   )
 target_include_directories(bench INTERFACE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 
-target_link_libraries(bench INTERFACE NW_HYPERGRAPH docopt date::date std::filesystem)
+target_link_libraries(bench INTERFACE NW_HYPERGRAPH docopt date::date)
 
 
 # -----------------------------------------------------------------------------

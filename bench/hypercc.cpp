@@ -10,7 +10,7 @@
 
 #include <unordered_set>
 #include <docopt.h>
-#include <containers/edge_list.hpp>
+#include <nwgraph/edge_list.hpp>
 #include "Log.hpp"
 #include "common.hpp"
 #include "containers/edge_list_hy.hpp"
@@ -73,11 +73,12 @@ int main(int argc, char* argv[]) {
   // standard). That's a little bit noisy where it happens, so I just give
   // them real symbols here rather than the local bindings.
   for (auto&& file : files) {
+    using vertex_id_t = typename nw::graph::bi_edge_list<nw::graph::directedness::directed>::vertex_id_type;
     auto reader = [&](std::string file, bool verbose) {
-      auto aos_a   = load_graph<directed>(file);
+      auto&& aos_a   = load_graph(file);
       const long idx = args["--relabel"].asLong();
       if (0 == aos_a.size()) {
-        auto&& [hyperedges, hypernodes] = load_adjacency<>(file);
+        auto&& [hyperedges, hypernodes] = load_adjacency<vertex_id_t>(file);
         // Run relabeling. This operates directly on the incoming edglist.
         if (-1 != idx) {
           nw::hypergraph::relabel_by_degree(hyperedges, hypernodes, idx, args["--direction"].asString());
@@ -94,8 +95,8 @@ int main(int argc, char* argv[]) {
           else
             nw::hypergraph::relabel_by_degree<0>(aos_a, args["--direction"].asString());
         }
-        adjacency<0> hyperedges(aos_a);
-        adjacency<1> hypernodes(aos_a);
+        biadjacency<0> hyperedges(aos_a);
+        biadjacency<1> hypernodes(aos_a);
         std::cout << "num_hyperedges = " << hyperedges.size() << " num_hypernodes = " << hypernodes.size() << std::endl;
         return std::tuple(aos_a, hyperedges, hypernodes);
       }

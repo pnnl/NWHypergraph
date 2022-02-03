@@ -10,7 +10,7 @@
 
 #include <unordered_map>
 #include <docopt.h>
-#include <util/parallel_for.hpp>
+#include <nwgraph/util/parallel_for.hpp>
 #include "containers/edge_list_hy.hpp"
 #include "containers/compressed_hy.hpp"
 
@@ -73,17 +73,18 @@ int main(int argc, char* argv[]) {
   // standard). That's a little bit noisy where it happens, so I just give
   // them real symbols here rather than the local bindings.
   for (auto&& [input, dd_file, output] : files) {
-    
+    using vertex_id_t = vertex_id_t<nw::graph::bi_edge_list<nw::graph::directedness::directed>>;
     auto reader = [&](std::string file) {
-      auto aos_a   = load_graph<directed>(file);
+      auto aos_a = load_graph(file);
+      std::vector<vertex_id_t> hyperedge_degrees, hypernode_degrees;
       if (0 == aos_a.size()) {
-        auto&& [hyperedges, hypernodes] = load_adjacency<>(file);
+        auto&& [hyperedges, hypernodes] = load_adjacency<vertex_id_t>(file);
         // Run relabeling. This operates directly on the incoming edglist.
         if (-1 != relabelidx) {
           nw::hypergraph::relabel_by_degree(hyperedges, hypernodes, idx, args["--direction"].asString());
         }
-        auto hyperedge_degrees = hyperedges.degrees();
-        auto hypernode_degrees = hypernodes.degrees();
+        hyperedge_degrees = hyperedges.degrees();
+        hypernode_degrees = hypernodes.degrees();
         return std::tuple(hyperedges, hypernodes, hyperedge_degrees, hypernode_degrees);
       }
       else {
@@ -95,10 +96,10 @@ int main(int argc, char* argv[]) {
           else
             nw::hypergraph::relabel_by_degree<0>(aos_a, args["--direction"].asString());
         }
-        adjacency<0> hyperedges(aos_a);
-        adjacency<1> hypernodes(aos_a); 
-        std::vector<index_t> hyperedge_degrees =  aos_a.degrees<0>();
-        std::vector<index_t> hypernode_degrees =  aos_a.degrees<1>();
+        nw::graph::biadjacency<0> hyperedges(aos_a);
+        nw::graph::biadjacency<1> hypernodes(aos_a); 
+        hyperedge_degrees = degrees<0>(aos_a);
+        hypernode_degrees = degrees<1>(aos_a);
         return std::tuple(hyperedges, hypernodes, hyperedge_degrees, hypernode_degrees);
       }
     };
@@ -106,9 +107,9 @@ int main(int argc, char* argv[]) {
 
     //hyperedges
     std::size_t M = hyperedges.size();
-    std::size_t hyperE_max_degree = 0;
+    vertex_id_t hyperE_max_degree = 0;
     std::size_t hyperE_total_degree = 0;
-    std::for_each(hyperedge_degrees.begin(), hyperedge_degrees.end(), [&](auto deg) {
+    std::for_each(hyperedge_degrees.begin(), hyperedge_degrees.end(), [&](vertex_id_t deg) {
         hyperE_max_degree = std::max(hyperE_max_degree, deg);
         hyperE_total_degree += deg;
     });
@@ -118,9 +119,9 @@ int main(int argc, char* argv[]) {
     double hyperE_avg_degree = hyperE_total_degree * 1.0 / M;
     //hypernodes
     std::size_t N = hypernodes.size();
-    std::size_t hyperN_max_degree = 0;
+    vertex_id_t hyperN_max_degree = 0;
     std::size_t hyperN_total_degree = 0;
-    std::for_each(hypernode_degrees.begin(), hypernode_degrees.end(), [&](auto deg) {
+    std::for_each(hypernode_degrees.begin(), hypernode_degrees.end(), [&](vertex_id_t deg) {
         hyperN_max_degree = std::max(hyperN_max_degree, deg);
         hyperN_total_degree += deg;
     });
@@ -169,13 +170,13 @@ int main(int argc, char* argv[]) {
     if(deg_dist.is_open()) {
       std::cout << dd_file <<  " " << idx << std::endl;
       if (0 == idx) {
-        auto&& deg_counts = counting_sort<std::size_t>(hyperedge_degrees);
+        auto&& deg_counts = counting_sort<vertex_id_t>(hyperedge_degrees);
         for (auto&& [k, v] : deg_counts) {
           deg_dist << std::to_string(k) << " " << std::to_string(v) << std::endl;
         }
       }
       else if (1 == idx) {
-        auto&& deg_counts = counting_sort<std::size_t>(hypernode_degrees);
+        auto&& deg_counts = counting_sort<vertex_id_t>(hypernode_degrees);
         for (auto&& [k, v] : deg_counts) {
           deg_dist << std::to_string(k) << " " << std::to_string(v) << std::endl;
         }

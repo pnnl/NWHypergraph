@@ -36,10 +36,10 @@ namespace hypergraph {
 * @param[in] bin_size the size of bins after dividing the workload
 *
 */
-template <directedness edge_directedness = undirected, class HyperEdge,
-          class HyperNode>
+template <directedness edge_directedness = nw::graph::directedness::undirected, class HyperEdge,
+          class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
 auto to_two_graph_map_blocked(HyperEdge& edges, HyperNode& nodes,
-                              std::vector<index_t>& hyperedgedegrees, size_t s,
+                              std::vector<vertex_id_t>& hyperedgedegrees, size_t s,
                               int num_threads, int bin_size = 32) {
   size_t M = edges.size();
   using linegraph_t = std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>;
@@ -72,9 +72,9 @@ auto to_two_graph_map_blocked(HyperEdge& edges, HyperNode& nodes,
 * @param[in] num_bins the number of bins to divide the workload
 *
 */
-template<directedness edge_directedness = undirected, class HyperEdge, class HyperNode>
+template<directedness edge_directedness = nw::graph::directedness::undirected, class HyperEdge, class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
 auto to_two_graph_map_cyclic(HyperEdge& edges, HyperNode& nodes, 
-std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
+std::vector<vertex_id_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
   size_t M = edges.size();
   using linegraph_t = std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>;
   linegraph_t two_graphs(num_threads);
@@ -108,9 +108,9 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins 
 * @param[in] bin_size the size of bins after dividing the workload
 *
 */
-template<directedness edge_directedness = undirected, class HyperEdge, class HyperNode>
+template<directedness edge_directedness = nw::graph::directedness::undirected, class HyperEdge, class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
 auto to_two_graph_hashmap_blocked(HyperEdge& edges, HyperNode& nodes, 
-std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int bin_size = 32) {
+std::vector<vertex_id_t>& hyperedgedegrees, size_t s, int num_threads, int bin_size = 32) {
   size_t M = edges.size();
   using linegraph_t = std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>;
   linegraph_t two_graphs(num_threads);
@@ -143,10 +143,10 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int bin_size 
 * @param[in] bin_size the size of bins after dividing the workload
 *
 */
-template <directedness edge_directedness = undirected, class T, class HyperEdge,
-          class HyperNode>
+template <directedness edge_directedness = nw::graph::directedness::undirected, class T, class HyperEdge,
+          class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
 auto to_weighted_two_graph_hashmap_blocked(
-    HyperEdge& edges, HyperNode& nodes, std::vector<index_t>& hyperedgedegrees,
+    HyperEdge& edges, HyperNode& nodes, std::vector<vertex_id_t>& hyperedgedegrees,
     size_t s, int num_threads, int bin_size = 32) {
   size_t M = edges.size();
   using linegraph_t =
@@ -182,9 +182,9 @@ auto to_weighted_two_graph_hashmap_blocked(
 * @param[in] num_bins the number of bins to divide the workload
 *
 */
-template<directedness edge_directedness = undirected, class HyperEdge, class HyperNode>
+template<directedness edge_directedness = nw::graph::directedness::undirected, class HyperEdge, class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
 auto to_two_graph_hashmap_cyclic(HyperEdge& edges, HyperNode& nodes, 
-std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
+std::vector<vertex_id_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
   size_t M = edges.size();
   using linegraph_t = std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>;
   linegraph_t two_graphs(num_threads);
@@ -218,10 +218,10 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins 
 * @param[in] bin_size the size of bins after dividing the workload
 *
 */
-template <directedness edge_directedness = undirected, class HyperEdge,
-          class HyperNode>
+template <directedness edge_directedness = nw::graph::directedness::undirected, class HyperEdge,
+          class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
 auto to_two_graph_vector_blocked(HyperEdge& edges, HyperNode& nodes,
-                                 std::vector<index_t>& hyperedgedegrees,
+                                 std::vector<vertex_id_t>& hyperedgedegrees,
                                  size_t s, int num_threads, int bin_size = 32) {
   size_t M = edges.size();
   using linegraph_t =
@@ -254,9 +254,9 @@ auto to_two_graph_vector_blocked(HyperEdge& edges, HyperNode& nodes,
 * @param[in] num_bins the number of bins to divide the workload
 *
 */
-template<directedness edge_directedness = undirected, class HyperEdge, class HyperNode>
+template<directedness edge_directedness = nw::graph::directedness::undirected, class HyperEdge, class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
 auto to_two_graph_vector_cyclic(HyperEdge& edges, HyperNode& nodes, 
-std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
+std::vector<vertex_id_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
     size_t M = edges.size();
   using linegraph_t =
       std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>;
@@ -288,9 +288,9 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins 
 * @param[in] num_bins the number of bins to divide the workload
 * @returns the edge list of the s-line graph
 */
-template<directedness edge_directedness = undirected, class HyperEdge, class HyperNode>
+template<directedness edge_directedness = nw::graph::directedness::undirected, class HyperEdge, class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
 auto to_two_graph_with_map_parallel2d(HyperEdge& edges, HyperNode& nodes, 
-std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
+std::vector<vertex_id_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
   std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_threads);
   size_t M = edges.size();
   size_t N = nodes.size();
@@ -358,9 +358,9 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins 
 * @returns the edge list of the s-line graph
 *
 */
-template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
+template<directedness edge_directedness = nw::graph::directedness::undirected, class ExecutionPolicy, class HyperEdge, class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
 auto to_two_graph_static_hashmap_blocked(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
-std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int bin_size = 32) {
+std::vector<vertex_id_t>& hyperedgedegrees, size_t s, int num_threads, int bin_size = 32) {
   std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_threads);
   size_t M = edges.size();
   size_t N = nodes.size();
@@ -438,9 +438,9 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int bin_size 
 * @param[in] num_bins the number of bins to divide the workload
 * @returns the edge list of the s-line graph
 */
-template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
+template<directedness edge_directedness = nw::graph::directedness::undirected, class ExecutionPolicy, class HyperEdge, class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
 auto to_two_graph_static_hashmap_cyclic(ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
-std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
+std::vector<vertex_id_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
   std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>> two_graphs(num_threads);
   size_t M = edges.size();
   size_t N = nodes.size();
@@ -517,9 +517,9 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins 
 * @param[in] bin_size the size of bin after dividing the workload
 * @returns the edge list of the s-line graph
 */
-template<directedness edge_directedness = undirected, class HyperEdge, class HyperNode>
+template<directedness edge_directedness = nw::graph::directedness::undirected, class HyperEdge, class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
 auto to_two_graph_map_blocked_portal(bool verbose, HyperEdge& edges, HyperNode& nodes, 
-std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
+std::vector<vertex_id_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
   if (!verbose) 
     return to_two_graph_map_blocked(edges, nodes, hyperedgedegrees, s, num_threads, num_bins);
   else
@@ -543,9 +543,9 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins 
 * @param[in] num_bins the number of bins to divide the workload
 * @returns the edge list of the s-line graph
 */
-template<directedness edge_directedness = undirected, class HyperEdge, class HyperNode>
+template<directedness edge_directedness = nw::graph::directedness::undirected, class HyperEdge, class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
 auto to_two_graph_map_cyclic_portal(bool verbose, HyperEdge& edges, HyperNode& nodes, 
-std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
+std::vector<vertex_id_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
   if (!verbose) 
     return to_two_graph_map_cyclic(edges, nodes, hyperedgedegrees, s, num_threads, num_bins);
   else
@@ -569,9 +569,9 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins 
 * @param[in] bin_size the size of bin after dividing the workload
 * @returns the edge list of the s-line graph
 */
-template<directedness edge_directedness = undirected, class HyperEdge, class HyperNode>
+template<directedness edge_directedness = nw::graph::directedness::undirected, class HyperEdge, class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
 auto to_two_graph_hashmap_blocked_portal(bool verbose, HyperEdge& edges, HyperNode& nodes, 
-std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
+std::vector<vertex_id_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
   if (!verbose) 
     return to_two_graph_hashmap_blocked(edges, nodes, hyperedgedegrees, s, num_threads, num_bins);
   else
@@ -595,9 +595,9 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins 
 * @param[in] num_bins the number of bins to divide the workload
 * @returns the edge list of the s-line graph
 */
-template<directedness edge_directedness = undirected, class HyperEdge, class HyperNode>
+template<directedness edge_directedness = nw::graph::directedness::undirected, class HyperEdge, class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
 auto to_two_graph_hashmap_cyclic_portal(bool verbose, HyperEdge& edges, HyperNode& nodes, 
-std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
+std::vector<vertex_id_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
   if (!verbose) 
     return to_two_graph_hashmap_cyclic(edges, nodes, hyperedgedegrees, s, num_threads, num_bins);
   else
@@ -621,9 +621,9 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins 
 * @param[in] bin_size the size of bin after dividing the workload
 * @returns the edge list of the s-line graph
 */
-template<directedness edge_directedness = undirected, class HyperEdge, class HyperNode>
+template<directedness edge_directedness = nw::graph::directedness::undirected, class HyperEdge, class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
 auto to_two_graph_vector_blocked_portal(bool verbose, HyperEdge& edges, HyperNode& nodes, 
-std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
+std::vector<vertex_id_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
   if (!verbose) 
     return to_two_graph_vector_blocked(edges, nodes, hyperedgedegrees, s, num_threads, num_bins);
   else
@@ -647,9 +647,9 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins 
 * @param[in] num_bins the number of bins to divide the workload
 * @returns the edge list of the s-line graph
 */
-template<directedness edge_directedness = undirected, class HyperEdge, class HyperNode>
+template<directedness edge_directedness = nw::graph::directedness::undirected, class HyperEdge, class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
 auto to_two_graph_vector_cyclic_portal(bool verbose, HyperEdge& edges, HyperNode& nodes, 
-std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
+std::vector<vertex_id_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
   if (!verbose) 
     return to_two_graph_vector_cyclic(edges, nodes, hyperedgedegrees, s, num_threads, num_bins);
   else
@@ -674,9 +674,9 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins 
 * @param[in] bin_size the size of bin after dividing the workload
 * @returns the edge list of the s-line graph
 */
-template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
+template<directedness edge_directedness = nw::graph::directedness::undirected, class ExecutionPolicy, class HyperEdge, class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
 auto to_two_graph_static_hashmap_blocked_portal(bool verbose, ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
-std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
+std::vector<vertex_id_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
   if (!verbose) 
     return to_two_graph_static_hashmap_blocked(ep, edges, nodes, hyperedgedegrees, s, num_threads, num_bins);
   else
@@ -700,9 +700,9 @@ std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins 
 * @param[in] num_bins the number of bins to divide the workload
 * @returns the edge list of the s-line graph
 */
-template<directedness edge_directedness = undirected, class ExecutionPolicy, class HyperEdge, class HyperNode>
+template<directedness edge_directedness = nw::graph::directedness::undirected, class ExecutionPolicy, class HyperEdge, class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
 auto to_two_graph_static_hashmap_cyclic_portal(bool verbose, ExecutionPolicy&& ep, HyperEdge& edges, HyperNode& nodes, 
-std::vector<index_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
+std::vector<vertex_id_t>& hyperedgedegrees, size_t s, int num_threads, int num_bins = 32) {
   if (!verbose) 
     return to_two_graph_static_hashmap_cyclic(ep, edges, nodes, hyperedgedegrees, s, num_threads, num_bins);
   else
@@ -789,7 +789,7 @@ auto to_two_graph_count_neighbors_cyclic(HyperEdge& edges, HyperNode& nodes, siz
 * @param[in] bin_size the size of bins after dividing the workload
 * @returns the overlapping information of the hypergraph
 */
-template<class HyperEdge, class HyperNode>
+template<class HyperEdge, class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
 auto to_two_graph_count_neighbors_blocked(HyperEdge& edges, HyperNode& nodes, int bin_size = 32) {
   nw::util::life_timer _(__func__);
   size_t M = edges.size();
@@ -822,7 +822,7 @@ auto to_two_graph_count_neighbors_blocked(HyperEdge& edges, HyperNode& nodes, in
 * @param[in] bin_size the size of bins after dividing the workload
 * @returns the overlapping information of the hypergraph
 */
-template<class HyperEdge, class HyperNode>
+template<class HyperEdge, class HyperNode, class vertex_id_t = vertex_id_t<HyperEdge>>
 auto to_two_graph_count_neighbors_blocked(HyperEdge& edges, HyperNode& nodes, size_t min_s, int bin_size = 32) {
   nw::util::life_timer _(__func__);
   size_t M = edges.size();
@@ -851,10 +851,11 @@ auto to_two_graph_count_neighbors_blocked(HyperEdge& edges, HyperNode& nodes, si
 * @param[in] s the number of overlapping vertices between each hyperedge pair
 * @returns the edge list of the s-line graph
 */
-template<directedness edge_directedness = undirected>
+template<directedness edge_directedness = nw::graph::directedness::undirected>
 auto populate_linegraph_from_neighbor_map(std::vector<std::unordered_map<size_t, size_t>>& neighbor_map, std::size_t s) {
   nw::util::life_timer _(__func__);
   nw::graph::edge_list<edge_directedness> linegraph(0);
+  using vertex_id_t = vertex_id_t<decltype(linegraph)>;
   vertex_id_t index = 0;
   std::unordered_map<vertex_id_t, vertex_id_t> relabel_map;
   linegraph.open_for_push_back();
@@ -894,7 +895,7 @@ auto populate_linegraph_from_neighbor_map(std::vector<std::unordered_map<size_t,
       }
     }
   }
-  linegraph.close_for_push_back(false);
+  linegraph.close_for_push_back();
   return linegraph;
 }
 
@@ -910,11 +911,12 @@ auto populate_linegraph_from_neighbor_map(std::vector<std::unordered_map<size_t,
 * @param[in] weighted the flag a weighted/unweighted s-line graph
 * @returns the edge list of the s-line graph
 */
-template<directedness edge_directedness = undirected, class Hypergraph, typename... Attributes>
+template<directedness edge_directedness = nw::graph::directedness::undirected, class Hypergraph, typename... Attributes>
 auto populate_linegraph_from_neighbor_map(Hypergraph& g, std::vector<std::unordered_map<size_t, size_t>>& neighbor_map, 
 std::size_t s, bool weighted = false) {
   nw::util::life_timer _(__func__);
   nw::graph::edge_list<edge_directedness, Attributes...> linegraph;
+  using vertex_id_t = vertex_id_t<decltype(linegraph)>;
   size_t M = g.size();
   //n is the number of hyperedges, m is the number of hypernodes
   //time complexity of counting neighbors is same as the efficient: O(n*deg(edges)*deg(nodes)*deg(edges))

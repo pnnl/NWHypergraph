@@ -10,9 +10,8 @@
 #pragma once
 #include <unordered_set>
 #include <unordered_map>
-#include <adaptors/cyclic_neighbor_range.hpp>
-#include <adaptors/cyclic_range_adapter.hpp>
-#include "util/slinegraph_helper.hpp"
+#include <nwgraph/adaptors/cyclic_neighbor_range.hpp>
+#include <nwgraph/adaptors/cyclic_range_adapter.hpp>
 
 namespace nw {
 namespace hypergraph {
@@ -36,10 +35,10 @@ namespace frontier {
 * @param[in] num_bins the number of bins to divide the workload
 *
 */
-template <class Container = std::unordered_map<size_t, size_t>, class Hypergraph, class HypergraphT>
+template <class Container = std::unordered_map<size_t, size_t>, class Hypergraph, class HypergraphT, class vertex_id_t = vertex_id_t<Hypergraph>>
 void to_two_graph_frontier_hashmap_blocked(
     std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>&& two_graphs,
-    Hypergraph& h, HypergraphT& ht, std::vector<index_t>& degrees,
+    Hypergraph& h, HypergraphT& ht, std::vector<vertex_id_t>& degrees,
     std::vector<vertex_id_t>& frontier, size_t s, int num_bins = 32) {
   nw::util::life_timer _(__func__);
   auto M = frontier.size();
@@ -88,10 +87,10 @@ void to_two_graph_frontier_hashmap_blocked(
 *
 */
 template <class Container = std::unordered_map<size_t, size_t>,
-          class Hypergraph, class HypergraphT>
+          class Hypergraph, class HypergraphT, class vertex_id_t = vertex_id_t<Hypergraph>>
 void to_two_graph_frontier_hashmap_cyclic(
     std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>&& two_graphs,
-    Hypergraph& h, HypergraphT& ht, std::vector<index_t>& degrees,
+    Hypergraph& h, HypergraphT& ht, std::vector<vertex_id_t>& degrees,
     std::vector<vertex_id_t>& frontier, size_t s, int num_bins = 32) {
   nw::util::life_timer _(__func__);
   auto M = frontier.size();
@@ -138,7 +137,7 @@ void to_two_graph_frontier_hashmap_cyclic(
 * @param[in] num_bins the number of bins to divide the workload
 *
 */
-template <class Container = std::set<size_t>, class Hypergraph, class HypergraphT>
+template <class Container = std::set<size_t>, class Hypergraph, class HypergraphT, class vertex_id_t = vertex_id_t<Hypergraph>>
 void to_two_graph_frontier_set_blocked(
     std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>&& two_graphs,
     Hypergraph& h, HypergraphT& ht, std::vector<vertex_id_t>& frontier,
@@ -185,7 +184,7 @@ void to_two_graph_frontier_set_blocked(
 *
 */
 template <class Container = std::set<size_t>, class Hypergraph,
-          class HypergraphT>
+          class HypergraphT, class vertex_id_t = vertex_id_t<Hypergraph>>
 void to_two_graph_frontier_set_cyclic(
     std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>&& two_graphs,
     Hypergraph& h, HypergraphT& ht, std::vector<vertex_id_t>& frontier,

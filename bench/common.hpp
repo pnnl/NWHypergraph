@@ -1,14 +1,15 @@
 #pragma once
 
-#include <containers/edge_list.hpp>
-#include <adaptors/edge_range.hpp>
-#include <io/mmio.hpp>
-#include <util/timer.hpp>
-#include <util/traits.hpp>
+#include <nwgraph/edge_list.hpp>
+#include <nwgraph/adaptors/edge_range.hpp>
+#include <nwgraph/io/mmio.hpp>
+#include <nwgraph/util/timer.hpp>
+#include <nwgraph/util/traits.hpp>
 
 #include <tbb/global_control.h>
 #include <tbb/parallel_for.h>
 
+#include <variant>
 #include <iomanip>
 #include <map>
 #include <random>
@@ -99,17 +100,39 @@ std::bitset<N> parse_features(const std::vector<std::string>& args) {
 /*
  * This graph reader loads the graph into edge list then convert to bi-adjacency.
  **/
-template<directedness edge_directedness = directed, typename... Attributes>
+template<std::unsigned_integral vertex_id_t, 
+typename... Attributes>
 auto graph_reader(std::string file) {
-  auto aos_a = load_graph<edge_directedness, Attributes...>(file);
+  auto aos_a = load_graph<Attributes...>(file);
   if (0 == aos_a.size()) {
-    auto&&[hyperedges, hypernodes] = load_adjacency<Attributes...>(file);
+    auto&&[hyperedges, hypernodes] = load_adjacency<vertex_id_t, Attributes...>(file);
     std::cout << "num_hyperedges = " << hyperedges.size()
               << " num_hypernodes = " << hypernodes.size() << std::endl;
     return std::tuple(hyperedges, hypernodes, std::vector<vertex_id_t>());
   }
-  nw::graph::adjacency<0, Attributes...> hyperedges(aos_a);
-  nw::graph::adjacency<1, Attributes...> hypernodes(aos_a);
+  nw::graph::biadjacency<0, Attributes...> hyperedges(aos_a);
+  nw::graph::biadjacency<1, Attributes...> hypernodes(aos_a);
+
+  std::cout << "num_hyperedges = " << hyperedges.size()
+            << " num_hypernodes = " << hypernodes.size() << std::endl;
+  return std::tuple(hyperedges, hypernodes, std::vector<vertex_id_t>());
+}
+
+/*
+ * This graph reader loads weighted graph into edge list then convert to bi-adjacency.
+ **/
+template<std::unsigned_integral vertex_id_t, 
+typename... Attributes>
+auto weighted_graph_reader(std::string file) {
+  auto aos_a = load_weighted_graph<Attributes...>(file);
+  if (0 == aos_a.size()) {
+    auto&&[hyperedges, hypernodes] = load_weighted_adjacency<vertex_id_t, Attributes...>(file);
+    std::cout << "num_hyperedges = " << hyperedges.size()
+              << " num_hypernodes = " << hypernodes.size() << std::endl;
+    return std::tuple(hyperedges, hypernodes, std::vector<vertex_id_t>());
+  }
+  nw::graph::biadjacency<0, Attributes...> hyperedges(aos_a);
+  nw::graph::biadjacency<1, Attributes...> hypernodes(aos_a);
 
   std::cout << "num_hyperedges = " << hyperedges.size()
             << " num_hypernodes = " << hypernodes.size() << std::endl;
@@ -121,12 +144,13 @@ auto graph_reader(std::string file) {
  * And can relabel the ids of either hyperedges or hypernodes by degree
  * in the direction of ascending (default) or descending.
  **/
-template<directedness edge_directedness = directed, typename... Attributes>
+template<std::unsigned_integral vertex_id_t, 
+typename... Attributes>
 auto graph_reader_relabel(std::string file, int idx, std::string direction) {
-  auto aos_a = load_graph<edge_directedness, Attributes...>(file);
+  auto aos_a = load_graph<Attributes...>(file);
   std::vector<vertex_id_t> iperm;
   if (0 == aos_a.size()) {
-    auto&& [hyperedges, hypernodes] = load_adjacency<Attributes...>(file);
+    auto&& [hyperedges, hypernodes] = load_adjacency<vertex_id_t, Attributes...>(file);
     // Run relabeling. This operates directly on the incoming edglist.
     if (-1 != idx) {
       auto&& iperm = nw::hypergraph::relabel_by_degree(
@@ -149,8 +173,50 @@ auto graph_reader_relabel(std::string file, int idx, std::string direction) {
       iperm = nw::hypergraph::relabel_by_degree<0>(aos_a, direction);
     }
   }
-  nw::graph::adjacency<0, Attributes...> hyperedges(aos_a);
-  nw::graph::adjacency<1, Attributes...> hypernodes(aos_a);
+  nw::graph::biadjacency<0, Attributes...> hyperedges(aos_a);
+  nw::graph::biadjacency<1, Attributes...> hypernodes(aos_a);
+
+  std::cout << "num_hyperedges = " << hyperedges.size()
+            << " num_hypernodes = " << hypernodes.size() << std::endl;
+  return std::tuple(hyperedges, hypernodes, iperm);
+}
+
+/*
+ * This weighted graph reader loads the graph into edge list then convert to bi-adjacency.
+ * And can relabel the ids of either hyperedges or hypernodes by degree
+ * in the direction of ascending (default) or descending.
+ **/
+template<std::unsigned_integral vertex_id_t, 
+typename... Attributes>
+auto weighted_graph_reader_relabel(std::string file, int idx, std::string direction) {
+  auto aos_a = load_weighted_graph<Attributes...>(file);
+  std::vector<vertex_id_t> iperm;
+  if (0 == aos_a.size()) {
+    auto&& [hyperedges, hypernodes] = load_weighted_adjacency<vertex_id_t, Attributes...>(file);
+    // Run relabeling. This operates directly on the incoming edglist.
+    if (-1 != idx) {
+      auto&& iperm = nw::hypergraph::relabel_by_degree(
+          hyperedges, hypernodes, idx, direction);
+        std::cout << "num_hyperedges = " << hyperedges.size()
+              << " num_hypernodes = " << hypernodes.size() << std::endl;
+      return std::tuple(hyperedges, hypernodes, iperm);
+    }
+    std::cout << "num_hyperedges = " << hyperedges.size()
+              << " num_hypernodes = " << hypernodes.size() << std::endl;
+    return std::tuple(hyperedges, hypernodes, iperm); 
+  }
+  // Run relabeling. This operates directly on the incoming edglist.
+  if (-1 != idx) {
+    std::cout << "relabeling edge_list by degree..." << std::endl;
+    if (1 == idx) {
+      iperm = nw::hypergraph::relabel_by_degree<1>(aos_a, direction);
+    }
+    else {
+      iperm = nw::hypergraph::relabel_by_degree<0>(aos_a, direction);
+    }
+  }
+  nw::graph::biadjacency<0, Attributes...> hyperedges(aos_a);
+  nw::graph::biadjacency<1, Attributes...> hypernodes(aos_a);
 
   std::cout << "num_hyperedges = " << hyperedges.size()
             << " num_hypernodes = " << hypernodes.size() << std::endl;
@@ -165,15 +231,17 @@ auto graph_reader_relabel(std::string file, int idx, std::string direction) {
  * And it also can relabel the ids of either hyperedges or hypernodes by degree
  * in the direction of ascending (default) or descending.
  **/
-template<directedness edge_directedness = directed, typename... Attributes>
+template<directedness edge_directedness = directedness::directed, 
+std::unsigned_integral vertex_id_t, 
+typename... Attributes>
 auto graph_reader_adjoin_and_relabel(std::string file, const int idx, std::string direction, 
 size_t& nrealedges, size_t& nrealnodes) {
   auto aos_a = load_adjoin_graph<edge_directedness, Attributes...>(
       file, nrealedges, nrealnodes);
-  std::vector<vertex_id_t> iperm, perm;
+  std::vector<vertex_id_t> iperm;
   if (0 == aos_a.size()) {
     //we get adjoin graph and its transpose
-    auto&& [g, gt] = read_and_adjoin_adj_hypergraph_pair(file, nrealedges, nrealnodes);
+    auto&& [g, gt] = read_and_adjoin_adj_hypergraph_pair<vertex_id_t>(file, nrealedges, nrealnodes);
     if (-1 != idx) {
       // Run relabeling. This operates directly on adjoin graph and its transpose.
       // Note that g and gt are symmetric,
@@ -208,12 +276,10 @@ size_t& nrealedges, size_t& nrealnodes) {
       std::cout << "relabeling edge_list by degree..." << std::endl;
       nw::util::ms_timer t("relabel_by_degree");
       if (1 == idx) {
-        perm = aos_a.template perm_by_degree<1>(direction);
-        iperm = aos_a.relabel(perm);
+        iperm = nw::graph::relabel_by_degree<1>(aos_a, direction);
       }
       else {
-        perm = aos_a.template perm_by_degree<0>(direction);
-        iperm = aos_a.relabel(perm);
+        iperm = nw::graph::relabel_by_degree<0>(aos_a, direction);
       }
       t.stop();
       std::cout << t << std::endl;
@@ -232,7 +298,9 @@ size_t& nrealedges, size_t& nrealnodes) {
  * Adjoin will increment the ids of the smaller set of the hyperedges or hypernodes,
  * such that the ids of both are now contiguous.
  **/
-template <directedness edge_directedness = directed, typename... Attributes>
+template <directedness edge_directedness = directedness::directed, 
+std::unsigned_integral vertex_id_t, 
+typename... Attributes>
 auto graph_reader_adjoin(std::string file, size_t& nrealedges,
                          size_t& nrealnodes) {
   auto aos_a = load_adjoin_graph<edge_directedness, Attributes...>(
@@ -240,7 +308,7 @@ auto graph_reader_adjoin(std::string file, size_t& nrealedges,
   if (0 == aos_a.size()) {
     //after adjoin, we have adjoin graph and its transpose
     auto&& [g, g_t] =
-        read_and_adjoin_adj_hypergraph_pair(file, nrealedges, nrealnodes);
+        read_and_adjoin_adj_hypergraph_pair<vertex_id_t>(file, nrealedges, nrealnodes);
     std::cout << "num_realedges = " << nrealedges
             << " num_realnodes = " << nrealnodes << std::endl;
       std::cout << "num_hyperedges = " << g.size()
@@ -256,30 +324,34 @@ auto graph_reader_adjoin(std::string file, size_t& nrealedges,
   return std::tuple(g, g_t, std::vector<vertex_id_t>());
 }
 
-template<directedness edge_directedness = directed, typename... Attributes>
-auto graph_reader(std::string file, int idx, std::string direction, bool adjoin, 
-size_t& nrealedges, size_t& nrealnodes) {
-  if (adjoin) {
-    if (-1 != idx)
-      return graph_reader_adjoin_and_relabel<undirected, Attributes...>(file, idx, direction, 
-      nrealedges, nrealnodes);
-    else
-      return graph_reader_adjoin<undirected, Attributes...>(file, nrealedges, nrealnodes);
-  }
-  else {
-    if (-1 != idx)
-      return graph_reader_relabel<edge_directedness, Attributes...>(file, idx, direction);
-    else
-      return graph_reader<edge_directedness, Attributes...>(file);
-  }
+template <std::unsigned_integral vertex_id_t = vertex_id_t<nw::graph::biadjacency<0>>, typename... Attributes>
+auto adjoin_graph_reader(std::string file, const int idx, std::string direction,
+                         size_t& nrealedges, size_t& nrealnodes) {
+  if (-1 != idx)
+    return graph_reader_adjoin_and_relabel<directedness::undirected,
+                                           vertex_id_t, Attributes...>(
+        file, idx, direction, nrealedges, nrealnodes);
+  else
+    return graph_reader_adjoin<directedness::undirected, vertex_id_t,
+                               Attributes...>(file, nrealedges, nrealnodes);
 }
 
-template<directedness edge_directedness = directed, typename... Attributes>
+template<std::unsigned_integral vertex_id_t = vertex_id_t<nw::graph::biadjacency<0>>, 
+typename... Attributes>
 auto graph_reader(std::string file, int idx, std::string direction) {
   if (-1 != idx)
-    return graph_reader_relabel<edge_directedness, Attributes...>(file, idx, direction);
+    return graph_reader_relabel<vertex_id_t, Attributes...>(file, idx, direction);
   else
-    return graph_reader<edge_directedness, Attributes...>(file);
+    return graph_reader<vertex_id_t, Attributes...>(file);
+}
+
+template<std::unsigned_integral vertex_id_t = vertex_id_t<nw::graph::biadjacency<0>>, 
+typename... Attributes>
+auto weighted_graph_reader(std::string file, int idx, std::string direction) {
+  if (-1 != idx)
+    return weighted_graph_reader_relabel<vertex_id_t, Attributes...>(file, idx, direction);
+  else
+    return weighted_graph_reader<vertex_id_t, Attributes...>(file);
 }
 
 template <int Adj, directedness Directedness, class... Attributes>
@@ -289,10 +361,10 @@ nw::graph::adjacency<Adj, Attributes...> build_adjacency(nw::graph::edge_list<Di
 }
 
 template <class Graph>
-auto build_degrees(Graph&& graph)
-{
+auto build_degrees(Graph&& graph) {
+  using vertex_id_t = typename graph_traits<decltype(graph)>::vertex_id_type;   
   nw::util::life_timer _("degrees");
-  std::vector<nw::graph::vertex_id_t> degrees(graph.size());
+  std::vector<vertex_id_t> degrees(graph.size());
   tbb::parallel_for(edge_range(graph), [&](auto&& edges) {
     for (auto&& [i, j] : edges) {
       __atomic_fetch_add(&degrees[j], 1, __ATOMIC_ACQ_REL);
@@ -304,12 +376,12 @@ auto build_degrees(Graph&& graph)
 template <class Graph>
 auto build_random_sources(Graph&& graph, size_t n, long seed)
 {
-  using Id = typename nw::graph::vertex_id<std::decay_t<Graph>>::type;
+  using vertex_id_t = typename graph_traits<Graph>::vertex_id_type;  
 
-  auto sources = std::vector<nw::graph::vertex_id_t>(n);
+  auto sources = std::vector<vertex_id_t>(n);
   auto degrees = build_degrees(graph);
   auto     gen = std::mt19937(seed);
-  auto     dis = std::uniform_int_distribution<Id>(0, graph.max());
+  auto     dis = std::uniform_int_distribution<vertex_id_t>(0, graph.max());
 
   for (auto& id : sources) {
     for (id = dis(gen); degrees[id] == 0; id = dis(gen)) {}
@@ -323,7 +395,7 @@ auto build_random_sources(Graph&& graph, size_t n, long seed)
 /// have the expected number `n`.
 template <class Graph>
 auto load_sources_from_file(Graph&&, std::string file, size_t n = 0) {
-  std::vector sources = read_mm_vector<nw::graph::vertex_id_t>(file);
+  std::vector sources = read_mm_vector<vertex_id_t<Graph>>(file);
   if (n && sources.size() != n) {
     std::cerr << file << " contains " << sources.size() << " sources, however options require " << n << "\n";
     exit(1);

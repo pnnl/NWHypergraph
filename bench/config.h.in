@@ -14,7 +14,7 @@
 #pragma once
 
 #cmakedefine01 CXX_FILESYSTEM_IS_EXPERIMENTAL
-#define CXX_FILESYSTEM_NAMESPACE @CXX_FILESYSTEM_NAMESPACE@
+#define CXX_FILESYSTEM_NAMESPACE std::filesystem
 
 namespace nw::hypergraph {
 namespace bench {
