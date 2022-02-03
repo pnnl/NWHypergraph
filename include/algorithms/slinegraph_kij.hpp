@@ -50,8 +50,11 @@ auto to_two_graph_spgemm_kij_cyclic(ExecutionPolicy&& ep, HyperEdge& edges,
       std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>;
   linegraph_t two_graphs(num_threads);
   if (1 == s) {
-    efficient::to_two_graph_cyclic(std::forward<linegraph_t>(two_graphs), edges,
-                                   nodes, num_bins);
+    {
+      nw::util::life_timer _(__func__);
+      efficient::to_two_graph_cyclic(std::forward<linegraph_t>(two_graphs),
+                                     edges, nodes, num_bins);
+    }
     return create_edgelist_without_squeeze(two_graphs);
   } else {
     // when s > 1

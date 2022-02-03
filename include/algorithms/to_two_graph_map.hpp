@@ -38,7 +38,6 @@ void to_two_graph_map_blocked(
     std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>&& two_graphs,
     HyperEdge& edges, HyperNode& nodes, std::vector<vertex_id_t>& hyperedgedegrees,
     size_t s, int bin_size = 32) {
-  nw::util::life_timer _(__func__);
   size_t M = edges.size();
   tbb::parallel_for(
       tbb::blocked_range<vertex_id_t>(0, M, bin_size),
@@ -87,7 +86,6 @@ void to_two_graph_map_cyclic(
     std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>&& two_graphs,
     HyperEdge& edges, HyperNode& nodes, std::vector<vertex_id_t>& hyperedgedegrees,
     size_t s, int num_bins = 32) {
-  nw::util::life_timer _(__func__);
   size_t M = edges.size();
   tbb::parallel_for(
       nw::graph::cyclic_neighbor_range(edges, num_bins),
@@ -137,7 +135,6 @@ void to_weighted_two_graph_map_blocked(
     std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t, T>>>&& two_graphs,
     HyperEdge& edges, HyperNode& nodes, std::vector<vertex_id_t>& hyperedgedegrees,
     size_t s, int bin_size = 32) {
-  nw::util::life_timer _(__func__);
   size_t M = edges.size();
   tbb::parallel_for(
       tbb::blocked_range<vertex_id_t>(0, M, bin_size),
@@ -187,7 +184,6 @@ void to_two_graph_vector_blocked(
     std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>&& two_graphs,
     HyperEdge& edges, HyperNode& nodes, std::vector<vertex_id_t>& hyperedgedegrees,
     size_t s, int num_threads, int bin_size = 32) {
-  nw::util::life_timer _(__func__);
   size_t M = edges.size();
   // create a thread-local vector to store the soverlap information
   std::vector<std::vector<size_t>> soverlap(num_threads,
@@ -244,7 +240,6 @@ void to_two_graph_vector_cyclic(
     std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>&& two_graphs,
     HyperEdge& edges, HyperNode& nodes, std::vector<vertex_id_t>& hyperedgedegrees,
     size_t s, int num_threads, int num_bins = 32) {
-  nw::util::life_timer _(__func__);
   size_t M = edges.size();
   // create a thread-local vector to store the soverlap information
   std::vector<std::vector<size_t>> soverlap(num_threads,

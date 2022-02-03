@@ -39,7 +39,11 @@ std::vector<vertex_id_t>& hyperedgedegrees, size_t s, int num_threads, int max_b
   using linegraph_t = std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>;
   if (1 == s) {
     linegraph_t two_graphs(num_threads);
-    efficient::to_two_graph_blocked(std::forward<linegraph_t>(two_graphs), edges, nodes, max_bins, 0, M);
+    {
+      nw::util::life_timer _(__func__);
+      efficient::to_two_graph_blocked(std::forward<linegraph_t>(two_graphs),
+                                      edges, nodes, max_bins, 0, M);
+    }
     return create_edgelist_without_squeeze(two_graphs);
   }
   else {
@@ -48,8 +52,13 @@ std::vector<vertex_id_t>& hyperedgedegrees, size_t s, int num_threads, int max_b
     //block size: 1, 4, 16, 64, 256, 1024, ... until reach 4^num_bins
     for (size_t i = 1; max_bins > 0; i *= 4, --max_bins) {
       linegraph_t two_graphs(num_threads);
-      size_t num_bins = M / i; // num_bins: M, M/4, M/16, M/256, ...
-      efficient::to_two_graph_blocked(std::forward<linegraph_t>(two_graphs), edges, nodes, num_bins, 0, M, hyperedgedegrees, s); 
+      size_t num_bins = M / i;  // num_bins: M, M/4, M/16, M/256, ...
+      {
+        nw::util::life_timer _(__func__);
+        efficient::to_two_graph_blocked(std::forward<linegraph_t>(two_graphs),
+                                        edges, nodes, num_bins, 0, M,
+                                        hyperedgedegrees, s);
+      }
     }
     //abandon results
     return nw::graph::edge_list<edge_directedness>(0);

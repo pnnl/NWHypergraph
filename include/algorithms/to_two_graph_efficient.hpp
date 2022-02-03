@@ -121,7 +121,6 @@ void to_two_graph_blocked(
     std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>&& two_graphs,
     HyperEdge& edges, HyperNode& nodes, int num_bins, size_t range_begin,
     size_t range_end) {
-  nw::util::life_timer _(__func__);
   auto M = edges.size();
   tbb::parallel_for(
       tbb::blocked_range<vertex_id_t>(range_begin, range_end, (range_end - range_begin) / num_bins),
@@ -171,7 +170,6 @@ void to_two_graph_blocked(
     std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>&& two_graphs,
     HyperEdge& edges, HyperNode& nodes, int num_bins, size_t range_begin,
     size_t range_end, std::vector<vertex_id_t>& hyperedgedegrees, size_t s) {
-  nw::util::life_timer _(__func__);
   auto M = edges.size();
   tbb::parallel_for(
       tbb::blocked_range<vertex_id_t>(range_begin, range_end, (range_end - range_begin) / num_bins),
@@ -231,7 +229,6 @@ void to_weighted_two_graph_blocked(
     std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t, T>>>&& two_graphs,
     HyperEdge& edges, HyperNode& nodes, int num_bins, size_t range_begin,
     size_t range_end) {
-  nw::util::life_timer _(__func__);
   auto M = edges.size();
   tbb::parallel_for(
       tbb::blocked_range<vertex_id_t>(range_begin, range_end, (range_end - range_begin) / num_bins),
@@ -286,7 +283,6 @@ void to_weighted_two_graph_blocked(
     std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t, T>>>&& two_graphs,
     HyperEdge& edges, HyperNode& nodes, int num_bins, size_t range_begin,
     size_t range_end, std::vector<vertex_id_t>& hyperedgedegrees, size_t s) {
-  nw::util::life_timer _(__func__);
   auto M = edges.size();
   tbb::parallel_for(
       tbb::blocked_range<vertex_id_t>(range_begin, range_end, (range_end - range_begin) / num_bins),
@@ -451,7 +447,6 @@ std::vector<vertex_id_t>& hyperedgedegrees, size_t s) {
 template <class HyperEdge, class HyperNode, class vertex_id_t = nw::graph::vertex_id_t<HyperEdge>>
 void to_two_graph_cyclic(std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>&& two_graphs,
     HyperEdge& edges, HyperNode& nodes, int num_bins) {
-  nw::util::life_timer _(__func__);
   size_t M = edges.size();
   tbb::parallel_for(
       nw::graph::cyclic_neighbor_range(edges, num_bins),
@@ -497,7 +492,6 @@ void to_two_graph_cyclic(std::vector<std::vector<std::tuple<vertex_id_t, vertex_
 template <class HyperEdge, class HyperNode, class vertex_id_t = nw::graph::vertex_id_t<HyperEdge>>
 void to_two_graph_cyclic(std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t>>>&& two_graphs,
     HyperEdge& edges, HyperNode& nodes, int num_bins, std::vector<vertex_id_t>& hyperedgedegrees, size_t s) {
-  nw::util::life_timer _(__func__);
   size_t M = edges.size();
   tbb::parallel_for(
       nw::graph::cyclic_neighbor_range(edges, num_bins),
