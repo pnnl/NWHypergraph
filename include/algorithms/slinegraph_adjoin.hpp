@@ -102,14 +102,20 @@ auto to_two_graph_map_frontier_cyclic(Hypergraph& h, HypergraphT& ht,
   auto M = frontier.size();
   if (1 < s) {
     using container_t = std::map<size_t, size_t>;
-    frontier::to_two_graph_frontier_hashmap_cyclic<container_t>(
-        std::forward<linegraph_t>(two_graphs), h, ht, degrees, frontier, s,
-        num_bins);
+    {
+      nw::util::life_timer _(__func__);
+      frontier::to_two_graph_frontier_hashmap_cyclic<container_t>(
+          std::forward<linegraph_t>(two_graphs), h, ht, degrees, frontier, s,
+          num_bins);
+    }
     return create_edgelist_with_squeeze<edge_directedness>(two_graphs);
   } else {
     using container_t = std::set<size_t>;
-    frontier::to_two_graph_frontier_set_cyclic<container_t>(
-        std::forward<linegraph_t>(two_graphs), h, ht, frontier, num_bins);
+    {
+      nw::util::life_timer _(__func__);
+      frontier::to_two_graph_frontier_set_cyclic<container_t>(
+          std::forward<linegraph_t>(two_graphs), h, ht, frontier, num_bins);
+    }
     return create_edgelist_without_squeeze<edge_directedness>(two_graphs);
   }
 }
@@ -148,14 +154,20 @@ auto to_two_graph_hashmap_frontier_blocked(Hypergraph& h, HypergraphT& ht,
   auto M = frontier.size();
   if (1 < s) {
     using container_t = std::unordered_map<size_t, size_t>;
-    frontier::to_two_graph_frontier_hashmap_blocked<container_t>(
-        std::forward<linegraph_t>(two_graphs), h, ht, degrees, frontier, s,
-        num_bins);
+    {
+      nw::util::life_timer _(__func__);
+      frontier::to_two_graph_frontier_hashmap_blocked<container_t>(
+          std::forward<linegraph_t>(two_graphs), h, ht, degrees, frontier, s,
+          num_bins);
+    }
     return create_edgelist_with_squeeze<edge_directedness>(two_graphs);
   } else {
     using container_t = std::unordered_set<size_t>;
-    frontier::to_two_graph_frontier_set_blocked<container_t>(
-        std::forward<linegraph_t>(two_graphs), h, ht, frontier, num_bins);
+    {
+      nw::util::life_timer _(__func__);
+      frontier::to_two_graph_frontier_set_blocked<container_t>(
+          std::forward<linegraph_t>(two_graphs), h, ht, frontier, num_bins);
+    }
     return create_edgelist_without_squeeze<edge_directedness>(two_graphs);
   }
 }
@@ -194,14 +206,20 @@ auto to_two_graph_hashmap_frontier_cyclic(Hypergraph& h, HypergraphT& ht,
   auto M = frontier.size();
   if (1 < s) {
     using container_t = std::unordered_map<size_t, size_t>;
-    frontier::to_two_graph_frontier_hashmap_cyclic<container_t>(
-        std::forward<linegraph_t>(two_graphs), h, ht, degrees, frontier, s,
-        num_bins);
+    {
+      nw::util::life_timer _(__func__);
+      frontier::to_two_graph_frontier_hashmap_cyclic<container_t>(
+          std::forward<linegraph_t>(two_graphs), h, ht, degrees, frontier, s,
+          num_bins);
+    }
     return create_edgelist_with_squeeze<edge_directedness>(two_graphs);
   } else {
     using container_t = std::unordered_set<size_t>;
-    frontier::to_two_graph_frontier_set_cyclic<container_t>(
-        std::forward<linegraph_t>(two_graphs), h, ht, frontier, num_bins);
+    {
+      nw::util::life_timer _(__func__);
+      frontier::to_two_graph_frontier_set_cyclic<container_t>(
+          std::forward<linegraph_t>(two_graphs), h, ht, frontier, num_bins);
+    }
     return create_edgelist_without_squeeze<edge_directedness>(two_graphs);
   }
 }

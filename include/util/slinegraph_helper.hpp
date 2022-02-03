@@ -28,7 +28,7 @@ namespace hypergraph {
 * @returns the edge list of the s-line graph
 *
 */
-template<directedness edge_directedness = nw::graph::directedness::undirected, class vertex_id_t, class... T>
+template<nw::graph::directedness edge_directedness = nw::graph::directedness::undirected, class vertex_id_t, class... T>
 auto create_edgelist_without_squeeze(std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t, T...>>> &two_graphs) {
     nw::util::life_timer _(__func__);
     nw::graph::edge_list<edge_directedness, T...> result(0);
@@ -54,7 +54,7 @@ auto create_edgelist_without_squeeze(std::vector<std::vector<std::tuple<vertex_i
 * @returns the edge list of the s-line graph
 *
 */
-template<directedness edge_directedness = nw::graph::directedness::undirected, class vertex_id_t, class... T>
+template<nw::graph::directedness edge_directedness = nw::graph::directedness::undirected, class vertex_id_t, class... T>
 auto create_edgelist_with_squeeze(std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t, T...>>> &two_graphs) {
     nw::util::life_timer _(__func__);
     nw::graph::edge_list<edge_directedness, T...> result(0);
@@ -97,7 +97,7 @@ auto create_edgelist_with_squeeze(std::vector<std::vector<std::tuple<vertex_id_t
 * @returns the edge list of the s-line graph
 *
 */
-template<directedness edge_directedness = nw::graph::directedness::undirected, class vertex_id_t, class... T>
+template<nw::graph::directedness edge_directedness = nw::graph::directedness::undirected, class vertex_id_t, class... T>
 auto create_edgelist_with_squeeze(std::vector<std::vector<std::tuple<vertex_id_t, vertex_id_t, T...>>> &two_graphs,
 std::unordered_map<vertex_id_t, vertex_id_t>& relabel_map) {
     nw::util::life_timer _(__func__);

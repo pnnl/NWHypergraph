@@ -15,6 +15,7 @@
 #include <vector>
 #include <tuple>
 #include <unordered_map>
+#include <nwgraph/build.hpp>
 #include <nwgraph/edge_list.hpp>
 #include <nwgraph/util/intersection_size.hpp>
 #include <pybind11/pybind11.h>
@@ -96,8 +97,8 @@ public:
             if (remove_duplicates) {
                 //Remove duplicate edges
                 std::cout << "before collapse: " << el.size() << " edges" << std::endl;
-                el.template lexical_sort_by<0>();
-                el.uniq();
+                nw::graph::lexical_sort_by<0>(el);
+                nw::graph::uniq(el);
                 std::cout << "after collapse: " << el.size() << " edges" << std::endl;
             }
             edges_ = nw::graph::adjacency<0, Attributes...>(el);
@@ -581,14 +582,14 @@ protected:
         if (edge_neighbor_count_.empty()) {
             edge_neighbor_count_ = to_two_graph_count_neighbors_cyclic(edges_, nodes_);
         }
-        return populate_linegraph_from_neighbor_map<nw::graph::undirected, decltype(edges_), Attributes...>(edges_, edge_neighbor_count_, s, false);
+        return populate_linegraph_from_neighbor_map<nw::graph::directedness::undirected, decltype(edges_), Attributes...>(edges_, edge_neighbor_count_, s, false);
     }
     auto populate_node_linegraph (size_t s) {
         //if neighbors have not been counted
         if (0 == node_neighbor_count_.size()) {
             node_neighbor_count_ = to_two_graph_count_neighbors_cyclic(nodes_, edges_);
         }
-        return populate_linegraph_from_neighbor_map<nw::graph::undirected, decltype(nodes_), Attributes...>(nodes_, node_neighbor_count_, s, false);
+        return populate_linegraph_from_neighbor_map<nw::graph::directedness::undirected, decltype(nodes_), Attributes...>(nodes_, node_neighbor_count_, s, false);
     }
 private:
     /*
@@ -596,7 +597,7 @@ private:
     * */
     auto populate_unweighted_edge_list(py::array_t<Index_t, py::array::c_style | py::array::forcecast> &x, 
     py::array_t<Index_t, py::array::c_style | py::array::forcecast> &y) {
-        nw::graph::edge_list<nw::graph::directed> g(0);
+        nw::graph::edge_list<nw::graph::directedness::directed> g(0);
         g.open_for_push_back();
         //sanitize check
         auto rx = x.template mutable_unchecked<1>();
@@ -606,7 +607,7 @@ private:
         for (size_t i = 0; i < n_x; ++i) 
             g.push_back({rx(i), ry(i)});
 
-        g.close_for_push_back(false);
+        g.close_for_push_back();
         return g;
     }
     /*
@@ -614,7 +615,7 @@ private:
     * */
     auto populate_weighted_edge_list(py::array_t<Index_t, py::array::c_style | py::array::forcecast> &x, 
     py::array_t<Index_t, py::array::c_style | py::array::forcecast> &y) {
-        nw::graph::edge_list<nw::graph::directed, Attributes...> g(0);
+        nw::graph::edge_list<nw::graph::directedness::directed, Attributes...> g(0);
         g.open_for_push_back();
         //sanitize check
         auto rx = x.template mutable_unchecked<1>();
@@ -624,7 +625,7 @@ private:
         for (size_t i = 0; i < n_x; ++i) 
             g.push_back({rx(i), ry(i), 0});
 
-        g.close_for_push_back(false);
+        g.close_for_push_back();
         return g;
     }
 
@@ -634,7 +635,7 @@ private:
     auto populate_weighted_edge_list(py::array_t<Index_t, py::array::c_style | py::array::forcecast> &x, 
     py::array_t<Index_t, py::array::c_style | py::array::forcecast> &y,
     py::array_t<Attributes..., py::array::c_style | py::array::forcecast> &data) {
-        nw::graph::edge_list<nw::graph::directed, Attributes...> g(0);
+        nw::graph::edge_list<nw::graph::directedness::directed, Attributes...> g(0);
         g.open_for_push_back();
         //sanitize check
         auto rx = x.template mutable_unchecked<1>();
@@ -653,7 +654,7 @@ private:
             for (size_t i = 0; i < n_x; ++i) 
                 g.push_back({rx(i), ry(i), rdata(i)});
         }
-        g.close_for_push_back(false);
+        g.close_for_push_back();
         return g;
     }
 
@@ -691,7 +692,7 @@ private:
                 equal_class[key].insert(k);
         }
         
-        nw::graph::edge_list<nw::graph::directed, Attributes...> g(0);
+        nw::graph::edge_list<nw::graph::directedness::directed, Attributes...> g(0);
         g.open_for_push_back();
         for (auto&& [nodes, edges] : equal_class) {
             //because set is stored in sorted order.
@@ -701,7 +702,7 @@ private:
             for (auto&& neighbor : nodes)
                 g.push_back({new_edge, neighbor, 0});
         }
-        g.close_for_push_back(false);
+        g.close_for_push_back();
         return std::tuple{g, equal_class};
     }
     /*

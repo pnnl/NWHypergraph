@@ -16,7 +16,7 @@
 #include <vector>
 #include <tuple>
 #include <map>
-#include <nwgraph/graph_base.hpp>
+#include <nwgraph/adjacency.hpp>
 #include <nwgraph/edge_list.hpp>
 #include <nwgraph/util/intersection_size.hpp>
 #include <pybind11/pybind11.h>
@@ -26,6 +26,7 @@
 #include "algorithms/slinegraph_efficient.hpp"
 #include "algorithms/toplexes.hpp"
 #include <nwgraph/algorithms/connected_components.hpp>
+#include <nwgraph/experimental/algorithms/connected_components.hpp>
 #include <nwgraph/algorithms/delta_stepping.hpp>
 #include <nwgraph/algorithms/betweenness_centrality.hpp>
 
@@ -61,7 +62,7 @@ private:
     /*
     * Note N may or may not equal to linegraph.size()
     * */
-    void populate_adjacency(nw::graph::edge_list<nw::graph::undirected, Attributes...>& linegraph,
+    void populate_adjacency(nw::graph::edge_list<nw::graph::directedness::undirected, Attributes...>& linegraph,
     std::size_t N) {
         size_t nedges = linegraph.size();
         std::cout << "linegraph size: " << nedges << std::endl;
@@ -77,7 +78,7 @@ private:
             g_t_ = nw::graph::adjacency<1, Attributes...>(N, linegraph);
         }
     }
-    void populate_py_array(nw::graph::edge_list<nw::graph::undirected, Attributes...>& linegraph) {
+    void populate_py_array(nw::graph::edge_list<nw::graph::directedness::undirected, Attributes...>& linegraph) {
         pybind11::ssize_t n = linegraph.size();
         row_ = py::array_t<Index_t, py::array::c_style>(n);
         col_ = py::array_t<Index_t, py::array::c_style>(n);
@@ -101,12 +102,12 @@ public:
     s_(s) {
         //extract linegraph from its neighbor counts
         if (edges_) {
-            nw::graph::edge_list<nw::graph::undirected, Attributes...> linegraph = g.populate_edge_linegraph(s);
+            nw::graph::edge_list<nw::graph::directedness::undirected, Attributes...> linegraph = g.populate_edge_linegraph(s);
             populate_adjacency(linegraph, g.edges_.size());
             populate_py_array(linegraph);
         }
         else{
-            nw::graph::edge_list<nw::graph::undirected, Attributes...> linegraph = 
+            nw::graph::edge_list<nw::graph::directedness::undirected, Attributes...> linegraph = 
             g.populate_node_linegraph(s);         
             populate_adjacency(linegraph, g.nodes_.size());
             populate_py_array(linegraph);
@@ -123,7 +124,7 @@ public:
     col_(y), 
     data_(data), 
     s_(s) {   
-        nw::graph::edge_list<nw::graph::undirected, Attributes...> linegraph(0);
+        nw::graph::edge_list<nw::graph::directedness::undirected, Attributes...> linegraph(0);
         linegraph.open_for_push_back();
         //sanitize check
         auto rx = x.template mutable_unchecked<1>();
@@ -151,7 +152,7 @@ public:
             }
         }
         //offset_ = linegraph.close_for_push_back_with_shift();
-        linegraph.close_for_push_back(false);
+        linegraph.close_for_push_back();
         g_ = nw::graph::adjacency<0, Attributes...>(linegraph);
         g_t_ = nw::graph::adjacency<1, Attributes...>(linegraph);
     }
