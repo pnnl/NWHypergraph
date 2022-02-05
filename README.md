@@ -218,4 +218,6 @@ The tools are under build/tools/ directory. The following tools are provided in 
 
 Please cite:
 -----------
-Xu T. Liu, Jesun Firoz, Andrew Lumsdaine, Cliff Joslyn, Sinan Aksoy, Brenda Praggastis, and Assefaw Gebremedhin. 2021. Parallel Algorithms and Heuristics for Efficient Computation of High-Order Line Graphs of Hypergraphs. arXiv:2010.11448 [cs] (July 2021).
+Xu T. Liu, Jesun Firoz, Andrew Lumsdaine, Cliff Joslyn, Sinan G. Aksoy, Brenda Praggastis, Assefaw H. Gebremedhin.Parallel Algorithms for Efficient Computation of High-Order Line Graphs of Hypergraphs. 28th IEEE Int’l Conference on High Performance Computing, Data, and Analytics (HiPC 2021), 2021.
+
+Xu T. Liu, Jesun Firoz, Sinan G. Aksoy, Ilya Amburg, Andrew Lumsdaine, Cliff Joslyn, Brenda Praggastis, Assefaw H. Gebremedhin. High-order Line Graphs of Non-uniform Hypergraphs: Algorithms, Applications, and Experimental Analysis. 36th IEEE Int’l Parallel & Distributed Processing Symposium (IPDPS), 2022.

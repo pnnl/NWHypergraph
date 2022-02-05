@@ -29,9 +29,9 @@ size_t nNonzeros, bool file_symmetry, bool pattern) {
         size_t d0, d1;
         inputStream >> d0 >> d1;
         
-        A.push_back(d0, d1 + nedges);
+        A.push_back(d0 - 1, d1 + nedges - 1);
         if (file_symmetry && (d0 != d1)) {
-          A.push_back(d1 + nedges, d0);
+          A.push_back(d1 + nedges - 1, d0 - 1);
         }
       }
     }
@@ -41,9 +41,9 @@ size_t nNonzeros, bool file_symmetry, bool pattern) {
         double d2;
         inputStream >> d0 >> d1 >> d2;
 
-        A.push_back(d0, d1 + nedges);
+        A.push_back(d0 - 1, d1 + nedges - 1);
         if (file_symmetry && (d0 != d1)) {
-          A.push_back(d1 + nedges, d0);
+          A.push_back(d1 + nedges - 1, d0 - 1);
         }
       }
     }
@@ -53,9 +53,9 @@ size_t nNonzeros, bool file_symmetry, bool pattern) {
       for (size_t i = 0; i < nNonzeros; ++i) {
         size_t d0, d1;
         inputStream >> d0 >> d1;
-        A.push_back(d0 + nnodes, d1);
+        A.push_back(d0 + nnodes - 1, d1 - 1);
         if (file_symmetry && (d0 != d1)) {
-          A.push_back(d1, d0 + nnodes);
+          A.push_back(d1 - 1, d0 + nnodes - 1);
         }
       }
     }
@@ -65,9 +65,9 @@ size_t nNonzeros, bool file_symmetry, bool pattern) {
         double d2;
         inputStream >> d0 >> d1 >> d2;
 
-        A.push_back(d0 + nnodes, d1);
+        A.push_back(d0 + nnodes - 1, d1 - 1);
         if (file_symmetry && (d0 != d1)) {
-          A.push_back(d1, d0 + nnodes);
+          A.push_back(d1 - 1, d0 + nnodes - 1);
         }
       }
     }
@@ -98,10 +98,10 @@ size_t nNonzeros, bool file_symmetry, bool pattern) {
 
       d1 += nedges;
 
-      A.push_back(d0, d1, v);
+      A.push_back(d0 - 1, d1 - 1, v);
 
       if (file_symmetry && (d0 != d1)) {
-        A.push_back(d1, d0, v);
+        A.push_back(d1 - 1, d0 - 1, v);
       }
     }
   }
@@ -120,10 +120,10 @@ size_t nNonzeros, bool file_symmetry, bool pattern) {
 
       d0 += nnodes;
 
-      A.push_back(d0, d1, v);
+      A.push_back(d0 - 1, d1 - 1, v);
 
       if (file_symmetry && (d0 != d1)) {
-        A.push_back(d1, d0, v);
+        A.push_back(d1 - 1, d0 - 1, v);
       }
     }    
   }
