@@ -328,11 +328,11 @@ template <std::unsigned_integral vertex_id_t = vertex_id_t<nw::graph::biadjacenc
 auto adjoin_graph_reader(std::string file, const int idx, std::string direction,
                          size_t& nrealedges, size_t& nrealnodes) {
   if (-1 != idx)
-    return graph_reader_adjoin_and_relabel<directedness::undirected,
+    return graph_reader_adjoin_and_relabel<directedness::directed,
                                            vertex_id_t, Attributes...>(
         file, idx, direction, nrealedges, nrealnodes);
   else
-    return graph_reader_adjoin<directedness::undirected, vertex_id_t,
+    return graph_reader_adjoin<directedness::directed, vertex_id_t,
                                Attributes...>(file, nrealedges, nrealnodes);
 }
 

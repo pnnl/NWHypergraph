@@ -134,6 +134,8 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
                      int num_bins = 32) {
   switch (version) {
     case Efficient_Blocked: {
+      edges.sort_to_be_indexed();
+      nodes.sort_to_be_indexed();
       nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
           to_two_graph_efficient_blocked_portal<nw::graph::directedness::undirected>(
               verbose, features, edges, nodes,
@@ -148,6 +150,8 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
       return s_adj;
     }
     case Efficient_Cyclic: {
+      edges.sort_to_be_indexed();
+      nodes.sort_to_be_indexed();
       nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
           to_two_graph_efficient_cyclic_portal<nw::graph::directedness::undirected>(
               verbose, edges, nodes, edgedegrees, s,
@@ -162,6 +166,8 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
       return s_adj;
     }
     case Naive: {
+      edges.sort_to_be_indexed();
+      nodes.sort_to_be_indexed();
       nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
           to_two_graph_naive_parallel_portal<nw::graph::directedness::undirected>(
               verbose, edges, nodes, s, num_threads, num_bins);
@@ -291,6 +297,8 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
       return s_adj;
     }
     case Efficient_Frontier_Blocked: {
+      edges.sort_to_be_indexed();
+      nodes.sort_to_be_indexed();
       nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
           to_two_graph_efficient_frontier_blocked_portal<nw::graph::directedness::undirected>(
               std::execution::par_unseq, edges, nodes, edgedegrees,
@@ -306,6 +314,8 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
       return s_adj;
     }
     case Efficient_Frontier_Cyclic: {
+      edges.sort_to_be_indexed();
+      nodes.sort_to_be_indexed();
       nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
           to_two_graph_efficient_frontier_cyclic_portal<nw::graph::directedness::undirected>(
               std::execution::par_unseq, edges, nodes, edgedegrees,
@@ -405,6 +415,8 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
       return s_adj;
     }
     case Efficient_Blocked_Size: {
+      edges.sort_to_be_indexed();
+      nodes.sort_to_be_indexed();
       nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
           to_two_graph_efficient_blocked_vary_size<nw::graph::directedness::undirected>(
               edges, nodes,
@@ -475,6 +487,8 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
       return s_adj;
     } 
     case Frontier_Blocked: {
+      edges.sort_to_be_indexed();
+      nodes.sort_to_be_indexed();
       nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
           to_two_graph_frontier_blocked<nw::graph::directedness::undirected>(
               edges, nodes, edgedegrees,
@@ -489,6 +503,8 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
       return s_adj;
     }
     case Frontier_Cyclic: {
+      edges.sort_to_be_indexed();
+      nodes.sort_to_be_indexed();      
       nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
           to_two_graph_frontier_cyclic<nw::graph::directedness::undirected>(
               edges, nodes, edgedegrees,
