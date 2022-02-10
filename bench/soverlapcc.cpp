@@ -50,8 +50,8 @@ static constexpr const char USAGE[] =
       --adjoin              adjoin the id spaces of the hyperedges and hypernodes (smaller one comes after the larger one) 
       --log FILE            log times to a file
       --log-header          add a header to the log file
-      -d, --debug           run in debug mode
-      -V, --verbose         run in verbose mode
+      -d, --debug           run in debug mode [default: false]
+      -V, --verbose         run in verbose mode [default: false]
 )";
 
 

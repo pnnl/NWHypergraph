@@ -27,11 +27,7 @@ using namespace nw::graph;
 namespace nw::hypergraph {
 namespace bench {
 
-#if defined (EXECUTION_POLICY)
 constexpr inline bool WITH_TBB = true;
-#else
-constexpr inline bool WITH_TBB = false;
-#endif
 
 auto set_n_threads(long n) {
   if constexpr (WITH_TBB) {
