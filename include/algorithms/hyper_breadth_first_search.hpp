@@ -53,9 +53,12 @@ auto hyperBFS_topdown_serial_v0(vertex_id_t source_hyperedge, GraphN& hypernodes
       //all neighbors of hyperedges are hypernode
       std::for_each(hyperedges.begin()[hyperE].begin(), hyperedges.begin()[hyperE].end(), [&](auto&& x) {
         auto hyperN = std::get<0>(x);
-        if (visitedN.atomic_get(hyperN) == 0 && visitedN.atomic_set(hyperN) == 0) {
-          frontierN.push_back(hyperN);
-          parentN[hyperN] = hyperE;
+        if (std::numeric_limits<vertex_id_t>::max() == parentN[hyperN]) {
+          if (visitedN.atomic_get(hyperN) == 0 &&
+              visitedN.atomic_set(hyperN) == 0) {
+            frontierN.push_back(hyperN);
+            parentN[hyperN] = hyperE;
+          }
         }
       });
     });
@@ -65,9 +68,12 @@ auto hyperBFS_topdown_serial_v0(vertex_id_t source_hyperedge, GraphN& hypernodes
       std::for_each(hypernodes.begin()[hyperN].begin(), hypernodes.begin()[hyperN].end(), [&](auto&& x) {
         //so we check compid of each hyperedge
         auto hyperE = std::get<0>(x);
-        if (visitedE.atomic_get(hyperE) == 0 && visitedE.atomic_set(hyperE) == 0) {
-          frontierE.push_back(hyperE);
-          parentE[hyperE] = hyperN;
+        if (std::numeric_limits<vertex_id_t>::max() == parentE[hyperE]) {
+          if (visitedE.atomic_get(hyperE) == 0 &&
+              visitedE.atomic_set(hyperE) == 0) {
+            frontierE.push_back(hyperE);
+            parentE[hyperE] = hyperN;
+          }
         }
       });
     });
@@ -125,10 +131,10 @@ auto hyperBFS_topdown_serial_v1(vertex_id_t source_hyperedge, GraphN& hypernodes
 }
 
 template<class ExecutionPolicy, typename GraphN, typename GraphE, typename vertex_id_t = vertex_id_t<GraphN>>
-auto hyperBFS_topdown_parallel_v0(ExecutionPolicy&& ep, const vertex_id_t source_hyperedge, GraphN& hypernodes, GraphE& hyperedges, int num_bins = 32) {
+auto hyperBFS_topdown_parallel_v0(ExecutionPolicy&& ep, const vertex_id_t source_hyperedge, GraphN& nodes, GraphE& edges, int num_bins = 32) {
   nw::util::life_timer _(__func__);
-  size_t     num_hypernodes = hypernodes.max() + 1;    // number of hypernodes
-  size_t     num_hyperedges = hyperedges.max() + 1;    // number of hyperedges
+  size_t num_hyperedges = num_vertices(edges);
+  size_t num_hypernodes = num_vertices(nodes);
 
   std::vector<vertex_id_t> parentE(num_hyperedges);
   std::vector<vertex_id_t> parentN(num_hypernodes);
@@ -150,8 +156,6 @@ auto hyperBFS_topdown_parallel_v0(ExecutionPolicy&& ep, const vertex_id_t source
   parentE[source_hyperedge] = source_hyperedge; //parent of root is itself
 
 
-  auto nodes = hypernodes.begin();
-  auto edges = hyperedges.begin();
   std::vector<vertex_id_t> frontier[num_bins];
   auto traverse = [&](auto& g, auto& cur, auto& bitmap, auto& parents) {
     tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0ul, cur.size()), [&](tbb::blocked_range<vertex_id_t>& r) {
@@ -221,7 +225,7 @@ auto hyperBFS_bottomup_serial_v0(vertex_id_t source_hyperedge, GraphN& hypernode
       //all neighbors of hyperedges are hypernode
         std::for_each(hyperedges.begin()[hyperE].begin(), hyperedges.begin()[hyperE].end(), [&](auto&& x) {
             auto hyperN = std::get<0>(x);
-            parentE[hyperE] = hyperN;
+            writeMin(parentE[hyperE], hyperN);//parentE[hyperE] = hyperN;
             return;    //return once found the first valid parent
         });
     }
@@ -232,7 +236,7 @@ auto hyperBFS_bottomup_serial_v0(vertex_id_t source_hyperedge, GraphN& hypernode
         std::for_each(hypernodes.begin()[hyperN].begin(), hypernodes.begin()[hyperN].end(), [&](auto&& x) {
         //so we check compid of each hyperedge
             auto hyperE = std::get<0>(x);
-            parentN[hyperN] = hyperE;
+             writeMin(parentN[hyperN], hyperE);//parentN[hyperN] = hyperE;
             return;
         });
     }
@@ -266,7 +270,7 @@ auto hyperBFS_bottomup_parallel_v0(ExecutionPolicy&& ep, const vertex_id_t sourc
       //all neighbors of hyperedges are hypernode
         std::for_each(hyperedges.begin()[hyperE].begin(), hyperedges.begin()[hyperE].end(), [&](auto&& x) {
             auto hyperN = std::get<0>(x);
-            parentE[hyperE] = hyperN;
+            writeMin(parentE[hyperE], hyperN);
             return;    //return once found the first valid parent
         });
       }
@@ -280,8 +284,8 @@ auto hyperBFS_bottomup_parallel_v0(ExecutionPolicy&& ep, const vertex_id_t sourc
         std::for_each(hypernodes.begin()[hyperN].begin(), hypernodes.begin()[hyperN].end(), [&](auto&& x) {
         //so we check compid of each hyperedge
             auto hyperE = std::get<0>(x);
-            parentN[hyperN] = hyperE;
-            return;
+            writeMin(parentN[hyperN], hyperE);
+            return;    //return once found the first valid parent
         });
     }
     }
@@ -522,10 +526,10 @@ size_t numpairs, int alpha = 15, int beta = 18) {
 
 
 template<typename GraphN, typename GraphE, typename vertex_id_t = vertex_id_t<GraphN>>
-bool hyperBFSVerifier(GraphN& hypernodes, GraphE& hyperedges, vertex_id_t source_hyperedge, 
-std::vector<vertex_id_t>& parentE, std::vector<vertex_id_t>& parentN) {
-  size_t num_hyperedges = hyperedges.max() + 1;
-  size_t num_hypernodes = hypernodes.max() + 1;
+bool hyperBFSVerifier(GraphN& nodes, GraphE& edges, vertex_id_t source_hyperedge, 
+std::vector<vertex_id_t>& parentN, std::vector<vertex_id_t>& parentE) {
+  size_t num_hyperedges = num_vertices(edges);
+  size_t num_hypernodes = num_vertices(nodes);
   std::vector<vertex_id_t> depthE(num_hyperedges, std::numeric_limits<vertex_id_t>::max());
   std::vector<vertex_id_t> depthN(num_hypernodes, std::numeric_limits<vertex_id_t>::max());
   depthE[source_hyperedge] = 0;
@@ -533,8 +537,7 @@ std::vector<vertex_id_t>& parentE, std::vector<vertex_id_t>& parentN) {
   to_visitE.reserve(num_hyperedges);
   to_visitN.reserve(num_hypernodes);
   to_visitE.push_back(source_hyperedge);
-  auto edges = hyperedges.begin();
-  auto nodes = hypernodes.begin();
+
   //mark depth information for the hypergraph
   while (false == (to_visitE.empty() && to_visitN.empty())) {
     for (auto it = to_visitE.begin(); it != to_visitE.end(); it++) {
@@ -585,7 +588,7 @@ std::vector<vertex_id_t>& parentE, std::vector<vertex_id_t>& parentN) {
         }
       }
       if (!parent_found) {
-        std::cout << "Couldn't find edge from " << parentE[hyperE] << " to " << hyperE << std::endl;
+        std::cout << "Couldn't find edge from node " << parentE[hyperE] << " to hyperedge " << hyperE << std::endl;
         return false;
       }
     } else if (depthE[hyperE] != parentE[hyperE]) {
@@ -609,7 +612,7 @@ std::vector<vertex_id_t>& parentE, std::vector<vertex_id_t>& parentN) {
         }
       }
       if (!parent_found) {
-        std::cout << "Couldn't find edge from " << parentN[hyperN] << " to " << hyperN << std::endl;
+        std::cout << "Couldn't find edge from hyperedge " << parentN[hyperN] << " to node " << hyperN << std::endl;
         return false;
       }
     } else if (depthN[hyperN] != parentN[hyperN]) {
