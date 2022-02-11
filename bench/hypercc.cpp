@@ -150,7 +150,7 @@ int main(int argc, char* argv[]) {
               record([&] { return lpaNoFrontierCC(std::execution::par_unseq, hypernodes, hyperedges); });
               break;
             case 5:
-              record([&] { return lpCC_parallelv2(std::execution::par_unseq, hypernodes, hyperedges); });
+              record([&] { return lpCC_parallelv2(std::execution::par_unseq, hypernodes, hyperedges, num_bins); });
               break;
             case 8:
               record([&] { return relabelHyperCC(std::execution::seq, aos_a); });

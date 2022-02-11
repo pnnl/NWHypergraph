@@ -306,7 +306,8 @@ auto lpCC_parallelv2(ExecutionPolicy&& ep, GraphN& hypernodes, GraphE& hyperedge
   auto edges = hyperedges.begin();
   std::vector<vertex_id_t> frontier[num_bins];
   auto propagate = [&](auto& g, auto& cur, auto& bitmap, auto& curlabels, auto& nextlabels) {
-    tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0ul, cur.size()), [&](tbb::blocked_range<vertex_id_t>& r) {
+    if (0 == cur.size()) return;
+    tbb::parallel_for(tbb::blocked_range<size_t>(0ul, cur.size()), [&](tbb::blocked_range<size_t>& r) {
       int worker_index = tbb::this_task_arena::current_thread_index();
       for (auto i = r.begin(), e = r.end(); i < e; ++i) {
         vertex_id_t x = cur[i];
