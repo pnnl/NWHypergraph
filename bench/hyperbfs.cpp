@@ -137,9 +137,9 @@ int main(int argc, char* argv[]) {
           auto&& [time, parents] = time_op([&] {
             switch (id) {
               case 0:
-                return hyperBFS_topdown_parallel_v0(std::execution::par_unseq, source, hypernodes, hyperedges);
+                return hyperBFS_topdown_parallel_v0(std::execution::par_unseq, source, hypernodes, hyperedges, num_bins);
               case 1:
-                return hyperBFS_bottomup_parallel_v0(std::execution::par_unseq, source, hypernodes, hyperedges);
+                return hyperBFS_bottomup_parallel_v0(std::execution::par_unseq, source, hypernodes, hyperedges, num_bins);
               case 2:
                 return hyperBFS_topdown_serial_v0(source, hypernodes, hyperedges);
               case 3:
