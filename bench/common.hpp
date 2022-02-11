@@ -357,25 +357,12 @@ nw::graph::adjacency<Adj, Attributes...> build_adjacency(nw::graph::edge_list<Di
 }
 
 template <class Graph>
-auto build_degrees(Graph&& graph) {
-  using vertex_id_t = typename graph_traits<decltype(graph)>::vertex_id_type;   
-  nw::util::life_timer _("degrees");
-  std::vector<vertex_id_t> degrees(graph.size());
-  tbb::parallel_for(edge_range(graph), [&](auto&& edges) {
-    for (auto&& [i, j] : edges) {
-      __atomic_fetch_add(&degrees[j], 1, __ATOMIC_ACQ_REL);
-    }
-  });
-  return degrees;
-}
-
-template <class Graph>
 auto build_random_sources(Graph&& graph, size_t n, long seed)
 {
   using vertex_id_t = typename graph_traits<Graph>::vertex_id_type;  
 
   auto sources = std::vector<vertex_id_t>(n);
-  auto degrees = build_degrees(graph);
+  auto degrees = nw::graph::degrees(graph);
   auto     gen = std::mt19937(seed);
   auto     dis = std::uniform_int_distribution<vertex_id_t>(0, graph.max());
 

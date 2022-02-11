@@ -158,6 +158,7 @@ auto hyperBFS_topdown_parallel_v0(ExecutionPolicy&& ep, const vertex_id_t source
 
   std::vector<vertex_id_t> frontier[num_bins];
   auto traverse = [&](auto& g, auto& cur, auto& bitmap, auto& parents) {
+    if (0 == cur.size()) return;
     tbb::parallel_for(tbb::blocked_range<vertex_id_t>(0ul, cur.size()), [&](tbb::blocked_range<vertex_id_t>& r) {
       int worker_index = tbb::this_task_arena::current_thread_index();
       for (auto i = r.begin(), e = r.end(); i < e; ++i) {
