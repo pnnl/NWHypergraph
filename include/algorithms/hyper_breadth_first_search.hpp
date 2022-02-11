@@ -165,9 +165,11 @@ auto hyperBFS_topdown_parallel_v0(ExecutionPolicy&& ep, const vertex_id_t source
         //all neighbors of hyperedges are hypernode, vice versa
         std::for_each(g[x].begin(), g[x].end(), [&](auto&& j) {
           auto y = std::get<0>(j);
-          if (writeMin(parents[y], x)) {
-            if (0 == bitmap.atomic_get(y) && 0 == bitmap.atomic_set(y)) {
-              frontier[worker_index].push_back(y);
+          if (std::numeric_limits<vertex_id_t>::max() == parents[y]) {
+            if (writeMin(parents[y], x)) {
+              if (0 == bitmap.atomic_get(y) && 0 == bitmap.atomic_set(y)) {
+                frontier[worker_index].push_back(y);
+              }
             }
           }
         });
@@ -563,9 +565,9 @@ std::vector<vertex_id_t>& parentN, std::vector<vertex_id_t>& parentE) {
     }
     to_visitN.clear();
   }//while
-  //verify parent information
   for (vertex_id_t hyperE = 0; hyperE < num_hyperedges; ++hyperE) {
-    if ((depthE[hyperE] != std::numeric_limits<vertex_id_t>::max()) && std::numeric_limits<vertex_id_t>::max() != (parentE[hyperE])) {
+    if ((depthE[hyperE] != std::numeric_limits<vertex_id_t>::max()) &&
+        (std::numeric_limits<vertex_id_t>::max() != parentE[hyperE])) {
       if (hyperE == source_hyperedge) {
         //verify source
         if (!((parentE[hyperE] == hyperE) && (depthE[hyperE] == 0))) {
@@ -578,9 +580,8 @@ std::vector<vertex_id_t>& parentN, std::vector<vertex_id_t>& parentE) {
       for (auto u : edges[hyperE]) {
         vertex_id_t hyperN = std::get<0>(u);
         if (hyperN == parentE[hyperE]) {
-          //if(it != edges[v].end()) {
-          if (depthN[hyperN] != depthE[hyperE] - 1) {
-            std::cout << "Wrong depths for " << hyperE << " & " << hyperN << std::endl;
+          if (!((depthE[hyperE] == depthN[hyperN] - 1) || (depthE[hyperE] - 1 == depthN[hyperN]))) {
+            std::cout << "Wrong depths for hyperedge " << hyperE << " & " << hyperN << std::endl;
             return false;
           }
           parent_found = true;
@@ -596,15 +597,14 @@ std::vector<vertex_id_t>& parentN, std::vector<vertex_id_t>& parentE) {
       return false;
     }
   }
-  for (vertex_id_t hyperN = 0; hyperN < num_hypernodes; ++hyperN) {
+    for (vertex_id_t hyperN = 0; hyperN < num_hypernodes; ++hyperN) {
     if ((depthN[hyperN] != std::numeric_limits<vertex_id_t>::max()) && std::numeric_limits<vertex_id_t>::max() != (parentN[hyperN])) {
       bool parent_found = false;
       for (auto u : nodes[hyperN]) {
         vertex_id_t hyperE = std::get<0>(u);
         if (hyperE == parentN[hyperN]) {
-          //if(it != edges[v].end()) {
-          if (depthE[hyperE] != depthN[hyperN] - 1) {
-            std::cout << "Wrong depths for " << hyperN << " & " << hyperE << std::endl;
+          if (!((depthE[hyperE] == depthN[hyperN] - 1) || (depthE[hyperE] - 1 == depthN[hyperN]))) {
+            std::cout << "Wrong depths for node " << hyperN << " & " << hyperE << std::endl;
             return false;
           }
           parent_found = true;
