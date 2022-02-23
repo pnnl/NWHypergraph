@@ -134,6 +134,10 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
                      int num_bins = 32) {
   switch (version) {
     case Efficient_Blocked: {
+      if (0 != nrealedges || 0 != nrealnodes) {
+        std::cerr << "wrong version of twograph loader" << std::endl;
+        return nw::graph::adjacency<0>(0, 0);
+      }
       edges.sort_to_be_indexed();
       nodes.sort_to_be_indexed();
       nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
@@ -150,6 +154,10 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
       return s_adj;
     }
     case Efficient_Cyclic: {
+      if (0 != nrealedges || 0 != nrealnodes) {
+        std::cerr << "wrong version of twograph loader" << std::endl;
+        return nw::graph::adjacency<0>(0, 0);
+      }
       edges.sort_to_be_indexed();
       nodes.sort_to_be_indexed();
       nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
@@ -166,6 +174,10 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
       return s_adj;
     }
     case Naive: {
+      if (0 != nrealedges || 0 != nrealnodes) {
+        std::cerr << "wrong version of twograph loader" << std::endl;
+        return nw::graph::adjacency<0>(0, 0);
+      }
       edges.sort_to_be_indexed();
       nodes.sort_to_be_indexed();
       nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
@@ -181,6 +193,10 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
       return s_adj;
     }
     case Map_Blocked: {
+      if (0 != nrealedges || 0 != nrealnodes) {
+        std::cerr << "wrong version of twograph loader" << std::endl;
+        return nw::graph::adjacency<0>(0, 0);
+      }
       nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
           to_two_graph_map_blocked_portal<nw::graph::directedness::undirected>(
               verbose, edges, nodes, edgedegrees, s,
@@ -209,6 +225,10 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
       return s_adj;
     }
     case Ensemble_Blocked: {
+      if (0 != nrealedges || 0 != nrealnodes) {
+        std::cerr << "wrong version of twograph loader" << std::endl;
+        return nw::graph::adjacency<0>(0, 0);
+      }
       std::vector<std::unordered_map<size_t, size_t>>&& neighbor_count =
           to_two_graph_count_neighbors_blocked(edges, nodes);
       nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
@@ -331,6 +351,10 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
       return s_adj;
     }
     case HashMap_Blocked: {
+      if (0 != nrealedges || 0 != nrealnodes) {
+        std::cerr << "wrong version of twograph loader" << std::endl;
+        return nw::graph::adjacency<0>(0, 0);
+      }
       nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
           to_two_graph_hashmap_blocked_portal<nw::graph::directedness::undirected>(
               verbose, edges, nodes, edgedegrees, s,
@@ -345,6 +369,10 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
       return s_adj;
     }
     case HashMap_Cyclic: {
+      if (0 != nrealedges || 0 != nrealnodes) {
+        std::cerr << "wrong version of twograph loader" << std::endl;
+        return nw::graph::adjacency<0>(0, 0);
+      }
       nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
           to_two_graph_hashmap_cyclic_portal<nw::graph::directedness::undirected>(
               verbose, edges, nodes, edgedegrees, s,
@@ -359,6 +387,10 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
       return s_adj;
     }
     case Vector_Blocked: {
+      if (0 != nrealedges || 0 != nrealnodes) {
+        std::cerr << "wrong version of twograph loader" << std::endl;
+        return nw::graph::adjacency<0>(0, 0);
+      }
       nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
           to_two_graph_vector_blocked_portal<nw::graph::directedness::undirected>(
               verbose, edges, nodes, edgedegrees, s,
@@ -373,6 +405,10 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
       return s_adj;
     }
     case Vector_Cyclic: {
+      if (0 != nrealedges || 0 != nrealnodes) {
+        std::cerr << "wrong version of twograph loader" << std::endl;
+        return nw::graph::adjacency<0>(0, 0);
+      }
       nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
           to_two_graph_vector_cyclic_portal<nw::graph::directedness::undirected>(
               verbose, edges, nodes, edgedegrees, s,
@@ -387,6 +423,10 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
       return s_adj;
     }
     case Static_HashMap_Blocked: {
+      if (0 != nrealedges || 0 != nrealnodes) {
+        std::cerr << "wrong version of twograph loader" << std::endl;
+        return nw::graph::adjacency<0>(0, 0);
+      }
       nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
           to_two_graph_static_hashmap_blocked_portal<nw::graph::directedness::undirected>(
               verbose, std::execution::par_unseq, edges, nodes, edgedegrees, s,
@@ -401,6 +441,10 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
       return s_adj;
     }
     case Static_HashMap_Cyclic: {
+      if (0 != nrealedges || 0 != nrealnodes) {
+        std::cerr << "wrong version of twograph loader" << std::endl;
+        return nw::graph::adjacency<0>(0, 0);
+      }
       nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
           to_two_graph_static_hashmap_cyclic_portal<nw::graph::directedness::undirected>(
               verbose, std::execution::par_unseq, edges, nodes, edgedegrees, s,
@@ -415,6 +459,10 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
       return s_adj;
     }
     case Efficient_Blocked_Size: {
+      if (0 != nrealedges || 0 != nrealnodes) {
+        std::cerr << "wrong version of twograph loader" << std::endl;
+        return nw::graph::adjacency<0>(0, 0);
+      }
       edges.sort_to_be_indexed();
       nodes.sort_to_be_indexed();
       nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
@@ -431,6 +479,10 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
       return s_adj;
     }
     case Map_Blocked_Size: {
+      if (0 != nrealedges || 0 != nrealnodes) {
+        std::cerr << "wrong version of twograph loader" << std::endl;
+        return nw::graph::adjacency<0>(0, 0);
+      }
       nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
           to_two_graph_map_blocked_vary_size<nw::graph::directedness::undirected>(
               std::execution::par_unseq, edges, nodes,
@@ -445,6 +497,10 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
       return s_adj;
     }
     case HashMap_Blocked_Size: {
+      if (0 != nrealedges || 0 != nrealnodes) {
+        std::cerr << "wrong version of twograph loader" << std::endl;
+        return nw::graph::adjacency<0>(0, 0);
+      }
       nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
           to_two_graph_hashmap_blocked_vary_size<nw::graph::directedness::undirected>(
               std::execution::par_unseq, edges, nodes,
@@ -459,6 +515,10 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
       return s_adj;
     }  
     case Vector_Blocked_Size: {
+      if (0 != nrealedges || 0 != nrealnodes) {
+        std::cerr << "wrong version of twograph loader" << std::endl;
+        return nw::graph::adjacency<0>(0, 0);
+      }
       nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
           to_two_graph_vector_blocked_vary_size<nw::graph::directedness::undirected>(
               std::execution::par_unseq, edges, nodes,
@@ -473,6 +533,10 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
       return s_adj;
     } 
     case Static_HashMap_Blocked_Size: {
+      if (0 != nrealedges || 0 != nrealnodes) {
+        std::cerr << "wrong version of twograph loader" << std::endl;
+        return nw::graph::adjacency<0>(0, 0);
+      }
       nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
           to_two_graph_static_hashmap_blocked_vary_size<nw::graph::directedness::undirected>(
               std::execution::par_unseq, edges, nodes,
@@ -487,6 +551,10 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
       return s_adj;
     } 
     case Frontier_Blocked: {
+      if (0 != nrealedges || 0 != nrealnodes) {
+        std::cerr << "wrong version of twograph loader" << std::endl;
+        return nw::graph::adjacency<0>(0, 0);
+      }
       edges.sort_to_be_indexed();
       nodes.sort_to_be_indexed();
       nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
@@ -503,6 +571,10 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
       return s_adj;
     }
     case Frontier_Cyclic: {
+      if (0 != nrealedges || 0 != nrealnodes) {
+        std::cerr << "wrong version of twograph loader" << std::endl;
+        return nw::graph::adjacency<0>(0, 0);
+      }
       edges.sort_to_be_indexed();
       nodes.sort_to_be_indexed();      
       nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
@@ -519,7 +591,10 @@ auto twograph_reader(int version, bool verbose, std::bitset<8> &features,
       return s_adj;
     }
     case SPGEMM_KIJ: {
-      std::cout << "graph edges = " << nodes.size() << std::endl;
+      if (0 != nrealedges || 0 != nrealnodes) {
+        std::cerr << "wrong version of twograph loader" << std::endl;
+        return nw::graph::adjacency<0>(0, 0);
+      }
       nw::graph::edge_list<nw::graph::directedness::undirected> &&linegraph =
           to_two_graph_spgemm_kij_cyclic<nw::graph::directedness::undirected>(
               std::execution::par_unseq, edges, nodes, edgedegrees,
@@ -571,6 +646,10 @@ auto twograph_reader(int version,
                      int num_bins = 32) {
   switch (version) {
     case Efficient_Blocked: {
+      if (0 != nrealedges || 0 != nrealnodes) {
+        std::cerr << "wrong version of twograph loader" << std::endl;
+        return nw::graph::adjacency<0>(0, 0);
+      }
       auto &&linegraph =
           to_two_graph_efficient_blocked<edge_directedness>(edges, nodes, edgedegrees, s,
                                             num_threads, num_bins);
@@ -580,6 +659,10 @@ auto twograph_reader(int version,
       return nw::graph::adjacency<0>(linegraph);
     }
     case Efficient_Cyclic: {
+      if (0 != nrealedges || 0 != nrealnodes) {
+        std::cerr << "wrong version of twograph loader" << std::endl;
+        return nw::graph::adjacency<0>(0, 0);
+      }
       auto &&linegraph =
       to_two_graph_efficient_cyclic<edge_directedness>(edges, nodes, edgedegrees, s,
                                             num_threads, num_bins);
@@ -589,6 +672,10 @@ auto twograph_reader(int version,
       return nw::graph::adjacency<0>(linegraph);
     }
     case HashMap_Blocked: {
+      if (0 != nrealedges || 0 != nrealnodes) {
+        std::cerr << "wrong version of twograph loader" << std::endl;
+        return nw::graph::adjacency<0>(0, 0);
+      }
       auto &&linegraph =
           to_two_graph_hashmap_blocked<edge_directedness>(
               edges, nodes, edgedegrees, s,
@@ -599,6 +686,10 @@ auto twograph_reader(int version,
       return nw::graph::adjacency<0>(linegraph);
     }
     case HashMap_Cyclic: {
+      if (0 != nrealedges || 0 != nrealnodes) {
+        std::cerr << "wrong version of twograph loader" << std::endl;
+        return nw::graph::adjacency<0>(0, 0);
+      }
       auto &&linegraph =
           to_two_graph_hashmap_cyclic<edge_directedness>(
               edges, nodes, edgedegrees, s,
