@@ -18,7 +18,7 @@ namespace hypergraph {
 template <int idx,
           nw::graph::edge_list_graph edge_list_t,
           class Vector = std::vector<int>>
-requires(false == nw::graph::is_unipartite<edge_list_t>::value)
+requires(false == nw::graph::is_unipartite<typename edge_list_t::bipartite_graph_base>::value)
 auto relabel_by_degree(edge_list_t& aos_a,
                        std::string direction = "ascending",
                        Vector&& degree = std::vector<int>(0)) {
