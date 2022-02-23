@@ -227,7 +227,7 @@ auto weighted_graph_reader_relabel(std::string file, int idx, std::string direct
  * And it also can relabel the ids of either hyperedges or hypernodes by degree
  * in the direction of ascending (default) or descending.
  **/
-template<directedness edge_directedness = directedness::directed, 
+template<directedness edge_directedness = directedness::undirected, 
 std::unsigned_integral vertex_id_t, 
 typename... Attributes>
 auto graph_reader_adjoin_and_relabel(std::string file, const int idx, std::string direction, 
@@ -262,6 +262,7 @@ size_t& nrealedges, size_t& nrealnodes) {
 
     std::cout << "num_realedges = " << nrealedges
             << " num_realnodes = " << nrealnodes << std::endl; 
+    std::cout << "num_vertices = " << g.size() << std::endl;  
     return std::tuple(g, gt, iperm);
   }
   else {
@@ -269,8 +270,7 @@ size_t& nrealedges, size_t& nrealnodes) {
     if (-1 != idx) {
       //since the adjoin graph is symmetric, when we need to relabel it
       //we need to operate on both column 0 and column 1
-      std::cout << "relabeling edge_list by degree..." << std::endl;
-      nw::util::ms_timer t("relabel_by_degree");
+      nw::util::ms_timer t("relabel_edge_list_by_degree");
       if (1 == idx) {
         iperm = nw::graph::relabel_by_degree<1>(aos_a, direction);
       }
@@ -284,7 +284,8 @@ size_t& nrealedges, size_t& nrealnodes) {
     nw::graph::adjacency<0, Attributes...> g(aos_a);
     nw::graph::adjacency<1, Attributes...> g_t(aos_a);
     std::cout << "num_realedges = " << nrealedges
-            << " num_realnodes = " << nrealnodes << std::endl;    
+            << " num_realnodes = " << nrealnodes << std::endl;  
+    std::cout << "num_vertices = " << g.size() << std::endl;  
     return std::tuple(g, g_t, iperm);
   }
 }
@@ -307,16 +308,14 @@ auto graph_reader_adjoin(std::string file, size_t& nrealedges,
         read_and_adjoin_adj_hypergraph_pair<vertex_id_t>(file, nrealedges, nrealnodes);
     std::cout << "num_realedges = " << nrealedges
             << " num_realnodes = " << nrealnodes << std::endl;
-      std::cout << "num_hyperedges = " << g.size()
-            << " num_hypernodes = " << g_t.size() << std::endl;
+    std::cout << "num_vertices = " << g.size() << std::endl;
     return std::tuple(g, g_t, std::vector<vertex_id_t>());
   }
   nw::graph::adjacency<0, Attributes...> g(aos_a);
   nw::graph::adjacency<1, Attributes...> g_t(aos_a);
   std::cout << "num_realedges = " << nrealedges
             << " num_realnodes = " << nrealnodes << std::endl;
-  std::cout << "num_hyperedges = " << g.size()
-            << " num_hypernodes = " << g_t.size() << std::endl;
+  std::cout << "num_vertices = " << g.size() << std::endl;
   return std::tuple(g, g_t, std::vector<vertex_id_t>());
 }
 
