@@ -47,7 +47,8 @@ static constexpr const char USAGE[] =
       -s NUM                s value of soverlap [default: 1]
       --relabel NUM         relabel the hypergraph - 0(hyperedge)/1(hypernode) [default: -1]
       --direction DIR       hypergraph relabeling direction - ascending/descending [default: ascending]
-      --adjoin              adjoin the id spaces of the hyperedges and hypernodes (smaller one comes after the larger one) 
+      --adjoin              adjoin the id spaces of the hyperedges and hypernodes (smaller one comes after the larger one)
+                            only compatible wiht loader 9, 10, 11, 12
       --log FILE            log times to a file
       --log-header          add a header to the log file
       -d, --debug           run in debug mode [default: false]
@@ -114,6 +115,18 @@ int main(int argc, char* argv[]) {
     if (adjoin) {
       auto&& [h, ht, iperm] = adjoin_graph_reader<vertex_id_t>(file, idx, direction, nrealedges, nrealnodes);
       auto&& degrees = h.degrees(std::execution::par_unseq);
+      if (debug) {
+        h.stream_indices();
+        ht.stream_indices();
+
+        std::cout << degrees.size() << ": ";
+        for (auto d : degrees) std::cout << d << " ";
+        std::cout << std::endl;
+        if (-1 != idx) assert(!iperm.empty());
+
+        assert(0 != nrealedges);
+        assert(0 != nrealnodes);
+      }
       for (auto&& num_thread : threads) {
         auto _ = set_n_threads(num_thread);
         for (auto&& s : s_values) {
@@ -164,13 +177,6 @@ int main(int argc, char* argv[]) {
         for (auto d : hyperedge_degrees) std::cout << d << " ";
         std::cout << std::endl;
         if (-1 != idx) assert(!iperm.empty());
-
-        if (adjoin) {
-          std::cout << "size of the adjoin graph = " << hyperedges.size()
-                    << std::endl;
-          assert(0 != nrealedges);
-          assert(0 != nrealnodes);
-        }
       }
 
       if (verbose) {
