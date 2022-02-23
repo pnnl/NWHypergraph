@@ -627,11 +627,9 @@ nw::graph::edge_list<sym, Attributes...> read_adjacency_adjoin(const std::string
   file >> nreal_edges;
   file >> m1;
 
-  nw::graph::edge_list<sym, Attributes...> A(nreal_edges);
+  nw::graph::edge_list<sym, Attributes...> A(nreal_edges + nreal_nodes);
   A.reserve(m1);
-  A.open_for_push_back();
   edgelist_fill_adjoin<nw::graph::edge_list<sym, Attributes...>>(file, A, nreal_nodes, m0, nreal_edges, m1);
-  A.close_for_push_back();
 
   return A;
 }
