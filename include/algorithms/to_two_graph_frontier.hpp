@@ -97,7 +97,7 @@ void to_two_graph_frontier_hashmap_cyclic(
       [&](auto& i) {
         int worker_index = tbb::this_task_arena::current_thread_index();
         for (auto&& j = i.begin(); j != i.end(); ++j) {
-          auto hyperE = frontier[*j];
+          auto hyperE = *j;
           if (degrees[hyperE] < s) continue;
           Container K;
           for (auto&& [hyperN] : h[hyperE]) {
@@ -192,7 +192,7 @@ void to_two_graph_frontier_set_cyclic(
       [&](auto& i) {
         int worker_index = tbb::this_task_arena::current_thread_index();
         for (auto&& j = i.begin(); j != i.end(); ++j) {
-          auto hyperE = frontier[*j];
+          auto hyperE = *j;
           Container overlaps;
           for (auto&& [hyperN] : h[hyperE]) {
             for (auto&& [anotherhyperE] : ht[hyperN]) {

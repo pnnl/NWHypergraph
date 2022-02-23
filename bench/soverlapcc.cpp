@@ -127,6 +127,10 @@ int main(int argc, char* argv[]) {
         assert(0 != nrealedges);
         assert(0 != nrealnodes);
       }
+      if (verbose) {
+        h.stream_stats();
+        ht.stream_stats();
+      }
       for (auto&& num_thread : threads) {
         auto _ = set_n_threads(num_thread);
         for (auto&& s : s_values) {
