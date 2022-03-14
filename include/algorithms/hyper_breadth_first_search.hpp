@@ -142,8 +142,8 @@ auto hyperBFS_topdown_parallel_v0(ExecutionPolicy&& ep, const vertex_id_t source
   nw::graph::AtomicBitVector   visitedN(num_hypernodes);
   nw::graph::AtomicBitVector   visitedE(num_hyperedges);
   std::vector<vertex_id_t> frontierN, frontierE;
-  frontierN.reserve(num_hypernodes);
-  frontierE.reserve(num_hyperedges);
+  //frontierN.reserve(num_hypernodes);
+  //frontierE.reserve(num_hyperedges);
   //initial edge frontier includes every node
   //or use a parallel for loop
   std::for_each(ep, counting_iterator<vertex_id_t>(0), counting_iterator<vertex_id_t>(num_hyperedges), [&](auto i) {
@@ -197,15 +197,15 @@ auto hyperBFS_topdown_parallel_v0(ExecutionPolicy&& ep, const vertex_id_t source
     });
   };
 
-  while (false == (frontierE.empty() && frontierN.empty())) {
+  while (false == (frontierE.empty())) {
     traverse(edges, frontierE, visitedN, parentN);
-    curtonext(frontierN);
-    visitedN.clear();
     frontierE.clear();
-    traverse(nodes, frontierN, visitedE, parentE);
+    curtonext(frontierE);
+    visitedN.clear();
+    traverse(nodes, frontierE, visitedE, parentE);
+    frontierE.clear();
     curtonext(frontierE);
     visitedE.clear();
-    frontierN.clear();
   } 
   return std::tuple(parentN, parentE);
 }
