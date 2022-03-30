@@ -61,7 +61,7 @@ int main(int argc, char* argv[]) {
   std::vector threads = parse_n_threads(args["THREADS"].asStringList());
   auto _ = set_n_threads(threads[0]);
   size_t s_value= args["-s"].asLong();
-  nw::graph::edge_list<nw::graph::directedness::directed> edges(0);
+  nw::graph::bi_edge_list<nw::graph::directedness::directed> edges(0);
   using vertex_id_t = vertex_id_t<decltype(edges)>;
 
   std::string title_basics_tsv = args["--title"].asString();
@@ -134,8 +134,8 @@ int main(int argc, char* argv[]) {
 
   nw::util::timer t4("build biadjacencies");
 
-  auto G = nw::graph::adjacency<0>(edges);
-  auto H = nw::graph::adjacency<1>(edges);
+  auto G = nw::graph::biadjacency<0>(edges);
+  auto H = nw::graph::biadjacency<1>(edges);
 
   t4.stop();
   std::cout << t4 << std::endl;
