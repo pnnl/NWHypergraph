@@ -235,7 +235,7 @@ public:
     */
     bool is_s_connected() {
         //if every vertex in g_, if one has neighbor, then g_ is s_connected
-        auto res = nw::graph::parallel_for(tbb::blocked_range<Index_t>(0, g_.size()), [&](auto& i) {            
+        auto res = nw::graph::parallel_reduce(tbb::blocked_range<Index_t>(0, g_.size()), [&](auto& i) {            
             return g_[i].size();
         }, std::plus{}, 0ul);
         return (0 < res);
