@@ -21,8 +21,8 @@ RUN DEBIAN_FRONTEND=noninteractive \
 
 RUN DEBIAN_FRONTEND=noninteractive \
     apt-get -y install   \
-               gcc-10    \
-               g++-10    
+               gcc-11    \
+               g++-11    
 
 RUN DEBIAN_FRONTEND=noninteractive \
     apt-get -y install             \
@@ -41,7 +41,7 @@ RUN apt-get -y update
 
 USER root
 RUN \
-       update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 90 --slave /usr/bin/g++ g++ /usr/bin/g++-10 \
+       update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 90 --slave /usr/bin/g++ g++ /usr/bin/g++-11 \
     && update-alternatives --install /usr/bin/cc  cc /usr/bin/gcc 30						  \
     && update-alternatives --install /usr/bin/c++ c++ /usr/bin/g++ 30						  
 
