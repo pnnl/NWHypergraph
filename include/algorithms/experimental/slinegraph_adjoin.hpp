@@ -8,7 +8,7 @@
 // Author: Xu Tony Liu
 //
 #pragma once
-#include <nwgraph/adaptors/cyclic_range_adapter.hpp>
+#include <nwgraph/adaptors/cyclic_range_adaptor.hpp>
 #include <tbb/task_arena.h>
 #include "algorithms/to_two_graph_efficient.hpp"
 #include "util/slinegraph_helper.hpp"
