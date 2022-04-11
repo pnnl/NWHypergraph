@@ -208,6 +208,8 @@ The tools are under build/tools/ directory. The following tools are provided in 
 
 **mmio2mmio** transposes the Matrix Market format file to its transpose hypergraph.
 
+**imdb2mtx** extracts some information from the raw IDMB tsv format and save it to the Matrix Market format.
+
 ### Random generator
 
 **hypergen** takes the hyperedge degree distribution and the hypernodes degree distribution of the input hypergraph to generate a new random hypergraph using configuration model. The hypergraph has the same degree distribution of the old hypergraph. Note the generator is not fully tested.
