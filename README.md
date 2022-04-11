@@ -4,13 +4,53 @@ It focuses on constructing s-line graphs, a lower-order approximation of a given
 
 ## Organization
 
-The algorithms for hypergraph and s-line graphs are under include/algorithms/ diretory. The code for the applications is under bench/ diretory. The Python API definitions are under python/ directory.
+The organization of our library is shown as follow:
+```
+$NWHy_HOME/
+├── README.md
+├── CMakeLists.txt
+├── bench/
+|   ├── CMakeLists.txt
+|   ├── adjoinbfs.cpp
+|   ├── adjoincc.cpp
+|   ├── common.hpp
+|   ├── hyperbfs.cpp
+|   ├── hypercc.cpp
+|   ├── imdb.cpp
+|   ├── Log.hpp
+|   ├── soverlapbc.cpp
+|   ├── soverlapbfs.cpp
+|   ├── soverlapcc.cpp
+|   ├── soverlapsssp.cpp
+|   └── toplexes.cpp
+├── docker/
+│   └── Dockerfile.gcc11
+├── include/
+│   ├── algorithms/
+|   |   └── experimental/
+|   ├── containers/
+|   ├── generators/
+|   ├── io/
+|   ├── util/
+|   ├── CMakeLists.txt
+|   └── s_overlap.hpp
+├── python/
+│   ├── pybind11/
+|   ├── test/
+|   ├── CMakeLists.txt
+|   ├── nwhy.cpp
+|   └── ...
+├── test/
+├── setup.cfg
+├── setup.py
+└── LICENSE
+```
 
-
+The algorithms for hypergraph and s-line graphs are under `NWHy_HOME/include/algorithms/` diretory. The applications for hypergraph analytics are under `NWHy_HOME/bench/` diretory. The Python API definitions are under `NWHy_HOME/python/` directory. The Pytest cases are under `NWHy_HOME/python/test/` diretory. The pybind11 is a git module fetched from its Github. The C++ test cases are under `NWHy_HOME/test/` diretory.
 
 ## How to compile
 
-NWHy is built upon NWGraph (NWGr) library. It uses NWGr graph abstractions and concepts as the building blocks for hypergraph models, containers and implementations in NWHy. NWHy also uses many graph algorithms in NWGr. Sepecifically, NWHy relies on a branch of NWGr called adj_fill. The adj_fill branch is a customized implemenation of NWGr for bipartite graphs. NWHy uses [Intel OneTBB](https://github.com/oneapi-src/oneTBB) as the parallel backend.   
+NWHy is built upon NWGraph (NWGr) library. It uses NWGr graph abstractions and concepts as the building blocks for hypergraph models, containers and implementations in NWHy. NWHy also uses many graph algorithms in NWGr. Sepecifically, NWHy relies on a the master branch of NWGr. NWHy (as well as NWGr) uses [Intel OneTBB](https://github.com/oneapi-src/oneTBB) as the parallel backend.   
 
 
 
@@ -57,6 +97,10 @@ $ cmake .. -DNW_HYPERGRAPH_BUILD_TOOLS=OFF (or ON)
 To see verbose information during compilation:
 ```
 $ make VERBOSE=1
+```
+To run C++ test cases after compilation, assume the test cases are enabled during cmake:
+```
+$ make test
 ```
 
 ## Running code in NWHy
