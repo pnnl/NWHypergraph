@@ -11,7 +11,7 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <nwgraph/adaptors/cyclic_neighbor_range.hpp>
-#include <nwgraph/adaptors/cyclic_range_adapter.hpp>
+#include <nwgraph/adaptors/cyclic_range_adaptor.hpp>
 
 namespace nw {
 namespace hypergraph {
