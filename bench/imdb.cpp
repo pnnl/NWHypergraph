@@ -231,7 +231,7 @@ int main(int argc, char* argv[]) {
   using score_t = float;
   using accum_t = double;
   nw::util::timer t9("compute s-betweenness centrality"); 
-  std::vector<score_t> bc = nw::graph::betweenness_brandes<decltype(L), score_t, accum_t>(L, false);
+  std::vector<score_t> bc = nw::graph::betweenness_brandes<decltype(L), score_t, accum_t>(L, true);
   t9.stop();
   std::cout << t9 << std::endl;
 
