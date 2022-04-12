@@ -236,6 +236,15 @@ $ python -c "import nwhy"
 ```
 If there is no import error, then installation is done.
 
+#### To build wheel out from source
+
+To generate wheel file out of the source:
+```
+$ python setup.py bdist_wheel
+```
+
+A detailed tutorial on build wheel files for various platforms is at [link](https://realpython.com/python-wheels/).
+
 ### Pytest
 
 NWHy uses Pytest framework for the unit test for our Python APIs. The unit test cases are under python/test/ directory.
