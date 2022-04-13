@@ -41,9 +41,9 @@ jobs:
         sudo apt-get update
       if: matrix.os == 'ubuntu-20.04'
 
-    - name: install tbb (Mac)
+    - name: install tbb & gcc (Mac)
       run: |
-        brew install tbb
+        brew install tbb gcc@11
       if: matrix.os == 'macos-10.15' || matrix.os == 'macos-11.0'
 
     - name: setup tbb & gcc (Ubuntu)
@@ -80,6 +80,7 @@ jobs:
         cd NWhy
         mkdir build
         cd build
+        export TBBROOT=/opt/intel/oneapi/tbb/latest
         cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo \ 
         -DCMAKE_CXX_COMPILER=${{ matrix.compiler }} \
         -DNW_HYPERGRAPH_BUILD_TEST=ON \

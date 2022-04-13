@@ -1,6 +1,5 @@
-![Build with gcc-11](https://github.com/NWmath/NWhy/workflows/Build%20with%20gcc-11/badge.svg)
-![Build CI](https://github.com/NWmath/NWhy/workflows/Build%20matrix/badge.svg)
-
+[![Build with gcc-11](https://github.com/NWmath/NWhy/actions/workflows/build_cmake.yml/badge.svg)](https://github.com/NWmath/NWhy/actions/workflows/build_cmake.yml)
+[![Build matrix](https://github.com/NWmath/NWhy/actions/workflows/matrix_test.yml/badge.svg)](https://github.com/NWmath/NWhy/actions/workflows/matrix_test.yml)
 # NWHy: Northwest Hypergraph Processing Framework
 NWHy is a C++ hypergraph processing framework for shared memory. 
 It focuses on constructing s-line graphs, a lower-order approximation of a given hypergraph, and compute different metrics such as s-connected components, s-betweenness centrality, s-closeness centrality, etc. It also provides Python APIs for s-overlap computation. The Python APIs are provided using [Pybind11](https://pybind11.readthedocs.io/en/stable/). Pybind11 is included as a git submodule.
