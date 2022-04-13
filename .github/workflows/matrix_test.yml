@@ -33,16 +33,8 @@ jobs:
       with:
         repository: NWmath/NWgr
         repo-token: ${{ secrets.GITHUB_TOKEN }}
-        ref: adj_fill
-        path: NWgr
-        
-    - name: Checkout NWut
-      uses: actions/checkout@v2
-      with:
-        repository: NWmath/NWut
-        repo-token: ${{ secrets.GITHUB_TOKEN }}
         ref: master
-        path: NWut
+        path: NWgr
 
     - name: apt update
       run: |
@@ -81,7 +73,11 @@ jobs:
         cd NWhy
         mkdir build
         cd build
-        cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_CXX_COMPILER=${{ matrix.compiler }}
+        cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo \ 
+        -DCMAKE_CXX_COMPILER=${{ matrix.compiler }} \
+        -DNW_HYPERGRAPH_BUILD_TEST=ON \
+        -DNW_HYPERGRAPH_BUILD_BENCH=ON \
+        -DNW_HYPERGRAPH_BUILD_TOOLS=ON
 
     - name: make
       run: |
