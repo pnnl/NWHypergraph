@@ -47,8 +47,9 @@ jobs:
             gcc-11                       \
             g++-11
         sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 90 --slave /usr/bin/g++ g++ /usr/bin/g++-11
-        sudo update-alternatives --install /usr/bin/cc  cc /usr/bin/gcc 30
-        sudo update-alternatives --install /usr/bin/c++ c++ /usr/bin/g++ 30
+        sudo update-alternatives --install /usr/bin/cc  cc /usr/bin/gcc-11 30
+        sudo update-alternatives --install /usr/bin/c++ c++ /usr/bin/g++-11 30
+
     - name: cmake
       run: |
         cd NWhy
@@ -56,6 +57,7 @@ jobs:
         cd build
         export TBBROOT=/opt/intel/oneapi/tbb/latest
         cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_CXX_COMPILER=g++-11
+        
     - name: make
       run: |
         cd NWhy/build
