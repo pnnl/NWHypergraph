@@ -28,16 +28,8 @@ jobs:
       with:
         repository: NWmath/NWgr
         repo-token: ${{ secrets.GITHUB_TOKEN }}
-        ref: adj_fill
-        path: NWgr
-        
-    - name: Checkout NWut
-      uses: actions/checkout@v2
-      with:
-        repository: NWmath/NWut
-        repo-token: ${{ secrets.GITHUB_TOKEN }}
         ref: master
-        path: NWut
+        path: NWgr
 
     - name: prep
       run: |
