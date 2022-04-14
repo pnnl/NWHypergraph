@@ -93,7 +93,7 @@ if (NW_HYPERGRAPH_BUILD_BENCH)
   add_subdirectory(bench)
   include(Date)
   include(Docopt)
-  include(RangeV3)
+  #include(RangeV3)
 endif()
 
 if (NW_HYPERGRAPH_BUILD_PYBIND)
