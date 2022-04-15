@@ -1,5 +1,4 @@
 # Workflow to test matrix builds
-
 name: Build matrix
 
 on:
