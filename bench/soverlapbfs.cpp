@@ -132,7 +132,7 @@ int main(int argc, char* argv[]) {
           auto&& [time, parents] = time_op([&] {
             switch (id) {
               case 0:
-                return bfs_v0(graph, source);
+                return bfs(graph, source);
               default:
                 std::cerr << "Unknown version " << id << "\n";
                 return std::vector<vertex_id_t>();
@@ -200,7 +200,7 @@ int main(int argc, char* argv[]) {
           auto&& [time, parents] = time_op([&] {
             switch (id) {
               case 0:
-                return bfs_v0(graph, source);
+                return bfs(graph, source);
               default:
                 std::cerr << "Unknown version " << id << "\n";
                 return std::vector<vertex_id_t>();

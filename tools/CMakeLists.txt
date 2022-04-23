@@ -62,3 +62,6 @@ target_link_libraries(hypergen.exe tools)
 
 add_executable(imdb2mtx.exe IMDB_to_mtx.cpp)
 target_link_libraries(imdb2mtx.exe tools xtensor)
+
+add_executable(mtx2bin.exe mtx_to_binary.cpp)
+target_link_libraries(mtx2bin.exe tools)

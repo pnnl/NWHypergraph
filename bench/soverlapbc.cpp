@@ -27,7 +27,7 @@ static constexpr const char USAGE[] =
       --adjoin              adjoin the id spaces of the hyperedges and hypernodes (smaller one comes after the larger one) 
       --sources FILE        sources file
       --seed NUM            random seed [default: 27491095]
-      --version ID          algorithm version to run [default: 0]
+      --version ID          algorithm version to run [default: 5]
       --loader-version ID   soverlap computation loader kernel version [default: 14] 
                             0)Efficient_Blocked 1)Efficient_Cyclic 2)Naive 3)Map_Blocked 4)Map_Cyclic 
                             5)Ensemble_Blocked 6)Ensemble_Cyclic 7)Map_Frontier_Blocked 8)Map_Frontier_Cyclic 
@@ -143,7 +143,7 @@ int main(int argc, char* argv[]) {
                         return bc2_v4<score_t, accum_t>(graph, trial_sources,
                                                         thread);
                       case 5:
-                        return bc2_v5<score_t, accum_t>(graph, trial_sources,
+                        return brandes_bc<score_t, accum_t>(graph, trial_sources,
                                                         thread);
                       default:
                         std::cerr << "Invalid BC version " << id << "\n";
@@ -226,7 +226,7 @@ int main(int argc, char* argv[]) {
                         return bc2_v4<score_t, accum_t>(graph, trial_sources,
                                                         thread);
                       case 5:
-                        return bc2_v5<score_t, accum_t>(graph, trial_sources,
+                        return brandes_bc<score_t, accum_t>(graph, trial_sources,
                                                         thread);
                       default:
                         std::cerr << "Invalid BC version " << id << "\n";

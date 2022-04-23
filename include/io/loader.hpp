@@ -25,7 +25,7 @@ namespace hypergraph {
  * This loader loads matrix market, adjacency graph/hypergraph or csv format into edge list.
  **/
 template <class... Attributes>
-nw::graph::bi_edge_list<nw::graph::directedness::directed, Attributes...> load_graph(std::string file) {
+nw::graph::bi_edge_list<nw::graph::directedness::directed, Attributes...> load_graph(std::string& file) {
   std::ifstream in(file);
   std::string type;
   in >> type;

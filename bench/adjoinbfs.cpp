@@ -325,11 +325,11 @@ int main(int argc, char* argv[]) {
           auto&& [time, parents] = time_op([&] {
             switch (id) {
               case 0: {
-                auto v11 = nw::graph::bfs_v11<Graph, Transpose>;
+                auto bfs = nw::graph::bfs<Graph, Transpose>;
                 //bfs_v11(graph, gx, source, num_bins, alpha, beta);
-                using BFSV11 = decltype(v11);
+                using BFS = decltype(bfs);
                 if (!verify) {
-                auto&& [N, E] = nw::hypergraph::relabel_x_parallel<ExecutionPolicy, BFSV11, vertex_id_t>(std::execution::par_unseq, num_realedges, num_realnodes, v11, g, g_t, source, num_bins, alpha, beta);
+                auto&& [N, E] = nw::hypergraph::relabel_x_parallel<ExecutionPolicy, BFS, vertex_id_t>(std::execution::par_unseq, num_realedges, num_realnodes, bfs, g, g_t, source, num_bins, alpha, beta);
                 if (num_realnodes < num_realedges) {
                   //for all the parent of hyperN, substract the offset
                   std::for_each(std::execution::par_unseq, nw::graph::counting_iterator(0ul), nw::graph::counting_iterator(N.size()), [&](auto i) {
@@ -346,7 +346,7 @@ int main(int argc, char* argv[]) {
                 }
                 else {
                   //verify the original result before split
-                  auto labeling = nw::graph::bfs_v11<Graph, Transpose>(g, g_t, source, num_bins, alpha, beta);
+                  auto labeling = nw::graph::bfs<Graph, Transpose>(g, g_t, source, num_bins, alpha, beta);
                   BFSVerifier(g, g_t, source, labeling);
                   auto&& [N, E] = splitLabeling<ExecutionPolicy, vertex_id_t>(std::execution::par_unseq, labeling, num_realedges, num_realnodes);
                   if (num_realnodes < num_realedges) {

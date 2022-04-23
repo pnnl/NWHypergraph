@@ -120,10 +120,10 @@ int main(int argc, char* argv[]) {
           auto&& [time, distance] = time_op([&] {
 	      switch (id) {
 	      case 0:
-	       	return delta_stepping_v12<distance_t>(graph, source, delta); 
+	       	return delta_stepping<distance_t>(graph, source, delta); 
 		// s_sssp_v0(s_adj, source, delta);
 	      default:
-		      return delta_stepping_v12<distance_t>(graph, source, delta);
+		      return delta_stepping<distance_t>(graph, source, delta);
                 // std::cerr << "Unknown version " << id << "\n";
                 // return std::make_tuple(std::vector<std::atomic<long unsigned int>, std::allocator<std::atomic<long unsigned int> > >());
 		// return true;
