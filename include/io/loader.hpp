@@ -30,7 +30,7 @@ nw::graph::bi_edge_list<nw::graph::directedness::directed, Attributes...> load_g
   std::string type;
   in >> type;
 
-  if (type == "BGL17") {
+  if (type == "NW") {
     nw::util::life_timer _("deserialize");
     nw::graph::bi_edge_list<nw::graph::directedness::directed, Attributes...> aos_a(0, 0);
     aos_a.deserialize(file);
@@ -54,6 +54,27 @@ nw::graph::bi_edge_list<nw::graph::directedness::directed, Attributes...> load_g
   }
 }
 
+template <nw::graph::directedness Directedness, class... Attributes>
+nw::graph::edge_list<Directedness, Attributes...> load_graph(std::string& file) {
+  std::ifstream in(file);
+  std::string   type;
+  in >> type;
+
+  if (type == "NW") {
+    nw::util::life_timer                   _("deserialize");
+    nw::graph::edge_list<Directedness, Attributes...> aos_a(0);
+    aos_a.deserialize(file);
+    return aos_a;
+  } else if (type == "%%MatrixMarket") {
+    std::cout << "Reading matrix market input " << file << " (slow)\n";
+    nw::util::life_timer _("read mm");
+    return nw::graph::read_mm<Directedness, Attributes...>(file);
+  } else {
+    std::cerr << "Did not recognize graph input file " << file << "\n";
+    exit(1);
+  }
+}
+
 /*
  * This loader loads weighted matrix market and adjacency graph/hypergraph into edge list.
  **/
@@ -63,7 +84,7 @@ nw::graph::bi_edge_list<nw::graph::directedness::directed, Attributes...> load_w
   std::string type;
   in >> type;
 
-  if (type == "BGL17") {
+  if (type == "NW") {
     nw::util::life_timer _("deserialize");
     nw::graph::bi_edge_list<nw::graph::directedness::directed, Attributes...> aos_a(0, 0);
     aos_a.deserialize(file);
