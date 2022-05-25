@@ -1,13 +1,14 @@
-//
-// This file is part of the Graph Standard Library (aka BGL17 aka NWGraph)
-// (c) University of Washington
-//
-// Licensed under Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License
-// https://creativecommons.org/licenses/by-nc-sa/4.0/
-//
-// Author: Luke D'Alessandro
-//
-
+/**
+ * @file 
+ *
+ * @copyright SPDX-FileCopyrightText: 2022 Battelle Memorial Institute
+ * @copyright SPDX-FileCopyrightText: 2022 University of Washington
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ * 
+ * Author: Xu Tony Liu
+ * 
+ */
 #pragma once
 
 

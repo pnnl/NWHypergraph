@@ -278,3 +278,5 @@ Please cite:
 Xu T. Liu, Jesun Firoz, Andrew Lumsdaine, Cliff Joslyn, Sinan G. Aksoy, Brenda Praggastis, Assefaw H. Gebremedhin.Parallel Algorithms for Efficient Computation of High-Order Line Graphs of Hypergraphs. 28th IEEE Int’l Conference on High Performance Computing, Data, and Analytics (HiPC 2021), 2021.
 
 Xu T. Liu, Jesun Firoz, Sinan G. Aksoy, Ilya Amburg, Andrew Lumsdaine, Cliff Joslyn, Brenda Praggastis, Assefaw H. Gebremedhin. High-order Line Graphs of Non-uniform Hypergraphs: Algorithms, Applications, and Experimental Analysis. 36th IEEE Int’l Parallel & Distributed Processing Symposium (IPDPS), 2022.
+
+Xu T. Liu, Jesun Firoz, Assefaw H. Gebremedhin, Andrew Lumsdaine. NWHy: A Framework for Hypergraph Analytics: Representations, Data structures, and Algorithms. 2022 IEEE Int’l Parallel & Distributed Processing Symposium Workshops (IPDPSW), 2022.

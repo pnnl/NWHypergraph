@@ -42,7 +42,8 @@ class CMakeBuild(build_ext):
         cmake_args += ['-DCMAKE_CXX_COMPILER=g++']  
         # for Pybind api, we will not build benchmarks
         cmake_args += ['-DNW_HYPERGRAPH_BUILD_BENCH=OFF']  
-        cmake_args += ['-DNW_HYPERGRAPH_BUILD_PYBIND=ON']  
+        cmake_args += ['-DNW_HYPERGRAPH_BUILD_PYBIND=ON'] 
+        cmake_args += ['-DNW_HYPERGRAPH_BUILD_TEST=OFF'] 
 
         cfg = 'Debug' if self.debug else 'Release'
         build_args = ['--config', cfg]
@@ -91,7 +92,7 @@ setup(
     #   3 - Alpha
     #   4 - Beta
     #   5 - Production/Stable
-    'Development Status :: 3 - Alpha',
+    'Development Status :: 3 - Beta',
 
     # Indicate who your project is intended for
     'Intended Audience :: Developers',
