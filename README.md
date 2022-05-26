@@ -263,7 +263,9 @@ The tools are under build/tools/ directory. The following tools are provided in 
 
 **mmio2mmio** transposes the Matrix Market format file to its transpose hypergraph.
 
-**imdb2mtx** extracts some information from the raw IDMB tsv format and save it to the Matrix Market format.
+**imdb2mtx** extracts some information from the raw IDMB tsv format and saves it to the Matrix Market format.
+
+**mtx_to_binary** converts the Matrix Market format to a NWGraph binary edge_list/bi_edge_list.
 
 ### Random generator
 
@@ -274,7 +276,8 @@ The tools are under build/tools/ directory. The following tools are provided in 
 **hystat** collects some of the basic statistics of a hypergraph.
 
 Please cite:
------------
+------------
+
 Xu T. Liu, Jesun Firoz, Andrew Lumsdaine, Cliff Joslyn, Sinan G. Aksoy, Brenda Praggastis, Assefaw H. Gebremedhin.Parallel Algorithms for Efficient Computation of High-Order Line Graphs of Hypergraphs. 28th IEEE Int’l Conference on High Performance Computing, Data, and Analytics (HiPC 2021), 2021.
 
 Xu T. Liu, Jesun Firoz, Sinan G. Aksoy, Ilya Amburg, Andrew Lumsdaine, Cliff Joslyn, Brenda Praggastis, Assefaw H. Gebremedhin. High-order Line Graphs of Non-uniform Hypergraphs: Algorithms, Applications, and Experimental Analysis. 36th IEEE Int’l Parallel & Distributed Processing Symposium (IPDPS), 2022.

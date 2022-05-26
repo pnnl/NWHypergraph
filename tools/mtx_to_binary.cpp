@@ -40,8 +40,7 @@ int main(int argc, char* argv[]) {
   bool unipartite = args["--unipartite"].asBool();
   std::string input_file = args["-i"].asString();
   std::string output_file = args["-o"].asString();
-  //std::string output_edges = args["-e"].asString();
-  //std::string output_nodes = args["-n"].asString();
+
   if (unipartite) {
     auto aos_a = load_graph<nw::graph::directedness::undirected>(input_file);
     if (0 == aos_a.size()) {
@@ -59,13 +58,4 @@ int main(int argc, char* argv[]) {
     aos_a.serialize(output_file);
   }
   return 0;
-/*
-  nw::graph::biadjacency<0> E(aos_a);
-  nw::graph::biadjacency<1> N(aos_a);
-
-  std::cout << "num_hyperedges:" << E.size() << " num_hypernodes:" << N.size() << std::endl;
-  E.serialize(output_edges);
-  N.serialize(output_nodes);
-  return 0;
-  */
 }
