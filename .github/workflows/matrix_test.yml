@@ -1,88 +1,48 @@
-# Workflow to test matrix builds
-name: Build matrix
+# Workflow to configure with cmake and build with gcc-10
+
+name: Build with gcc-11 (Mac)
 
 on:
-  push:
+  push: 
     branches: [ master ]
-  workflow_dispatch:
-    branches: [ master ]
+  workflow_dispatch: 
+
+#  pull_request:
+#    branches:
+#      - '*'
 
 env:
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
 
 jobs:
   build:
 
-    strategy:
-      matrix:
-        compiler: [ 'g++-11', 'clang++-11' ]
-        os: [ 'macos-10.15', 'macos-11.0', 'ubuntu-20.04' ]
-      fail-fast: false
-
-    runs-on: ${{ matrix.os }}
+    runs-on: macos-latest
 
     steps:
+
     - name: Checkout NWhy
       uses: actions/checkout@v2
       with:
         path: NWhy
 
-    - name: Checkout NWgr
-      uses: actions/checkout@v2
-      with:
-        repository: NWmath/NWgr
-        repo-token: ${{ secrets.GITHUB_TOKEN }}
-        ref: master
-        path: NWgr
-
-    - name: apt update
+# The macos image evidently has gcc-11 and cmake 3.22 pre-installed
+    - name: prep
       run: |
-        sudo apt-get update
-      if: matrix.os == 'ubuntu-20.04'
-
-    - name: install tbb & gcc (Mac)
-      run: |
-        brew install tbb gcc@11
-      if: matrix.os == 'macos-10.15' || matrix.os == 'macos-11.0'
-
-    - name: setup tbb & gcc (Ubuntu)
-      run: |
-        wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB      \
-             && sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB                             \
-             && rm GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB                                           \
-             && sudo add-apt-repository "deb https://apt.repos.intel.com/oneapi all main"      \
-             && sudo apt-get update
-        DEBIAN_FRONTEND=noninteractive \
-            sudo apt-get -y install    \
-            intel-oneapi-tbb-devel
-        sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-        DEBIAN_FRONTEND=noninteractive   \
-            sudo apt-get -y install      \
-            gcc-11                       \
-            g++-11
-        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 90 --slave /usr/bin/g++ g++ /usr/bin/g++-11
-        sudo update-alternatives --install /usr/bin/cc  cc /usr/bin/gcc-11 30
-        sudo update-alternatives --install /usr/bin/c++ c++ /usr/bin/g++-11 30
-      if: matrix.os == 'ubuntu-20.04' && 'matrix.compiler == g++-11'
-
-    - name: setup clang (Ubuntu)
-      run: |
-        sudo apt-get install -y clang-11
-        sudo update-alternatives --install /usr/bin/clang   clang   /usr/bin/clang-11   110
-        sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-11 110
-        sudo update-alternatives --install /usr/bin/cc      cc      /usr/bin/clang-11   110
-        sudo update-alternatives --install /usr/bin/c++     c++     /usr/bin/clang++-11 110
-      if: matrix.os == 'ubuntu-20.04' && matrix.compiler == 'clang++-11'
-
- - name: cmake
+        brew update
+        brew install tbb
+    - name: cmake
       run: |
         cd NWhy
         mkdir build
         cd build
         export TBBROOT=/opt/intel/oneapi/tbb/latest
-        cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_CXX_COMPILER=${{ matrix.compiler }} -DNW_HYPERGRAPH_BUILD_TEST=ON -DNW_HYPERGRAPH_BUILD_BENCH=ON -DNW_HYPERGRAPH_BUILD_TOOLS=ON
-
+        cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_CXX_COMPILER=g++-11 -DNW_GRAPH_BUILD_DOCS=OFF -DNW_GRAPH_BUILD_TESTS=ON
     - name: make
       run: |
         cd NWhy/build
         make -j -k
+    - name: run_test
+      run: |
+        cd NWhy/build/test/
+        make test
