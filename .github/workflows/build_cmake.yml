@@ -44,12 +44,12 @@ jobs:
         mkdir build
         cd build
         export TBBROOT=/opt/intel/oneapi/tbb/latest
-        cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_CXX_COMPILER=g++-11 -DNW_GRAPH_BUILD_TESTS=ON -DNW_HYPERGRAPH_BUILD_BENCH=ON -DNW_HYPERGRAPH_BUILD_TOOLS=ON
+        cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_CXX_COMPILER=g++-11 -DNW_HYPERGRAPH_BUILD_BENCH=ON -DNW_HYPERGRAPH_BUILD_TOOLS=ON -DNW_HYPERGRAPH_BUILD_TEST=ON
 
     - name: make
       run: |
         cd NWhy/build
-        make -j -k
+        make
 
     - name: run_test
       run: |
