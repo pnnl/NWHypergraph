@@ -5,7 +5,7 @@ include(FetchContent)
 
 FetchContent_Declare(
   nwgr
-  GIT_REPOSITORY https://github.com/NWmath/NWgr.git
+  GIT_REPOSITORY https://github.com/pnnl/NWGraph.git
   GIT_TAG master
 )
 
